@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dream Crafter αテスト</title>
+<style>
+:root{--bg:#0c1020;--panel:#171d34;--panel2:#202943;--line:#394466;--text:#eef3ff;--muted:#aab6d6;--accent:#b993ff;--accent2:#62d8ff;--danger:#ff6f85;--good:#72e6a1;--gold:#ffd66b}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;background:radial-gradient(circle at 50% -10%,#30245e 0,#10162b 40%,#080b15 100%)}
+button{font:inherit}.app{width:min(1180px,100%);margin:auto;padding:18px}.titlebar{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:14px}.titlebar h1{margin:0;font-size:clamp(22px,4vw,38px);letter-spacing:.04em}.subtitle{color:var(--muted);font-size:13px}.grid{display:grid;grid-template-columns:280px 1fr 300px;gap:14px}.panel{background:linear-gradient(180deg,rgba(33,41,71,.96),rgba(19,25,46,.96));border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 40px #0006;overflow:hidden}.panel h2{font-size:16px;margin:0;padding:14px 16px;border-bottom:1px solid var(--line);background:#ffffff08}.body{padding:14px}.stat{margin-bottom:14px}.statrow{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}.bar{height:13px;background:#080b14;border:1px solid #465171;border-radius:999px;overflow:hidden}.fill{height:100%;transition:width .25s}.hp{background:linear-gradient(90deg,#ff5773,#ff9a78)}.will{background:linear-gradient(90deg,#716cff,#63d1ff)}.enemy{background:linear-gradient(90deg,#ff8a53,#ff496d)}.resource{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}.chip{background:#0b1020;border:1px solid #394466;border-radius:12px;padding:10px;text-align:center}.chip b{font-size:20px;display:block}.actions{display:grid;gap:9px}.btn{border:1px solid #50608b;background:linear-gradient(180deg,#303d66,#202b4d);color:white;border-radius:12px;padding:11px 12px;cursor:pointer;transition:.15s}.btn:hover{transform:translateY(-1px);filter:brightness(1.12)}.btn:disabled{opacity:.42;cursor:not-allowed;transform:none}.btn.primary{border-color:#8d6ee6;background:linear-gradient(180deg,#7454c7,#503597)}.btn.danger{border-color:#bd5266;background:linear-gradient(180deg,#813c4d,#572633)}.btn.good{border-color:#4fae7b;background:linear-gradient(180deg,#327c59,#23543f)}
+.scene{min-height:250px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;background:radial-gradient(circle,#4c397a55 0,#18203b 58%,#101527 100%)}.dream-orb{width:108px;height:108px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#8ee6ff 15%,#9a6cff 43%,#251452 72%);box-shadow:0 0 38px #8f6effaa,0 0 90px #49cfff44;animation:float 3s ease-in-out infinite}@keyframes float{50%{transform:translateY(-8px)}}.scene h3{margin:20px 0 5px}.scene p{margin:0;color:var(--muted);max-width:480px}.tabs{display:flex;border-bottom:1px solid var(--line)}.tab{flex:1;padding:11px;border:0;color:var(--muted);background:#0d1325;cursor:pointer}.tab.active{background:#252e4d;color:#fff}.tabpage{display:none}.tabpage.active{display:block}
+.invhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.slots{display:grid;grid-template-columns:repeat(5,minmax(54px,1fr));gap:8px}.slot{aspect-ratio:1;border-radius:11px;border:1px solid #475479;background:#0b1020;display:flex;position:relative;align-items:center;justify-content:center;cursor:pointer;min-width:0}.slot:hover{border-color:#a985ff}.slot img{width:58%;height:58%;object-fit:contain;image-rendering:pixelated}.qty{position:absolute;right:5px;bottom:3px;font-size:12px;font-weight:700;text-shadow:0 1px 2px #000}.slot.locked{opacity:.2;background:repeating-linear-gradient(45deg,#0c1020,#0c1020 7px,#171d31 7px,#171d31 14px);cursor:default}.slot.equipped{outline:2px solid var(--gold);box-shadow:0 0 14px #ffd66b66}.tooltip{min-height:75px;margin-top:10px;padding:10px;border:1px solid #384363;background:#0b1020;border-radius:10px;color:var(--muted);font-size:13px}.recipe{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px;border:1px solid #3b4666;border-radius:13px;background:#0b1020}.itemmini{display:flex;align-items:center;gap:6px}.itemmini img{width:34px;height:34px;object-fit:contain;image-rendering:pixelated}.log{height:210px;overflow:auto;background:#080c17;border:1px solid #35405e;border-radius:11px;padding:9px;font-size:12px;line-height:1.55}.log div{border-bottom:1px solid #ffffff0c;padding:4px 0}.combat-card{padding:14px;border:1px solid #3d4868;background:#0b1020;border-radius:14px;text-align:center}.enemy-icon{font-size:54px;filter:drop-shadow(0 4px 9px #000)}.note{font-size:12px;color:var(--muted);line-height:1.6}.kbd{padding:2px 6px;border:1px solid #57627e;border-bottom-width:2px;border-radius:5px;background:#1e2741}.topbuttons{display:flex;gap:7px}.small{padding:7px 10px;font-size:12px}.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:#0d1528;border:1px solid #6374a5;border-radius:12px;padding:10px 16px;pointer-events:none;transition:.2s;box-shadow:0 8px 30px #0008}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.scene{min-height:210px}.slots{grid-template-columns:repeat(7,1fr)}}@media(max-width:560px){.app{padding:10px}.slots{grid-template-columns:repeat(5,1fr)}.titlebar{align-items:flex-start}.topbuttons{flex-direction:column}.grid{gap:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="titlebar">
+    <div><h1>Dream Crafter</h1><div class="subtitle">αテスト：探索 → 収集 → クラフト → 戦闘</div></div>
+    <div class="topbuttons"><button class="btn small" id="saveBtn">保存</button><button class="btn danger small" id="resetBtn">最初から</button></div>
+  </div>
+  <div class="grid">
+    <section class="panel">
+      <h2>プレイヤー</h2><div class="body">
+        <div class="stat"><div class="statrow"><span>HP</span><b id="hpText">100 / 100</b></div><div class="bar"><div class="fill hp" id="hpBar" style="width:100%"></div></div></div>
+        <div class="stat"><div class="statrow"><span>意志力</span><b id="willText">100 / 100</b></div><div class="bar"><div class="fill will" id="willBar" style="width:100%"></div></div></div>
+        <div class="resource"><div class="chip"><span>ジェム</span><b id="gems">0</b></div><div class="chip"><span>攻撃力</span><b id="attack">1</b></div></div>
+        <p class="note">素手の攻撃力は1です。木の枝または石のスピアを選択すると装備できます。</p>
+        <div class="actions">
+          <button class="btn primary" id="exploreBtn">夢を探索する（意志力10）</button>
+          <button class="btn" id="restBtn">休息する（意志力を30回復）</button>
+          <button class="btn good" id="expandBtn">容量を8枠へ拡張（20ジェム）</button>
+        </div>
+      </div>
+    </section>
+
+    <main class="panel">
+      <div class="tabs"><button class="tab active" data-tab="explore">探索</button><button class="tab" data-tab="craft">クラフト</button><button class="tab" data-tab="combat">戦闘</button></div>
+      <div class="tabpage active" id="explore">
+        <div class="scene"><div class="dream-orb"></div><h3 id="sceneTitle">静かな夢の入口</h3><p id="sceneText">意志力を消費して探索すると、木の枝・石・ジェムが見つかります。</p></div>
+      </div>
+      <div class="tabpage" id="craft"><div class="body"><h3>石のスピア</h3><div class="recipe"><span class="itemmini"><img src="assets/stick.png">木の枝 ×1</span><b>＋</b><span class="itemmini"><img src="assets/stone.png">石 ×1</span><b>→</b><span class="itemmini"><img src="assets/stone_spear.png">石のスピア ×1</span></div><br><button class="btn primary" id="craftBtn">クラフトする</button><p class="note">攻撃力10。クラフト素材はインベントリから消費されます。</p></div></div>
+      <div class="tabpage" id="combat"><div class="body"><div class="combat-card"><div class="enemy-icon">👁️</div><h3>夢の影</h3><div class="stat"><div class="statrow"><span>敵HP</span><b id="enemyText">40 / 40</b></div><div class="bar"><div class="fill enemy" id="enemyBar" style="width:100%"></div></div></div><button class="btn danger" id="attackBtn">攻撃する</button> <button class="btn" id="newEnemyBtn">敵を再出現</button><p class="note">敵は反撃してプレイヤーへ4ダメージを与えます。倒すとジェムを10個獲得します。</p></div></div></div>
+    </main>
+
+    <aside class="panel"><h2>不思議なインベントリ</h2><div class="body"><div class="invhead"><span id="capacityText">使用 0 / 7枠</span><span class="subtitle">最大20枠</span></div><div class="slots" id="slots"></div><div class="tooltip" id="tooltip">アイテムを選択すると詳細が表示されます。</div><h3>行動ログ</h3><div class="log" id="log"></div></div></aside>
+  </div>
+</div><div class="toast" id="toast"></div>
+<script>
+const ITEMS={
+ stick:{name:'木の枝',icon:'assets/stick.png',type:'素材・武器',attack:3,desc:'武器として使える木の枝。石のスピアの素材にもなる。'},
+ stone:{name:'石',icon:'assets/stone.png',type:'素材',attack:0,desc:'硬い石。石のスピアの素材。'},
+ spear:{name:'石のスピア',icon:'assets/stone_spear.png',type:'武器',attack:10,desc:'木の枝と石で作られたスピア。攻撃力10。'}
+};
+const fresh=()=>({hp:100,will:100,gems:0,capacity:7,items:[],equipped:null,enemyHp:40,log:[]});
+let s=load()||fresh();
+function load(){try{return JSON.parse(localStorage.getItem('dc_alpha_save'))}catch{return null}}
+function save(show=true){localStorage.setItem('dc_alpha_save',JSON.stringify(s));if(show)toast('進行状況を保存しました')}
+function stackCount(id){return s.items.filter(x=>x.id===id).reduce((a,x)=>a+x.qty,0)}
+function usedSlots(){return s.items.length}
+function addItem(id,qty=1){let stack=s.items.find(x=>x.id===id);if(stack){stack.qty+=qty;return true}if(usedSlots()>=s.capacity)return false;s.items.push({id,qty});return true}
+function removeItem(id,qty=1){let i=s.items.findIndex(x=>x.id===id);if(i<0||s.items[i].qty<qty)return false;s.items[i].qty-=qty;if(s.items[i].qty<=0){s.items.splice(i,1);if(s.equipped===id)s.equipped=null}return true}
+function addLog(t){s.log.unshift(t);s.log=s.log.slice(0,80)}
+function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1700)}
+function render(){
+ document.querySelector('#hpText').textContent=`${s.hp} / 100`;document.querySelector('#hpBar').style.width=s.hp+'%';
+ document.querySelector('#willText').textContent=`${s.will} / 100`;document.querySelector('#willBar').style.width=s.will+'%';
+ document.querySelector('#gems').textContent=s.gems;document.querySelector('#attack').textContent=s.equipped?ITEMS[s.equipped].attack:1;
+ document.querySelector('#enemyText').textContent=`${s.enemyHp} / 40`;document.querySelector('#enemyBar').style.width=Math.max(0,s.enemyHp/40*100)+'%';
+ document.querySelector('#capacityText').textContent=`使用 ${usedSlots()} / ${s.capacity}枠`;
+ const cost=expandCost();const btn=document.querySelector('#expandBtn');btn.textContent=s.capacity>=20?'容量は最大です':`容量を${s.capacity+1}枠へ拡張（${cost}ジェム）`;btn.disabled=s.capacity>=20||s.gems<cost;
+ document.querySelector('#exploreBtn').disabled=s.will<10;document.querySelector('#restBtn').disabled=s.will>=100;
+ document.querySelector('#craftBtn').disabled=stackCount('stick')<1||stackCount('stone')<1||(usedSlots()>=s.capacity&&!s.items.some(x=>x.id==='spear'));
+ document.querySelector('#attackBtn').disabled=s.enemyHp<=0||s.hp<=0;
+ const slots=document.querySelector('#slots');slots.innerHTML='';
+ for(let i=0;i<20;i++){const el=document.createElement('div');el.className='slot';if(i>=s.capacity){el.classList.add('locked')}else if(s.items[i]){const x=s.items[i];if(s.equipped===x.id)el.classList.add('equipped');el.innerHTML=`<img src="${ITEMS[x.id].icon}"><span class="qty">${x.qty}</span>`;el.onclick=()=>selectItem(x.id)}slots.appendChild(el)}
+ document.querySelector('#log').innerHTML=s.log.map(x=>`<div>${x}</div>`).join('')||'<div>テストを開始してください。</div>';
+ save(false)
+}
+function expandCost(){return 20+(s.capacity-7)*10}
+function selectItem(id){const x=ITEMS[id];document.querySelector('#tooltip').innerHTML=`<b>${x.name}</b><br>分類：${x.type}${x.attack?`／攻撃力：${x.attack}`:''}<br>${x.desc}`;if(x.attack){s.equipped=s.equipped===id?null:id;addLog(s.equipped?`${x.name}を装備した。`:`${x.name}を外した。`);render()}}
+function explore(){if(s.will<10)return;s.will-=10;const r=Math.random();let id=null,msg='';if(r<.42){id='stick';msg='木の枝を見つけた。'}else if(r<.78){id='stone';msg='石を見つけた。'}else{s.gems+=Math.random()<.25?8:5;msg='夢の中でジェムを見つけた。'}if(id&&!addItem(id)){msg=`${ITEMS[id].name}を見つけたが、インベントリが満杯だった。`}addLog(msg);document.querySelector('#sceneTitle').textContent=msg;document.querySelector('#sceneText').textContent=`残り意志力：${s.will}`;toast(msg);render()}
+function craft(){if(stackCount('stick')<1||stackCount('stone')<1)return toast('素材が足りません');if(!s.items.some(x=>x.id==='spear')&&usedSlots()>=s.capacity)return toast('インベントリが満杯です');removeItem('stick');removeItem('stone');addItem('spear');addLog('木の枝と石から、石のスピアを作成した。');toast('石のスピアを作成しました');render()}
+function attack(){if(s.enemyHp<=0||s.hp<=0)return;const atk=s.equipped?ITEMS[s.equipped].attack:1;s.enemyHp-=atk;addLog(`${s.equipped?ITEMS[s.equipped].name:'素手'}で夢の影へ${atk}ダメージ。`);if(s.enemyHp<=0){s.enemyHp=0;s.gems+=10;addLog('夢の影を倒し、10ジェムを獲得した。');toast('勝利！ 10ジェム獲得')}else{s.hp=Math.max(0,s.hp-4);addLog('夢の影の反撃。4ダメージを受けた。');if(s.hp===0)toast('倒れてしまいました')}render()}
+function newEnemy(){s.enemyHp=40;if(s.hp<=0)s.hp=100;addLog('新しい夢の影が現れた。');render()}
+document.querySelector('#exploreBtn').onclick=explore;document.querySelector('#restBtn').onclick=()=>{s.will=Math.min(100,s.will+30);addLog('休息して意志力を30回復した。');render()};document.querySelector('#expandBtn').onclick=()=>{const c=expandCost();if(s.capacity<20&&s.gems>=c){s.gems-=c;s.capacity++;addLog(`ジェムを${c}消費し、インベントリを${s.capacity}枠へ拡張した。`);toast(`${s.capacity}枠に拡張しました`);render()}};document.querySelector('#craftBtn').onclick=craft;document.querySelector('#attackBtn').onclick=attack;document.querySelector('#newEnemyBtn').onclick=newEnemy;document.querySelector('#saveBtn').onclick=()=>save(true);document.querySelector('#resetBtn').onclick=()=>{if(confirm('テストデータをすべてリセットしますか？')){s=fresh();localStorage.removeItem('dc_alpha_save');render()}};
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.tabpage').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelector('#'+b.dataset.tab).classList.add('active')});
+render();
+</script>
+</body></html>
