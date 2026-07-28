@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dream Crafter α4.2 UIリニューアル</title>
+<style>
+:root{
+  --bg:#090d19;--panel:#151c31;--panel2:#202a46;--line:#394767;
+  --text:#eef3ff;--muted:#aab6d6;--accent:#b993ff;--accent2:#62d8ff;
+  --danger:#ff6f85;--good:#72e6a1;--gold:#ffd66b;--shadow:#0008
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;
+  background:radial-gradient(circle at 50% -15%,#352661 0,#11172d 42%,#070a12 100%);
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:none
+}
+button,select,input{font:inherit}
+button{touch-action:manipulation}
+.app{width:min(1440px,100%);min-height:100dvh;margin:auto;padding:6px}
+.titlebar{height:40px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;padding:0 2px}
+.titlebar h1{margin:0;font-size:clamp(19px,2.2vw,27px);line-height:1;letter-spacing:.04em}
+.subtitle{font-size:10px;color:var(--muted)}
+.topbuttons{display:flex;gap:7px}
+.btn{
+  border:1px solid #50608b;background:linear-gradient(180deg,#303d66,#202b4d);color:#fff;
+  border-radius:10px;padding:9px 13px;cursor:pointer;transition:.15s;box-shadow:0 3px 8px #0003
+}
+.btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:none}
+.btn.primary{border-color:#8d6ee6;background:linear-gradient(180deg,#7557c9,#51369a)}
+.btn.danger{border-color:#bd5266;background:linear-gradient(180deg,#813c4d,#572633)}
+.btn.good{border-color:#4fae7b;background:linear-gradient(180deg,#327c59,#23543f)}
+.btn.small{padding:6px 10px;font-size:11px}
+.panel{
+  background:linear-gradient(180deg,rgba(32,41,71,.96),rgba(18,24,44,.97));border:1px solid var(--line);
+  border-radius:14px;box-shadow:0 10px 26px var(--shadow);overflow:hidden;min-width:0
+}
+.panel-title{padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px;font-weight:900;background:#ffffff08;letter-spacing:.02em}
+.body{padding:8px}
+.game-layout{
+  height:calc(100dvh - 58px);min-height:660px;display:grid;
+  grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:minmax(0,1fr) 210px;
+  grid-template-areas:"center right" "inventory right";gap:8px;align-items:stretch
+}
+.center-column{grid-area:center;min-width:0;min-height:0}
+.right-column{grid-area:right;display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;min-height:0}
+.inventory-panel{grid-area:inventory;min-height:0}
+.phase-stage{height:100%;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;padding:18px;overflow:hidden}
+.phase-stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,#50377b66 0,#18203b88 58%,#0d1325 100%);pointer-events:none}
+.stage-content{position:relative;z-index:1;width:min(820px,100%);max-height:100%;text-align:center;overflow:auto;padding:4px 6px}
+.stage-topline{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.phase-badge{display:inline-flex;padding:5px 11px;border:1px solid #53628d;border-radius:999px;background:#0b1020;color:#dce4ff;font-size:11px;font-weight:800}
+.turn-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid #445274;border-radius:999px;background:#0b1020;color:var(--muted);font-size:11px}
+.turn-pill b{color:#fff;font-size:14px}
+.dream-orb{width:74px;height:74px;border-radius:50%;margin:8px auto 14px;background:radial-gradient(circle at 38% 32%,#fff,#8ee6ff 15%,#9a6cff 43%,#251452 72%);box-shadow:0 0 42px #8f6effaa,0 0 100px #49cfff44;animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px)}}
+.stage-title{font-size:clamp(22px,3vw,34px);margin:0 0 9px}
+.stage-text{margin:0 auto 14px;max-width:690px;color:var(--muted);line-height:1.55;font-size:13px}
+.explore-controls{display:grid;grid-template-columns:minmax(190px,250px) minmax(220px,280px);justify-content:center;gap:12px;margin-top:14px}
+.select-wrap{display:flex;flex-direction:column;gap:7px;text-align:left}
+.select-wrap label{font-size:13px;color:var(--muted);font-weight:800}
+select,input[type=number]{width:100%;padding:10px 11px;border-radius:10px;border:1px solid #52618b;background:#0c1222;color:#fff}
+.explore-actions{display:grid;grid-template-columns:1fr;gap:8px}
+.explore-actions .btn{min-height:45px;font-weight:800}
+.explore-tool-box{margin:12px auto 0;max-width:540px;text-align:left}
+.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+.action-card{min-height:116px;padding:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.action-icon{font-size:34px;line-height:1}
+.action-card b{font-size:19px}
+.note{font-size:10px;color:var(--muted);line-height:1.35;margin:5px 0}
+.mode-panel{display:none}
+.mode-panel.active{display:block}
+
+/* 右側ステータス */
+.status-panel .body{padding:10px;display:grid;gap:9px}
+.status-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:5px;border-bottom:1px solid #ffffff12}
+.turn-number{font-size:11px;color:var(--muted)}
+.turn-number b{display:block;color:#fff;font-size:22px;line-height:1.1;margin-top:2px}
+.next-field{padding:7px 9px;border:1px solid #445274;border-radius:9px;background:#0b1020;text-align:right}
+.next-field .label{font-size:9px;color:var(--muted)}
+.next-field .name{font-weight:800;font-size:11px;margin-top:2px}
+.coming{display:inline-block;margin-top:2px;font-size:7px;color:var(--gold);border:1px solid #806d35;border-radius:999px;padding:1px 5px}
+.stat{margin:0}
+.statrow{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.bar{height:9px;background:#070b14;border:1px solid #445170;border-radius:999px;overflow:hidden}
+.fill{height:100%;transition:width .65s ease}
+.hp{background:linear-gradient(90deg,#ff5773,#ff9a78)}
+.will{background:linear-gradient(90deg,#716cff,#63d1ff)}
+.enemy{background:linear-gradient(90deg,#ff8a53,#ff496d)}
+.status-value{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:8px;padding:8px;border:1px solid #394466;border-radius:10px;background:#0b1020}
+.status-value .icon{font-size:23px;text-align:center}
+.status-value .label{display:block;color:var(--muted);font-size:10px}
+.status-value b{display:block;margin-top:1px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-effects{display:flex;gap:5px;flex-wrap:wrap;min-height:26px;align-items:center;padding:6px 8px;border:1px solid #394466;border-radius:10px;background:#0b1020}
+.status-effects .empty-status{font-size:11px;color:var(--muted)}
+.status-badge{display:inline-flex;padding:3px 7px;border-radius:999px;border:1px solid #8f4a58;background:#3a1820;color:#ff9dad;font-size:10px}
+.enemy-mini{padding:8px;border:1px solid #3d4968;border-radius:10px;background:#0b1020}
+.enemy-mini-head{display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-bottom:5px}
+.enemy-mini-head b{font-size:12px}
+.legacy-mini{display:none}
+
+/* アイテム詳細 */
+.detail-panel{min-height:0}
+.detail-panel .body{height:100%;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) 116px;gap:8px;padding:8px}
+.item-card{height:100%;min-height:0;display:flex;flex-direction:column;align-items:stretch;color:var(--muted);font-size:11px;text-align:left}
+.item-hero{text-align:center;flex:0 0 auto}
+.item-preview{width:160px;height:160px;object-fit:contain;image-rendering:pixelated;display:block;margin:0 auto 5px;filter:drop-shadow(0 10px 15px #0009)}
+.item-name{font-size:20px;color:var(--text);font-weight:900;text-align:center;margin:0 0 8px}
+.item-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:7px}
+.item-stat{padding:6px 4px;border:1px solid #3a4667;border-radius:8px;background:#0b1020;text-align:center;min-width:0}
+.item-stat span{display:block;font-size:8px;color:var(--muted);margin-bottom:2px}
+.item-stat b{display:block;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-desc{flex:1 1 auto;min-height:70px;line-height:1.45;white-space:pre-line;padding:9px;border:1px solid #36415f;border-radius:9px;background:#0b1020;overflow:auto;color:#c4cdec}
+.item-buttons{display:grid;grid-template-columns:1fr;gap:6px;margin-top:7px}
+.item-buttons .btn{padding:8px}
+.empty-card{height:100%;display:flex;align-items:center;justify-content:center;padding:20px;line-height:1.7;color:var(--muted);text-align:center;border:1px dashed #465373;border-radius:10px;background:#0b102088}
+.log{height:116px;overflow:auto;background:#080c17;border:1px solid #35405e;border-radius:10px;padding:7px;font-size:10px;line-height:1.45}
+.log::before{content:"行動ログ";position:sticky;top:-7px;display:block;padding:5px 2px;margin-bottom:3px;background:#080c17;color:#8f9abd;font-size:9px;font-weight:800}
+.log div{border-bottom:1px solid #ffffff0c;padding:3px 0}
+.sharpen-box{display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px}
+
+/* インベントリ */
+.inventory-panel .body{height:100%;padding:7px 10px;display:flex;flex-direction:column;justify-content:center}
+.inventory-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;margin-bottom:6px}
+.inventory-title{white-space:nowrap}
+.inventory-title b{font-size:13px}
+.inventory-filter{display:flex;justify-content:center;gap:4px;min-width:0}
+.filter-btn{border:1px solid #465477;background:#0b1020;color:#aab6d6;border-radius:999px;padding:4px 9px;font-size:10px;cursor:pointer}
+.filter-btn.active{color:#fff;border-color:#9b7cff;background:#4d367f;box-shadow:0 0 12px #9b7cff44}
+.inventory-tools{display:flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap}
+.inventory-pager{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:5px}
+.pager-btn{width:30px;height:25px;padding:0;border:1px solid #50608b;border-radius:8px;background:#202b4d;color:#fff;cursor:pointer}
+.pager-btn:disabled{opacity:.35;cursor:default}
+.page-text{min-width:52px;text-align:center;font-size:11px;font-weight:900;color:#dce4ff}
+.slots{display:grid;grid-template-columns:repeat(10,64px);grid-template-rows:repeat(2,64px);gap:6px;justify-content:center}
+.slot{width:64px;height:64px;border-radius:10px;border:1px solid #475479;background:#0b1020;display:flex;position:relative;align-items:center;justify-content:center;cursor:pointer;min-width:0;box-shadow:inset 0 0 0 1px #ffffff06}
+.slot:hover,.slot.selected{border-color:#a985ff;box-shadow:0 0 14px #a985ff66,inset 0 0 0 1px #c7b5ff44}
+.slot img{width:82%;height:82%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 5px 6px #0008)}
+.slot .slot-bonus{position:absolute;right:3px;top:3px;padding:2px 4px;border-radius:999px;background:#25153f;border:1px solid #a985ff;color:#fff;font-size:9px;font-weight:900}
+.slot.locked{opacity:.3;background:repeating-linear-gradient(45deg,#0c1020,#0c1020 7px,#171d31 7px,#171d31 14px);cursor:default}
+.slot.locked::after{content:"🔒";font-size:18px;filter:grayscale(1)}
+.slot.filter-empty{cursor:default;opacity:.55}
+
+/* クラフト */
+.craft-list{display:grid;gap:8px;max-height:min(48vh,420px);overflow:auto;padding:4px}
+.craft-entry{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 13px;border:1px solid #3b4666;border-radius:12px;background:#0b1020;text-align:left;color:#eef3ff;cursor:pointer;min-height:68px}
+.craft-entry.craftable{order:-1;border-color:#64dba0;background:linear-gradient(90deg,#17392d,#10231f);box-shadow:0 0 0 1px #64dba055 inset,0 0 20px #52d89a44;animation:craftGlow 1.8s ease-in-out infinite alternate}
+@keyframes craftGlow{to{box-shadow:0 0 0 1px #76efb377 inset,0 0 28px #52d89a66}}
+.craft-entry.craftable::before{content:'作成可能';display:inline-flex;align-items:center;justify-content:center;color:#9affc7;border:1px solid #55c98c;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;background:#123326}
+.craft-entry.unavailable{opacity:.58}
+.craft-entry.unavailable::before{content:'不足';display:inline-flex;align-items:center;justify-content:center;color:#97a1bd;border:1px solid #4b5674;border-radius:999px;padding:4px 8px;font-size:10px;background:#151c2e}
+.craft-entry.selected{border-color:#c3a9ff;box-shadow:0 0 0 2px #b993ff55 inset,0 0 20px #9b7cff44}
+.craft-materials{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.craft-materials img{width:34px;height:34px;object-fit:contain;image-rendering:pixelated}
+.craft-result{display:flex;align-items:center;gap:7px;font-weight:900;font-size:13px}
+.craft-result img{width:46px;height:46px;object-fit:contain;image-rendering:pixelated}
+#craftBtn{min-height:46px;font-size:15px;font-weight:900;box-shadow:0 0 18px #8d6ee644}
+.selection-summary{margin-top:8px;padding:8px;border:1px solid #49577c;border-radius:10px;background:#090e1b;text-align:left;font-size:12px;line-height:1.45}
+.selection-summary b{color:var(--gold)}
+.itemmini{display:flex;align-items:center;gap:6px}
+
+/* バトル */
+.combat-card{padding:12px;border:1px solid #3d4868;background:#0b1020;border-radius:14px;text-align:center}
+.battle-hand{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.battle-card{position:relative;min-height:126px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px}
+.battle-card img{width:52px;height:52px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 5px 7px #0008)}
+.battle-card .card-name{font-weight:900}
+.battle-card .card-effect{font-size:10px;color:var(--muted);line-height:1.25}
+.battle-card .card-cost{margin-top:auto;font-size:10px;color:var(--gold)}
+.battle-card .card-count{position:absolute;right:6px;top:6px;border:1px solid #56658d;border-radius:999px;padding:2px 6px;background:#090e1b;font-size:9px}
+.battle-card.selected{border-color:#b993ff;box-shadow:0 0 0 2px #b993ff55 inset,0 0 14px #9b7cff44}
+.battle-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.enemy-icon{font-size:40px;filter:drop-shadow(0 4px 8px #000)}
+.enemy-visual{position:relative;display:inline-block}
+.damage-float{position:absolute;left:50%;top:4px;z-index:8;transform:translate(-50%,0);font-size:28px;font-weight:900;color:#fff;text-shadow:0 2px 0 #8d1830,0 0 12px #ff496d;opacity:0;pointer-events:none}
+.damage-float.show{animation:damageRise .72s ease-out both}
+@keyframes damageRise{0%{opacity:0;transform:translate(-50%,10px) scale(.7)}20%{opacity:1;transform:translate(-50%,-3px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-34px) scale(1)}}
+.combat-card.hit{animation:enemyHit .24s ease}
+@keyframes enemyHit{25%{transform:translateX(-5px);filter:brightness(1.7)}65%{transform:translateX(5px)}100%{transform:none;filter:none}}
+.battle-message{height:18px;margin:4px 0;font-size:13px;font-weight:800;color:var(--gold)}
+
+/* 探索結果 */
+.get-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(5,8,16,.86);backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .25s;padding:20px}
+.get-overlay.show{opacity:1;pointer-events:auto}
+.get-card{width:min(520px,92%);padding:24px;border:1px solid #6d5aa0;border-radius:18px;background:linear-gradient(180deg,#202a48f2,#0e1428f7);box-shadow:0 20px 70px #000b,0 0 40px #9b7cff33;text-align:center;animation:getPop .45s ease both}
+@keyframes getPop{from{transform:scale(.65);opacity:0}to{transform:scale(1);opacity:1}}
+.get-spark{font-size:30px;letter-spacing:10px;animation:twinkle .8s ease-in-out infinite alternate}
+@keyframes twinkle{to{filter:brightness(1.6);transform:translateY(-4px)}}
+.get-title{font-size:28px;font-weight:900;margin:3px 0 10px;color:#fff}
+.get-image{width:132px;height:132px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 12px 18px #000);margin:3px auto}
+.get-icon{font-size:92px;line-height:1;margin:5px 0}
+.get-name{font-size:22px;font-weight:900}
+.get-results{display:grid;gap:7px;margin-top:8px;text-align:left}
+.get-result-row{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:7px 10px;border:1px solid #465477;border-radius:10px;background:#0b1020}
+.get-result-row img{width:38px;height:38px;object-fit:contain;image-rendering:pixelated}
+.get-result-row .gem-result{font-size:27px;text-align:center}
+.get-result-row b{font-size:15px}
+.get-result-row strong{font-size:17px;color:var(--gold)}
+.get-message{font-size:12px;color:var(--muted);margin-top:10px}
+
+.rarity-common{color:#d7dbe8}.rarity-uncommon{color:#72e6a1}.rarity-rare{color:#62d8ff}.rarity-epic{color:#c28cff}
+.toast{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;background:#0d1528;border:1px solid #6374a5;border-radius:12px;padding:10px 16px;pointer-events:none;transition:.2s;box-shadow:0 8px 30px #0008;z-index:30;max-width:min(90vw,520px);text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media(max-width:1050px){
+  .game-layout{grid-template-columns:minmax(0,1fr) 270px;grid-template-rows:minmax(0,1fr) 198px}
+  .slots{grid-template-columns:repeat(10,58px);grid-template-rows:repeat(2,58px);gap:5px}.slot{width:58px;height:58px}
+  .item-preview{width:145px;height:145px}.stage-content{width:min(720px,100%)}
+  .inventory-header{gap:6px}.filter-btn{padding:4px 7px}
+}
+@media(max-width:820px){
+  body{overflow:auto}.app{min-height:auto}
+  .game-layout{height:auto;min-height:0;display:flex;flex-direction:column}
+  .center-column{height:620px;order:1}.inventory-panel{order:2;min-height:190px}.right-column{order:3;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:none;min-height:520px}
+  .slots{grid-template-columns:repeat(10,minmax(42px,1fr));grid-template-rows:repeat(2,minmax(42px,1fr));gap:5px}.slot{width:auto;height:auto;aspect-ratio:1}
+  .inventory-header{grid-template-columns:1fr auto;grid-template-areas:'title tools' 'filter filter'}.inventory-title{grid-area:title}.inventory-filter{grid-area:filter}.inventory-tools{grid-area:tools}
+}
+@media(max-width:620px){
+  .titlebar .subtitle{display:none}.game-layout{gap:6px}.center-column{height:auto;min-height:590px}.phase-stage{padding:10px}.stage-content{overflow:visible}
+  .right-column{display:flex;flex-direction:column;min-height:0}.status-panel{order:1}.detail-panel{order:2;min-height:600px}
+  .explore-controls{grid-template-columns:1fr}.action-grid{grid-template-columns:1fr}.action-card{min-height:82px}.battle-hand{grid-template-columns:1fr}.battle-card{min-height:110px}
+  .inventory-panel{min-height:0}.inventory-panel .body{padding:8px 5px}.inventory-header{display:flex;flex-direction:column;align-items:stretch}.inventory-tools{justify-content:space-between}.inventory-filter{overflow:auto;justify-content:flex-start;padding-bottom:2px}
+  .slots{grid-template-columns:repeat(5,minmax(48px,1fr));grid-template-rows:repeat(4,minmax(48px,1fr));gap:5px}.slot{aspect-ratio:1}
+  .craft-entry{grid-template-columns:auto minmax(0,1fr)}.craft-result{grid-column:2}.get-card{padding:16px}
+}
+</style>
+<body>
+<div class="app">
+  <header class="titlebar">
+    <div>
+      <h1>Dream Crafter</h1>
+      <div class="subtitle">α4.2テスト：ゲーム画面優先UI・大型インベントリ・探索結果一覧</div>
+    </div>
+    <div class="topbuttons">
+      <button class="btn small" id="saveBtn">保存</button>
+      <button class="btn danger small" id="resetBtn">最初から</button>
+    </div>
+  </header>
+
+  <div class="game-layout">
+    <main class="panel center-column">
+      <div class="phase-stage" id="phaseStage">
+        <div class="stage-content">
+          <div class="stage-topline">
+            <div class="phase-badge" id="phaseBadge">探索フェーズ</div>
+            <div class="turn-pill">経過ターン <b id="stageTurnText">0</b></div>
+          </div>
+
+          <section class="mode-panel active" id="explorePanel">
+            <div class="dream-orb"></div>
+            <h2 class="stage-title">静かな夢の入口</h2>
+            <p class="stage-text">使用する意志力を選び、夢の中を探索します。多く使うほど獲得数が増え、珍しい素材やジェムも見つかりやすくなります。</p>
+            <div class="explore-controls">
+              <div class="select-wrap">
+                <label for="exploreCost">探索に使う意志力（1〜100）</label>
+                <input id="exploreCost" type="number" min="1" max="100" step="1" value="10" inputmode="numeric">
+                <div class="note">多く使うほど獲得数と希少品の確率が上がります。</div>
+              </div>
+              <div class="explore-actions">
+                <button class="btn primary" id="exploreBtn">夢を探索する</button>
+                <button class="btn" id="skipExploreBtn">探索しない</button>
+              </div>
+            </div>
+            <div class="explore-tool-box select-wrap">
+              <label for="exploreTool">探索へ持っていくツール（1個）</label>
+              <select id="exploreTool"><option value="">なし</option></select>
+              <div class="note" id="exploreToolHint">ツールを選ぶと対応カテゴリが出やすくなり、上位ツールほど希少品も狙いやすくなります。</div>
+            </div>
+          </section>
+
+          <section class="mode-panel" id="actionPanel">
+            <h2 class="stage-title">次の行動を選んでください</h2>
+            <p class="stage-text">今回行えるのは、バトル・クラフト・トレードのうち1つだけです。</p>
+            <div class="action-grid">
+              <button class="btn danger action-card" data-action="combat"><span class="action-icon">⚔️</span><b>バトル</b><span class="subtitle">夢の影と戦う</span></button>
+              <button class="btn primary action-card" data-action="craft"><span class="action-icon">🔨</span><b>クラフト</b><span class="subtitle">素材から道具を作る</span></button>
+              <button class="btn good action-card" data-action="trade"><span class="action-icon">🤝</span><b>トレード</b><span class="subtitle">夢の商人と取引する</span></button>
+            </div>
+          </section>
+
+          <section class="mode-panel" id="craftPanel">
+            <h2 class="stage-title">🔨 クラフト</h2>
+            <p class="stage-text">作成可能なレシピが最上部で発光します。作りたいレシピを選択してください。</p>
+            <div class="craft-list" id="craftList"></div>
+            <div class="selection-summary" id="craftSummary"></div>
+            <div class="action-grid" style="grid-template-columns:1fr 1fr;margin-top:9px">
+              <button class="btn primary" id="craftBtn">クラフトする</button>
+              <button class="btn" id="skipCraftBtn">何も作らず終える</button>
+            </div>
+          </section>
+
+          <section class="mode-panel" id="combatPanel">
+            <div class="combat-card">
+              <div class="enemy-visual"><div class="enemy-icon">👁️</div><div class="damage-float" id="enemyDamageFloat"></div></div>
+              <div class="battle-message" id="battleMessage">使用するカードを選んでください</div>
+              <h2>夢の影</h2>
+              <div class="stat"><div class="statrow"><span>敵HP</span><b id="enemyText">40 / 40</b></div><div class="bar"><div class="fill enemy" id="enemyBar" style="width:100%"></div></div></div>
+              <p class="note">先に使用するカードをすべて選び、「対戦開始」で一括解決します。両手武器は1枚だけ、石は所持数と意志力の範囲で複数選べます。</p>
+              <div class="battle-hand" id="battleHand"></div>
+              <div class="selection-summary" id="battleSelectionSummary"></div>
+              <div class="battle-controls"><button class="btn danger" id="startBattleBtn">対戦開始</button><button class="btn" id="fleeBtn">何もせず終了</button></div>
+            </div>
+          </section>
+
+          <section class="mode-panel" id="tradePanel">
+            <div class="combat-card">
+              <div class="enemy-icon">🤝</div>
+              <h2>夢の商人</h2>
+              <p class="stage-text">トレード内容は今後追加予定です。現在はフェーズ進行だけを試せます。</p>
+              <button class="btn good" id="finishTradeBtn">トレードを終える</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="get-overlay" id="getOverlay">
+          <div class="get-card">
+            <div class="get-spark">✨ ✨ ✨</div>
+            <div class="get-title">探索成功！</div>
+            <img class="get-image" id="getImage" alt="" hidden>
+            <div class="get-icon" id="getIcon" hidden>💎</div>
+            <div class="get-name" id="getName"></div>
+            <div class="get-results" id="getResults"></div>
+            <div class="get-message" id="getMessage">獲得したものをインベントリへ追加しました</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="right-column">
+      <section class="panel status-panel">
+        <div class="panel-title">プレイヤーステータス</div>
+        <div class="body">
+          <div class="status-head">
+            <div class="turn-number">経過ターン<b id="turnText">0</b></div>
+            <div class="next-field"><div class="label">次のフィールド</div><div class="name">🌲 深い夢の森</div><span class="coming">COMING SOON</span></div>
+          </div>
+          <div class="stat"><div class="statrow"><span>HP</span><b id="hpText">100 / 100</b></div><div class="bar"><div class="fill hp" id="hpBar" style="width:100%"></div></div></div>
+          <div class="stat"><div class="statrow"><span>意志力</span><b id="willText">100 / 100</b></div><div class="bar"><div class="fill will" id="willBar" style="width:100%"></div></div></div>
+          <div class="status-value"><div class="icon">💎</div><div><span class="label">ジェム</span><b id="gems">0</b></div></div>
+          <div class="status-value"><div class="icon">🧭</div><div><span class="label">探索ツール</span><b id="statusExploreTool">なし</b></div></div>
+          <div>
+            <div class="subtitle" style="margin:0 0 4px 2px">状態異常</div>
+            <div class="status-effects" id="playerStatusEffects"><span class="empty-status">異常なし</span></div>
+          </div>
+          <div class="enemy-mini">
+            <div class="enemy-mini-head"><span>👁️ 夢の影</span><b id="miniEnemyText">40</b></div>
+            <div class="bar"><div class="fill enemy" id="miniEnemyBar" style="width:100%"></div></div>
+            <div class="note">状態：<span id="enemyState">待機中</span></div>
+          </div>
+          <div class="legacy-mini">
+            <span id="miniHpText">100</span><span id="miniWillText">100</span>
+            <div id="miniHpBar"></div><div id="miniWillBar"></div><span id="cardCount">0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel detail-panel">
+        <div class="panel-title">アイテム詳細</div>
+        <div class="body">
+          <div class="item-card" id="itemCard"><div class="empty-card">下のインベントリからアイテムをタップすると、ここに拡大画像と説明が表示されます。</div></div>
+          <div class="log" id="log"></div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="panel inventory-panel">
+      <div class="body">
+        <div class="inventory-header">
+          <div class="inventory-title"><b>不思議なインベントリ</b><div class="subtitle" id="capacityText">使用 0 / 7枠</div></div>
+          <div class="inventory-filter" id="inventoryFilter">
+            <button class="filter-btn active" data-filter="all">すべて</button>
+            <button class="filter-btn" data-filter="weapon">武器</button>
+            <button class="filter-btn" data-filter="material">素材</button>
+            <button class="filter-btn" data-filter="tool">探索道具</button>
+            <button class="filter-btn" data-filter="other">その他</button>
+          </div>
+          <div class="inventory-tools"><button class="btn good small" id="expandBtn">容量を8枠へ拡張</button></div>
+        </div>
+        <div class="inventory-pager">
+          <button class="pager-btn" id="inventoryPrev" aria-label="前のページ">◀</button>
+          <div class="page-text" id="inventoryPageText">1 / 1</div>
+          <button class="pager-btn" id="inventoryNext" aria-label="次のページ">▶</button>
+        </div>
+        <div class="slots" id="slots"></div>
+      </div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const SAVE_KEY='dc_alpha4_save';
+const RARITY={common:'コモン',uncommon:'アンコモン',rare:'レア',epic:'エピック'};
+const ITEMS={
+  stick:{name:'木の枝',icon:'/dream/stick.png?v=5',type:'素材・両手武器カード',rarity:'common',hand:'twoHanded',damage:3,willCost:5,consumable:false,desc:'そこら辺に落ちていた木の枝。\n一応、攻撃にも使える。\n小学生なら最強装備。'},
+  stone:{name:'石',icon:'/dream/stone.png?v=5',type:'素材・投擲カード',rarity:'common',hand:'free',damage:2,willCost:3,consumable:true,desc:'平凡な石。\nそれ以下でも、それ以上でもない。\n\nバトルでは2ダメージを与え、使用後に消滅する。'},
+  whetstone:{name:'砥石',icon:'/dream/whetstone.png?v=1',type:'素材・強化アイテム',rarity:'common',damage:0,willCost:0,consumable:true,desc:'石を加工して作った簡素な砥石。\n意志力を3消費して武器1個の攻撃力を2上げる。使用後は消滅する。'},
+  spear:{name:'石のスピア',icon:'/dream/stone_spear.png?v=5',type:'両手武器カード',rarity:'uncommon',hand:'twoHanded',damage:10,willCost:10,consumable:false,exploreTool:true,exploreTier:1,exploreCategory:'monster',desc:'石と木の枝をくくり付けただけの簡素な武器。\n探索へ持っていくと、将来モンスター素材が出やすくなる。'},
+  stone_hoe:{name:'石のクワ',icon:'/dream/stone_hoe.png?v=1',type:'両手武器・探索道具',rarity:'uncommon',hand:'twoHanded',damage:5,willCost:10,consumable:false,exploreTool:true,exploreTier:1,exploreCategory:'ground',desc:'砥石と木の枝から作る石のクワ。\n探索へ持っていくと、地面系素材が出やすくなる。'},
+  stone_axe:{name:'石の斧',icon:'/dream/stone_axe.png?v=1',type:'両手武器・探索道具',rarity:'uncommon',hand:'twoHanded',damage:12,willCost:20,consumable:false,exploreTool:true,exploreTier:1,exploreCategory:'wood',desc:'木の枝と石2個から作る石の斧。\n探索へ持っていくと、木材系素材が出やすくなる。'},
+  iron:{name:'鉄インゴット',icon:'/dream/iron.png?v=1',type:'素材',rarity:'uncommon',damage:0,willCost:0,consumable:false,desc:'加工された鉄のインゴット。\n石の道具を鉄製へ強化するために使う。'},
+  iron_spear:{name:'鉄の槍',icon:'/dream/iron_spear.png?v=1',type:'両手武器カード',rarity:'rare',hand:'twoHanded',damage:15,willCost:10,consumable:false,exploreTool:true,exploreTier:2,exploreCategory:'monster',desc:'石のスピアを鉄で強化した槍。\n探索へ持っていくと、将来モンスター素材が出やすくなる。'},
+  iron_axe:{name:'鉄の斧',icon:'/dream/iron_axe.png?v=1',type:'両手武器・探索道具',rarity:'rare',hand:'twoHanded',damage:20,willCost:30,consumable:false,exploreTool:true,exploreTier:2,exploreCategory:'wood',desc:'石の斧を鉄で強化した大型の斧。\n探索へ持っていくと、木材系素材が出やすくなる。'},
+  iron_scythe:{name:'鉄の大鎌',icon:'/dream/iron_scythe.png?v=1',type:'両手武器カード',rarity:'rare',hand:'twoHanded',damage:10,willCost:10,consumable:false,statusEffects:{bleed:{chance:.4,phases:4}},desc:'石のクワを鉄3個で大鎌へ作り替えた武器。\n攻撃時40%の確率で出血を4フェイズ付与する。'},
+  iron_pickaxe:{name:'鉄のツルハシ',icon:'/dream/iron_pickaxe.png?v=1',type:'両手武器・探索道具',rarity:'rare',hand:'twoHanded',damage:10,willCost:10,consumable:false,exploreTool:true,exploreTier:2,exploreCategory:'stone',desc:'石のクワを鉄2個でツルハシへ作り替えた道具。\n探索へ持っていくと、鉱石・石系素材が出やすくなる。'}
+};
+const RECIPES=[
+  {id:'whetstone',name:'砥石',result:'whetstone',materials:{stone:1},will:5},
+  {id:'spear',name:'石のスピア',result:'spear',materials:{stick:1,stone:1},will:10},
+  {id:'stone_hoe',name:'石のクワ',result:'stone_hoe',materials:{whetstone:1,stick:1},will:10},
+  {id:'stone_axe',name:'石の斧',result:'stone_axe',materials:{stick:1,stone:2},will:10},
+  {id:'iron_spear',name:'鉄の槍',result:'iron_spear',materials:{iron:1,spear:1},will:20},
+  {id:'iron_axe',name:'鉄の斧',result:'iron_axe',materials:{iron:2,stone_axe:1},will:20},
+  {id:'iron_scythe',name:'鉄の大鎌',result:'iron_scythe',materials:{iron:3,stone_hoe:1},will:20},
+  {id:'iron_pickaxe',name:'鉄のツルハシ',result:'iron_pickaxe',materials:{iron:2,stone_hoe:1},will:20}
+];
+const EXPLORE_CATEGORY_LABELS={stone:'石・鉱石系',wood:'木材系',ground:'地面系',monster:'モンスタードロップ系'};
+const EXPLORE_TOOL_IDS=['spear','stone_hoe','stone_axe','iron_axe','iron_pickaxe'];
+const INVENTORY_PAGE_SIZE=20;
+let inventoryPage=0,inventoryFilter='all';
+const uid=()=>`${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`;
+function fresh(){return{version:6,hp:100,will:100,gems:0,capacity:7,items:[],selectedUid:null,enemyHp:40,enemyStatuses:{bleed:0},phase:'explore',turn:0,log:[],battleSelection:{weapon:null,stones:0},selectedRecipe:'whetstone',exploreToolUid:null}}
+function migrate(raw){
+  const n=fresh();if(!raw||typeof raw!=='object')return n;
+  for(const k of ['hp','will','gems','capacity','enemyHp','turn'])if(Number.isFinite(raw[k]))n[k]=raw[k];
+  n.hp=Math.max(0,Math.min(100,n.hp));n.will=Math.max(0,Math.min(100,n.will));n.capacity=Math.max(7,Math.min(20,n.capacity));n.enemyHp=Math.max(0,Math.min(40,n.enemyHp));
+  n.log=Array.isArray(raw.log)?raw.log.slice(0,100):[];
+  if(Array.isArray(raw.items))for(const old of raw.items){if(!old||!ITEMS[old.id]||n.items.length>=n.capacity)continue;n.items.push({uid:old.uid||uid(),id:old.id,bonusDamage:Math.max(0,Number(old.bonusDamage)||0)})}
+  n.phase=['explore','action','craft','combat','trade'].includes(raw.phase)?raw.phase:'explore';
+  n.selectedRecipe=RECIPES.some(r=>r.id===raw.selectedRecipe)?raw.selectedRecipe:'whetstone';
+  n.enemyStatuses={bleed:Math.max(0,Math.floor(raw.enemyStatuses?.bleed||0))};
+  n.exploreToolUid=n.items.some(x=>x.uid===raw.exploreToolUid)?raw.exploreToolUid:null;
+  return n;
+}
+function load(){try{return migrate(JSON.parse(localStorage.getItem(SAVE_KEY)))}catch{return fresh()}}
+let s=load(),getTimer=null,battleAnimating=false;
+const qs=x=>document.querySelector(x);
+function save(show=false){localStorage.setItem(SAVE_KEY,JSON.stringify(s));if(show)toast('進行状況を保存しました')}
+function toast(text){const el=qs('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),1900)}
+function addLog(text){s.log.unshift(text);s.log=s.log.slice(0,100)}
+const usedSlots=()=>s.items.length;
+const itemCount=id=>s.items.filter(x=>x.id===id).length;
+const getItemByUid=id=>s.items.find(x=>x.uid===id)||null;
+const itemDamage=item=>ITEMS[item.id].damage+(item.bonusDamage||0);
+function addItem(id){if(!ITEMS[id]||usedSlots()>=s.capacity)return false;s.items.push({uid:uid(),id,bonusDamage:0});return true}
+function removeItemUid(id){const i=s.items.findIndex(x=>x.uid===id);if(i<0)return false;const [removed]=s.items.splice(i,1);if(s.selectedUid===removed.uid)s.selectedUid=null;if(s.exploreToolUid===removed.uid)s.exploreToolUid=null;return true}
+function removeOneById(id){const x=s.items.find(v=>v.id===id);return x?removeItemUid(x.uid):false}
+function expandCost(){return 20+(s.capacity-7)*10}
+function setPanel(name){document.querySelectorAll('.mode-panel').forEach(x=>x.classList.remove('active'));qs(`#${name}Panel`).classList.add('active')}
+function phaseName(){return{explore:'探索フェーズ',action:'行動選択フェーズ',craft:'クラフトフェーズ',combat:'バトルフェーズ',trade:'トレードフェーズ'}[s.phase]||'探索フェーズ'}
+function showGet(result){
+  const o=qs('#getOverlay'),img=qs('#getImage'),icon=qs('#getIcon'),name=qs('#getName'),list=qs('#getResults');
+  const results=Array.isArray(result.results)&&result.results.length?result.results:[{name:result.name||'発見',amount:1,icon:result.icon||null,gems:!result.icon}];
+  const single=results.length===1;
+  name.textContent=single?`${results[0].name}${results[0].amount>1?` ×${results[0].amount}`:''}`:'';
+  name.hidden=!single;
+  if(single){
+    const r=results[0];
+    if(r.icon){img.src=r.icon;img.alt=r.name;img.hidden=false;icon.hidden=true}else{img.hidden=true;icon.hidden=false;icon.textContent='💎'}
+    list.innerHTML='';
+  }else{
+    img.hidden=true;icon.hidden=true;
+    list.innerHTML=results.map(r=>`<div class="get-result-row">${r.icon?`<img src="${r.icon}" alt="${r.name}">`:'<div class="gem-result">💎</div>'}<b>${r.name}</b><strong>×${r.amount}</strong></div>`).join('');
+  }
+  o.classList.add('show');clearTimeout(getTimer);
+  const duration=Math.min(4300,2200+results.length*380);
+  getTimer=setTimeout(()=>{o.classList.remove('show');s.phase='action';setPanel('action');render()},duration)
+}
+function weightedPick(entries){let total=entries.reduce((a,e)=>a+e.w,0),r=Math.random()*total;for(const e of entries){r-=e.w;if(r<=0)return e}return entries.at(-1)}
+function normalizedExploreCost(){const el=qs('#exploreCost');let v=Math.floor(Number(el.value)||1);v=Math.max(1,Math.min(100,v));el.value=v;return v}
+function weightedPick(entries){let total=entries.reduce((a,x)=>a+x.weight,0),r=Math.random()*total;for(const x of entries){r-=x.weight;if(r<=0)return x}return entries[entries.length-1]}
+function explore(){
+  if(s.phase!=='explore')return;
+  const cost=normalizedExploreCost();
+  if(s.will<cost)return toast('意志力が足りません');
+  if(usedSlots()>=s.capacity)return toast('インベントリが満杯です。「探索しない」で先へ進めます');
+  const tool=getItemByUid(s.exploreToolUid);const data=tool?ITEMS[tool.id]:null;
+  const category=data?.exploreCategory||null;const tier=data?.exploreTier||0;
+  s.will-=cost;
+  const desired=Math.max(1,Math.ceil(cost/15));
+  const free=s.capacity-usedSlots();const count=Math.min(desired,free);
+  const rareBoost=Math.min(.38,cost*.0025+tier*.10);
+  const found=[];
+  for(let i=0;i<count;i++){
+    let pool;
+    if(category==='stone')pool=[{id:'stone',weight:70-rareBoost*70},{id:'iron',weight:15+rareBoost*100},{gems:true,weight:15+rareBoost*25}];
+    else if(category==='wood')pool=[{id:'stick',weight:82-rareBoost*35},{gems:true,weight:18+rareBoost*35}];
+    else if(category==='ground')pool=[{id:'stone',weight:74-rareBoost*30},{gems:true,weight:26+rareBoost*30}];
+    else if(category==='monster')pool=[{id:'stone',weight:68-rareBoost*25},{gems:true,weight:32+rareBoost*25}];
+    else pool=[{id:'stick',weight:42},{id:'stone',weight:43},{id:'iron',weight:Math.max(3,rareBoost*30)},{gems:true,weight:12+rareBoost*20}];
+    const pick=weightedPick(pool);
+    if(pick.gems){const amount=2+Math.floor(cost/12)+tier*2+Math.floor(Math.random()*4);s.gems+=amount;found.push({key:'gems',name:'ジェム',amount,icon:null,gems:true})}
+    else if(addItem(pick.id))found.push({key:pick.id,name:ITEMS[pick.id].name,amount:1,icon:ITEMS[pick.id].icon,gems:false});
+  }
+  const grouped=[];
+  for(const entry of found){const old=grouped.find(x=>x.key===entry.key);if(old)old.amount+=entry.amount;else grouped.push({...entry})}
+  const toolText=data?`${data.name}を使用。`:'';
+  addLog(`${toolText}探索で${grouped.map(x=>`${x.name} ×${x.amount}`).join('、')}を獲得した。`);
+  render();save(false);showGet({results:grouped});
+}
+function beginAction(type){if(s.phase!=='action')return;s.phase=type;if(type==='combat'){s.battleSelection={weapon:null,stones:0};addLog('夢の影とのバトルを選んだ。')}else if(type==='craft')addLog('クラフトを選んだ。');else addLog('トレードを選んだ。');setPanel(type);render();save()}
+function tickStatuses(){
+  if(s.enemyStatuses.bleed>0&&s.enemyHp>0){const dmg=Math.max(1,Math.floor(40*.05));s.enemyHp=Math.max(0,s.enemyHp-dmg);s.enemyStatuses.bleed--;addLog(`出血により夢の影へ${dmg}ダメージ。残り${s.enemyStatuses.bleed}フェイズ。`);if(s.enemyHp<=0){s.gems+=10;addLog('出血で夢の影を倒し、10ジェムを獲得した。');s.enemyHp=40;s.enemyStatuses.bleed=0}}
+}
+function recoverAfterPhase(label){tickStatuses();const before=s.will;s.will=Math.min(100,s.will+20);s.turn++;s.phase='explore';s.battleSelection={weapon:null,stones:0};addLog(`${label}が終了した。意志力を${s.will-before}回復した。`);setPanel('explore');toast(`ターン${s.turn}へ。意志力が${s.will-before}回復しました`);render();save()}
+function canCraft(r){return s.will>=r.will&&Object.entries(r.materials).every(([id,n])=>itemCount(id)>=n)&&usedSlots()-Object.values(r.materials).reduce((a,b)=>a+b,0)+1<=s.capacity}
+function craft(){const r=RECIPES.find(x=>x.id===s.selectedRecipe);if(!r||s.phase!=='craft')return;if(!canCraft(r))return toast('素材・意志力・空き容量を確認してください');s.will-=r.will;for(const [id,n] of Object.entries(r.materials))for(let i=0;i<n;i++)removeOneById(id);addItem(r.result);addLog(`${ITEMS[r.result].name}をクラフトした。意志力${r.will}消費。`);toast(`${ITEMS[r.result].name}を作成しました`);recoverAfterPhase('クラフトフェーズ')}
+function sharpenWeapon(targetUid){if(s.will<3)return toast('意志力が足りません');const whet=getItemByUid(s.selectedUid),target=getItemByUid(targetUid);if(!whet||whet.id!=='whetstone'||!target||!ITEMS[target.id].hand)return toast('強化対象を選べません');s.will-=3;target.bonusDamage=(target.bonusDamage||0)+2;removeItemUid(whet.uid);s.selectedUid=target.uid;addLog(`砥石を使い、${ITEMS[target.id].name}の攻撃力を2上げた。`);toast('攻撃力が2上がりました');render();save()}
+function selectedWeaponItem(){return getItemByUid(s.battleSelection.weapon)}
+function selectedBattleCost(){const w=selectedWeaponItem();return(w?ITEMS[w.id].willCost:0)+s.battleSelection.stones*ITEMS.stone.willCost}
+function toggleBattleCard(key){if(s.phase!=='combat')return;if(key==='stone'){if(s.battleSelection.stones<itemCount('stone')){if(selectedBattleCost()+ITEMS.stone.willCost>s.will)return toast('合計意志力が足りません');s.battleSelection.stones++}else s.battleSelection.stones=0}else{const item=getItemByUid(key);if(!item)return;if(s.battleSelection.weapon===key)s.battleSelection.weapon=null;else{const stoneCost=s.battleSelection.stones*ITEMS.stone.willCost;if(stoneCost+ITEMS[item.id].willCost>s.will)return toast('合計意志力が足りません');s.battleSelection.weapon=key}}render()}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function showEnemyDamage(amount,label){const f=qs('#enemyDamageFloat'),c=qs('#combatPanel .combat-card'),m=qs('#battleMessage');if(m)m.textContent=label;if(f){f.textContent=`-${amount}`;f.classList.remove('show');void f.offsetWidth;f.classList.add('show')}if(c){c.classList.remove('hit');void c.offsetWidth;c.classList.add('hit')}}
+function applyAttackStatus(item){const bleed=ITEMS[item.id].statusEffects?.bleed;if(bleed&&Math.random()<bleed.chance){s.enemyStatuses.bleed=Math.max(s.enemyStatuses.bleed,bleed.phases);addLog(`${ITEMS[item.id].name}が出血を${bleed.phases}フェイズ付与した。`);qs('#battleMessage').textContent=`出血 ${bleed.phases}フェイズ！`}}
+async function resolveBattle(){
+  if(s.phase!=='combat'||battleAnimating)return;const weapon=selectedWeaponItem(),stones=Math.min(s.battleSelection.stones,itemCount('stone'));if(!weapon&&!stones)return toast('カードを選んでください');const cost=selectedBattleCost();if(cost>s.will)return toast('意志力が足りません');
+  battleAnimating=true;s.will-=cost;s.battleSelection={weapon:null,stones:0};render();let total=0;const attacks=[];if(weapon)attacks.push(weapon);for(let i=0;i<stones;i++)attacks.push({uid:null,id:'stone',bonusDamage:0});
+  for(const a of attacks){if(s.enemyHp<=0)break;const d=itemDamage(a);if(a.id==='stone')removeOneById('stone');showEnemyDamage(d,`${ITEMS[a.id].name}！ ${d}ダメージ`);await sleep(260);s.enemyHp=Math.max(0,s.enemyHp-d);total+=d;addLog(`${ITEMS[a.id].name}で${d}ダメージ。`);if(a.id!=='stone')applyAttackStatus(a);render();await sleep(700)}
+  if(s.enemyHp<=0){s.gems+=10;addLog('夢の影を倒し、10ジェムを獲得した。');qs('#battleMessage').textContent='夢の影を撃破！';render();await sleep(900);s.enemyHp=40;s.enemyStatuses.bleed=0}else{qs('#battleMessage').textContent=`合計${total}ダメージ。夢の影が反撃！`;await sleep(550);s.hp=Math.max(0,s.hp-4);addLog('夢の影の反撃で4ダメージを受けた。');render();await sleep(650)}
+  battleAnimating=false;recoverAfterPhase('バトルフェーズ')
+}
+function discardItem(id){const item=getItemByUid(id);if(!item)return;if(!confirm(`${ITEMS[item.id].name}を捨てますか？`))return;removeItemUid(id);addLog(`${ITEMS[item.id].name}を捨てた。`);render();save()}
+function rarityText(d){return `<span class="rarity-${d.rarity}">${RARITY[d.rarity]}</span>`}
+function renderItemCard(){
+  const card=qs('#itemCard'),item=getItemByUid(s.selectedUid);
+  if(!item){card.innerHTML='<div class="empty-card">下のインベントリからアイテムをタップすると、ここに拡大画像と説明が表示されます。</div>';return}
+  const d=ITEMS[item.id];
+  const attack=d.damage>0?`${itemDamage(item)}${item.bonusDamage?`（+${item.bonusDamage}）`:''}`:'0';
+  let extra='';
+  if(item.id==='whetstone'){
+    const weapons=s.items.filter(x=>ITEMS[x.id].hand&&x.uid!==item.uid);
+    extra=`<div class="sharpen-box"><select id="sharpenTarget">${weapons.length?weapons.map(w=>`<option value="${w.uid}">${ITEMS[w.id].name}（攻撃力${itemDamage(w)}）</option>`).join(''):'<option value="">対象武器なし</option>'}</select><button class="btn good" id="sharpenBtn" ${!weapons.length||s.will<3?'disabled':''}>研ぐ（意志力3）</button></div>`
+  }
+  card.innerHTML=`<div class="item-hero"><img class="item-preview" src="${d.icon}" alt="${d.name}"><div class="item-name">${d.name}</div></div><div class="item-stats"><div class="item-stat"><span>攻撃力</span><b>${attack}</b></div><div class="item-stat"><span>レアリティ</span><b class="rarity-${d.rarity}">${RARITY[d.rarity]}</b></div><div class="item-stat"><span>分類</span><b title="${d.type}">${d.type}</b></div></div><div class="item-desc">${d.desc}${extra}</div><div class="item-buttons"><button class="btn danger" id="discardSelectedBtn">このアイテムを捨てる</button></div>`;
+  qs('#discardSelectedBtn').onclick=()=>discardItem(item.uid);
+  if(qs('#sharpenBtn'))qs('#sharpenBtn').onclick=()=>sharpenWeapon(qs('#sharpenTarget').value)
+}
+function renderCraft(){const list=qs('#craftList');const ordered=[...RECIPES].sort((a,b)=>Number(canCraft(b))-Number(canCraft(a))||RECIPES.indexOf(a)-RECIPES.indexOf(b));list.innerHTML=ordered.map(r=>{const result=ITEMS[r.result],ok=canCraft(r);const mats=Object.entries(r.materials).map(([id,n])=>`<span class="itemmini"><img src="${ITEMS[id].icon}">${ITEMS[id].name} ×${n}</span>`).join('<b>＋</b>');return `<button class="craft-entry ${ok?'craftable':'unavailable'} ${s.selectedRecipe===r.id?'selected':''}" data-recipe="${r.id}"><span><span class="craft-materials">${mats}</span><span class="note">必要意志力 ${r.will}${ok?' ／ 今すぐ作れます':' ／ 素材・意志力不足'}</span></span><span class="craft-result"><img src="${result.icon}">${result.name}</span></button>`}).join('');list.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=()=>{s.selectedRecipe=b.dataset.recipe;render()});let r=RECIPES.find(x=>x.id===s.selectedRecipe);if(!r)r=ordered[0];qs('#craftSummary').innerHTML=`選択中：<b>${ITEMS[r.result].name}</b> ／ 必要意志力 <b>${r.will}</b>`;qs('#craftBtn').disabled=s.phase!=='craft'||!canCraft(r)}
+function renderExploreTools(){
+  const sel=qs('#exploreTool'),old=s.exploreToolUid;
+  const tools=s.items.filter(x=>EXPLORE_TOOL_IDS.includes(x.id));
+  sel.innerHTML='<option value="">なし</option>'+tools.map(x=>`<option value="${x.uid}">${ITEMS[x.id].name}：${EXPLORE_CATEGORY_LABELS[ITEMS[x.id].exploreCategory]}</option>`).join('');
+  sel.value=tools.some(x=>x.uid===old)?old:'';s.exploreToolUid=sel.value||null;
+  const t=getItemByUid(s.exploreToolUid);
+  qs('#exploreToolHint').textContent=t?`${EXPLORE_CATEGORY_LABELS[ITEMS[t.id].exploreCategory]}が出やすくなります。ツール等級 ${ITEMS[t.id].exploreTier||1}`:'ツールを選ぶと対応カテゴリが出やすくなり、上位ツールほど希少品も狙いやすくなります。';
+  qs('#statusExploreTool').textContent=t?ITEMS[t.id].name:'なし'
+}
+function renderBattleHand(){const hand=qs('#battleHand'),weapons=s.items.filter(x=>ITEMS[x.id].hand==='twoHanded');const stoneCount=itemCount('stone');let html=`<button class="btn battle-card ${s.battleSelection.stones?'selected':''}" data-battle-card="stone" ${s.phase!=='combat'||battleAnimating||!stoneCount?'disabled':''}><span class="card-count">選択 ${s.battleSelection.stones} / 所持 ${stoneCount}</span><img src="${ITEMS.stone.icon}"><span class="card-name">石</span><span class="card-effect">2ダメージ・使用後消滅</span><span class="card-cost">意志力 3／1個</span></button>`;html+=weapons.map(x=>{const d=ITEMS[x.id],sel=s.battleSelection.weapon===x.uid;const b=d.statusEffects?.bleed;return `<button class="btn battle-card ${sel?'selected':''}" data-battle-card="${x.uid}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">所持品</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="card-effect">${itemDamage(x)}ダメージ${b?`<br>出血 ${Math.round(b.chance*100)}%・${b.phases}フェイズ`:''}</span><span class="card-cost">意志力 ${d.willCost}</span></button>`}).join('');hand.innerHTML=html;hand.querySelectorAll('[data-battle-card]').forEach(b=>b.onclick=()=>toggleBattleCard(b.dataset.battleCard));const w=selectedWeaponItem(),cost=selectedBattleCost(),damage=(w?itemDamage(w):0)+s.battleSelection.stones*2;qs('#battleSelectionSummary').innerHTML=`選択中：武器 <b>${w?ITEMS[w.id].name:'なし'}</b> ／ 石 <b>${s.battleSelection.stones}個</b><br>合計ダメージ <b>${damage}</b> ／ 合計意志力 <b>${cost}</b>`;qs('#startBattleBtn').disabled=s.phase!=='combat'||battleAnimating||(!w&&!s.battleSelection.stones)||cost>s.will||s.hp<=0}
+function inventoryMatches(item,filter){
+  if(filter==='all')return true;
+  const d=ITEMS[item.id];
+  if(filter==='weapon')return Boolean(d.hand);
+  if(filter==='material')return d.type.includes('素材');
+  if(filter==='tool')return EXPLORE_TOOL_IDS.includes(item.id);
+  if(filter==='other')return !d.hand&&!d.type.includes('素材')&&!EXPLORE_TOOL_IDS.includes(item.id);
+  return true
+}
+function renderInventory(){
+  const filtered=s.items.filter(x=>inventoryMatches(x,inventoryFilter));
+  const totalPages=Math.max(1,Math.ceil((inventoryFilter==='all'?Math.max(s.capacity,s.items.length):filtered.length)/INVENTORY_PAGE_SIZE));
+  inventoryPage=Math.max(0,Math.min(inventoryPage,totalPages-1));
+  qs('#inventoryPageText').textContent=`${inventoryPage+1} / ${totalPages}`;
+  qs('#inventoryPrev').disabled=inventoryPage<=0;qs('#inventoryNext').disabled=inventoryPage>=totalPages-1;
+  document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===inventoryFilter));
+  const slots=qs('#slots');slots.innerHTML='';
+  const pageItems=filtered.slice(inventoryPage*INVENTORY_PAGE_SIZE,(inventoryPage+1)*INVENTORY_PAGE_SIZE);
+  for(let i=0;i<INVENTORY_PAGE_SIZE;i++){
+    const el=document.createElement('div');el.className='slot';
+    const globalIndex=inventoryPage*INVENTORY_PAGE_SIZE+i;
+    const item=inventoryFilter==='all'?s.items[globalIndex]:pageItems[i];
+    if(inventoryFilter==='all'&&globalIndex>=s.capacity)el.classList.add('locked');
+    else if(item){
+      const d=ITEMS[item.id];if(s.selectedUid===item.uid)el.classList.add('selected');
+      el.innerHTML=`<img src="${d.icon}" alt="${d.name}">`;
+      if(item.bonusDamage)el.innerHTML+=`<span class="slot-bonus">+${item.bonusDamage}</span>`;
+      el.title=d.name;el.onclick=()=>{s.selectedUid=item.uid;render()}
+    }else el.classList.add('filter-empty');
+    slots.appendChild(el)
+  }
+}
+function render(){
+  qs('#hpText').textContent=`${s.hp} / 100`;qs('#hpBar').style.width=s.hp+'%';qs('#miniHpText').textContent=s.hp;qs('#miniHpBar').style.width=s.hp+'%';
+  qs('#willText').textContent=`${s.will} / 100`;qs('#willBar').style.width=s.will+'%';qs('#miniWillText').textContent=s.will;qs('#miniWillBar').style.width=s.will+'%';
+  qs('#gems').textContent=s.gems;qs('#cardCount').textContent=usedSlots();qs('#turnText').textContent=s.turn;qs('#stageTurnText').textContent=s.turn;qs('#phaseBadge').textContent=phaseName();
+  qs('#enemyText').textContent=`${s.enemyHp} / 40`;const ew=s.enemyHp/40*100;qs('#enemyBar').style.width=ew+'%';qs('#miniEnemyBar').style.width=ew+'%';qs('#miniEnemyText').textContent=s.enemyHp;
+  qs('#enemyState').innerHTML=(s.phase==='combat'?'戦闘中':'待機中')+(s.enemyStatuses.bleed?`<span class="status-badge">出血 ${s.enemyStatuses.bleed}</span>`:'');
+  qs('#capacityText').textContent=`使用 ${usedSlots()} / ${s.capacity}枠`;const ec=expandCost(),eb=qs('#expandBtn');eb.textContent=s.capacity>=20?'容量は最大です':`容量を${s.capacity+1}枠へ拡張（${ec}ジェム）`;eb.disabled=s.capacity>=20||s.gems<ec;
+  renderExploreTools();const selectedCost=normalizedExploreCost(),full=usedSlots()>=s.capacity;qs('#exploreBtn').disabled=s.phase!=='explore'||s.will<selectedCost||full;qs('#skipExploreBtn').disabled=s.phase!=='explore';qs('#exploreBtn').textContent=full?'満杯のため探索できません':s.will<selectedCost?'意志力が足りません':`夢を探索する（意志力${selectedCost}）`;
+  qs('#skipCraftBtn').disabled=s.phase!=='craft';qs('#fleeBtn').disabled=s.phase!=='combat'||battleAnimating;qs('#finishTradeBtn').disabled=s.phase!=='trade';
+  renderInventory();renderItemCard();renderCraft();renderBattleHand();qs('#log').innerHTML=s.log.map(x=>`<div>${x}</div>`).join('')||'<div>行動ログはここに表示されます。</div>'
+}
+qs('#exploreBtn').onclick=explore;qs('#skipExploreBtn').onclick=()=>{if(s.phase!=='explore')return;addLog('今回は探索を行わなかった。');s.phase='action';setPanel('action');render();save()};qs('#exploreCost').oninput=render;qs('#exploreCost').onchange=render;qs('#exploreTool').onchange=e=>{s.exploreToolUid=e.target.value||null;render();save()};document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>beginAction(b.dataset.action));
+qs('#expandBtn').onclick=()=>{const c=expandCost();if(s.capacity<20&&s.gems>=c){s.gems-=c;s.capacity++;addLog(`ジェムを${c}消費し、インベントリを${s.capacity}枠へ拡張した。`);render();save()}};
+qs('#craftBtn').onclick=craft;qs('#skipCraftBtn').onclick=()=>recoverAfterPhase('クラフトフェーズ');qs('#startBattleBtn').onclick=resolveBattle;qs('#fleeBtn').onclick=()=>{if(s.phase==='combat')recoverAfterPhase('バトルフェーズ')};qs('#finishTradeBtn').onclick=()=>{if(s.phase==='trade')recoverAfterPhase('トレードフェーズ')};qs('#saveBtn').onclick=()=>save(true);
+document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{inventoryFilter=b.dataset.filter;inventoryPage=0;render()});qs('#inventoryPrev').onclick=()=>{inventoryPage=Math.max(0,inventoryPage-1);render()};qs('#inventoryNext').onclick=()=>{inventoryPage++;render()};
+qs('#resetBtn').onclick=()=>{if(!confirm('テストデータをすべてリセットしますか？'))return;s=fresh();localStorage.removeItem(SAVE_KEY);setPanel('explore');render();save();toast('最初から開始しました')};
+setPanel(s.phase==='action'?'action':s.phase);render();
+</script>
+</body>
+</html>
