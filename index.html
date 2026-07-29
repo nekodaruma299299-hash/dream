@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α4.2 UIリニューアル 修正版14</title>
+<title>Dream Crafter α4.2 アイテム・戦闘拡張 修正版16</title>
 <style>
 :root{
   --bg:#090d19;--panel:#151c31;--panel2:#202a46;--line:#394767;
@@ -231,6 +231,11 @@ select,input[type=number]{width:100%;padding:10px 11px;border-radius:10px;border
 .get-message{font-size:12px;color:var(--muted);margin-top:10px}
 
 .rarity-common{color:#d7dbe8}.rarity-uncommon{color:#72e6a1}.rarity-rare{color:#62d8ff}.rarity-epic{color:#c28cff}
+.inline-gem-icon{width:15px;height:15px;object-fit:contain;image-rendering:pixelated;vertical-align:-3px;margin-right:3px}
+.player-mini-gems .inline-gem-icon{width:13px;height:13px;margin-right:2px}
+.battle-card .hand-tag{display:inline-flex;padding:2px 6px;border:1px solid #53628d;border-radius:999px;background:#11182b;color:#c9d3ef;font-size:8px}
+.battle-card.defense-card{border-color:#5aa5be}
+.battle-card.defense-card.selected{box-shadow:0 0 0 2px #62d8ff55 inset,0 0 14px #62d8ff44}
 .toast{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;background:#0d1528;border:1px solid #6374a5;border-radius:12px;padding:10px 16px;pointer-events:none;transition:.2s;box-shadow:0 8px 30px #0008;z-index:30;max-width:min(90vw,520px);text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
@@ -261,7 +266,7 @@ select,input[type=number]{width:100%;padding:10px 11px;border-radius:10px;border
   <header class="titlebar">
     <div>
       <h1>Dream Crafter</h1>
-      <div class="subtitle">α4.2テスト：8人対応コンパクトプレイヤーUI</div>
+      <div class="subtitle">α4.2テスト：木材系・剣系アイテム・片手装備・防御追加</div>
     </div>
     <div class="topbuttons">
       <button type="button" class="btn small" id="saveBtn">保存</button>
@@ -323,7 +328,7 @@ select,input[type=number]{width:100%;padding:10px 11px;border-radius:10px;border
               <div class="battle-message" id="battleMessage">使用するカードを選んでください</div>
               <h2>夢の影</h2>
               <div class="stat"><div class="statrow"><span>敵HP</span><b id="enemyText">40 / 40</b></div><div class="bar"><div class="fill enemy" id="enemyBar" style="width:100%"></div></div></div>
-              <p class="note">先に使用するカードをすべて選び、「対戦開始」で一括解決します。両手武器は1枚だけ、石は所持数と意志力の範囲で複数選べます。</p>
+              <p class="note">先に使用するカードをすべて選び、「対戦開始」で一括解決します。片手アイテムは2個まで、両手武器は1個だけ選べます。石は手を使わず複数選択できます。</p>
               <div class="battle-hand" id="battleHand"></div>
               <div class="selection-summary" id="battleSelectionSummary"></div>
               <div class="battle-controls"><button type="button" class="btn danger" id="startBattleBtn">対戦開始</button><button type="button" class="btn" id="fleeBtn">何もせず終了</button></div>
@@ -386,7 +391,7 @@ select,input[type=number]{width:100%;padding:10px 11px;border-radius:10px;border
               </div>
               <div class="player-mini-side">
                 <div class="player-mini-state" id="playerStatusEffects">異常なし</div>
-                <div class="player-mini-gems">💎 <b id="playerCardGems">0</b></div>
+                <div class="player-mini-gems"><img class="inline-gem-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=" alt="ジェム"><b id="playerCardGems">0</b></div>
               </div>
               <div class="familiar-mini" id="playerFamiliarStats">
                 <span>従HP</span><div class="bar"><div class="fill hp" id="familiarHpBar" style="width:100%"></div></div><b id="familiarHpText">0</b>
@@ -398,13 +403,13 @@ select,input[type=number]{width:100%;padding:10px 11px;border-radius:10px;border
               </div>
             </article>
 
-            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P2</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems">💎 --</div></div></article>
-            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P3</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems">💎 --</div></div></article>
-            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P4</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems">💎 --</div></div></article>
-            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P5</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems">💎 --</div></div></article>
-            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P6</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems">💎 --</div></div></article>
-            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P7</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems">💎 --</div></div></article>
-            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P8</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems">💎 --</div></div></article>
+            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P2</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems"><img class="inline-gem-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=" alt="ジェム">--</div></div></article>
+            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P3</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems"><img class="inline-gem-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=" alt="ジェム">--</div></div></article>
+            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P4</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems"><img class="inline-gem-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=" alt="ジェム">--</div></div></article>
+            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P5</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems"><img class="inline-gem-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=" alt="ジェム">--</div></div></article>
+            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P6</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems"><img class="inline-gem-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=" alt="ジェム">--</div></div></article>
+            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P7</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems"><img class="inline-gem-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=" alt="ジェム">--</div></div></article>
+            <article class="player-mini-card empty"><div class="player-mini-main"><div class="player-mini-name"><b>参加待ち</b><span class="seat">P8</span></div><div class="player-mini-stat"><span>HP</span><div class="bar"></div><b>--</b></div><div class="player-mini-stat"><span>意志</span><div class="bar"></div><b>--</b></div></div><div class="player-mini-side"><div class="player-mini-state">空き</div><div class="player-mini-gems"><img class="inline-gem-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=" alt="ジェム">--</div></div></article>
           </div>
         </div>
       </section>
@@ -419,7 +424,7 @@ select,input[type=number]{width:100%;padding:10px 11px;border-radius:10px;border
             <span class="meta-chip">現在 <strong>🌲 深い夢の森</strong></span>
             <span class="meta-chip">次 <strong>夢の深層</strong></span>
           </div>
-          <div class="meta-gem"><span>ジェム</span><b id="gems">0</b></div>
+          <div class="meta-gem"><span><img class="inline-gem-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=" alt="ジェム">ジェム</span><b id="gems">0</b></div>
           <div class="hidden-meta">
             <span id="statusExploreTool">なし</span>
             <span id="usedSlotsText">0 / 7枠</span>
@@ -463,20 +468,38 @@ select,input[type=number]{width:100%;padding:10px 11px;border-radius:10px;border
 <script>
 const SAVE_KEY='dc_alpha4_save';
 const RARITY={common:'コモン',uncommon:'アンコモン',rare:'レア',epic:'エピック'};
+const NEW_ICONS={"japanese_sword": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAADiNXWtAAABUUlEQVRIDWNgoDFgpLb5+vr6/2Fmvnz5EsakDg0yHBlISEjALaPYBpjhN27c+L9ixYr/NDG8qalpCBoOCpKkpCTauBxmOChoqB7mQ9dwUBIEhTlNggVkuIuLC+0MB2UmUl1OsCwCGRocHMywdu1aBlFRUYYrV64wvHjxgqA+WNGAobBUgwlefuxi12WAGQ7SACq8SDEcZgmcBhn+92s8vLzalCL4H+QDEKZKOgdZcGea8H9dXX0w/v/3wX+QGFUMB3kD5FJgOP8HGfzrmtd/BwcHsI8CGBjgwQb3LpEMJmR1z549Y5CSkmJwdE5g2NF3nIGbm5vh78PXyErIZyO7XEFB4T8vL+9/UBy83Cj6nxIfMMJSDSjFCAoKMhSpXGRI28IOdqnFixdgegMDA0ZqI9oryCkH5HKqRSjMBSALqBEUMPPQabDXkcOYouBANx3IBwCiwAFyu+lBfAAAAABJRU5ErkJggg==", "steel": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABD0lEQVQ4EZWTzw1EUBDGZzfbgnASJ44k7o4akHDn6qAGF4kC1KACBahCCUQRdr9Jxj6L3TXJ+4P5fd8wD9GFcF13wbiAvFMBtm27DMOwGIbB4/30x06Fl1ekafq/AOCyLNn5CL5/MwccRRHFcUyO41CWZWRZ1gY5FRDYtm0GBG6ahsZxvInKoQBg3/cJsOd5VNc1O4uYwFh3AgKHYchwnudr2UVRbNx3AgLLeyZJQqZpsuGR+0ZAhZFcVRVpmraWfuQOgQcmgVE2AjBC3PniZLoBRqsQfd/TPM+8h3sQBPwhz9yR+JimidAaXdcZvDqt/cT5BqwKoZVd1+2+vGqyCsjNTyFUqB4cyfu5/vvHPQFMpn63EICsMgAAAABJRU5ErkJggg==", "stone_sword": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAADiNXWtAAACBklEQVRIDa2UTUsCURSGz0RR0WiWVFCaRBAIuWgXRZuKltKqn+BvcOHvcWu7VuViIAUXLgoFIaScwhYaaB9EweR7nHu9WtroeBf3+zznnPfcGY3G3EKhkKUiNXXhdg54PB6XmEQiQZNy5XIi4PV6ndLpNIXDYSZOuOSyuQpPpVKk67rEupZIwAuFAmUyGQoEAhQMBimZTFKtVtNcOQA8FotRtVqlYrHIkatwpDGyAyfwkR0AHo1GWed+kfNhqxu6yCocmqOgvbIIOMahJBLwSqVCpmn+KqgKFnPHDnrhPp+PozcMg1+LAPaOjiRS4dDcKRzOOIO9TV3+P67vXruyAhxPMZfL8VOE3tD9v8hFJvJXcXZ60N47N9gZHP0FxyWncNzlaCOr09bpyQ75/QvYa2n6QpfGLS1HjnkNWRA5Wj6fH6g5X1I6KQecHO5u8dHGRoCdYHFx+82aYz4sHDayyDdPn9pVtoQ9KpdNHjOmTvvrnzwfBQ5DWQMs4ISyJcszO0WhtUVawibN03s528qou/h85KCTGeAuZAIc7f6xzqPXO0dHB9ukvjQ+cNhJBwCsr3g4ctg2P74Y0Wi8OUT9fY0lAhySoCFywFkuera2bTv73Or9TuzjvsMk4AveGb7QaL4rcLsmipO+lAEHssiAPzw37cg7FiKTzs5wMw2FFSZtmFiNZ/wBJowROztQfN4AAAAASUVORK5CYII=", "gold": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABRUlEQVQ4Ec1SPUsDQRB9Oc7GLvjRaxOxVET8B4FokPQSC0GwsJBYWQuKlSmUdP4CUUmR/yBaqiApUlgYkStEG8me+wZmsuq2ggO783Zm3nzdAUMpDOF/RLszSR7rK40ZQ5sS98/LQK0jSY4enI1rICQRK/HgZu2ba9B7wV6tA03yq4OrjaJUKe8sCZEElZHSCZISX9NqgnXwk2gRHpBI6bbmRfNqNTPpQjoguXJcNaeCZPQMcD0j3t06cc3OJRoCG0GCvdl9rENx93RcApXIx+JKircnh83tItDMckvweV9B9niNyWofMaKSJWNwpdw2F0ayiG+ZElblWysTN7ZeqXABFKwDsfir317AVH3Zo7Yl4cxsOyByCfK1JAG/a+NwTHOY1mXFiBakgKPwPF9OyBm81/NVX4VHY2La/gN1hgTOqPY/018zFHshtlVPHAAAAABJRU5ErkJggg==", "toy_sword": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABIElEQVQ4EZ2RT0sCcRCGZ0XwkBihdAgvS+Cp6BRERz+x5z5AEB06ZDf14EHYaIlaKcKD+QzN8rq4Cg0sO78/z/vO/Caxf8TteXsdWBLJob9C11epdTpHNrp7smYdqAB3gAjAbvfEHh5ffF0rwKlCrAEJ4PEks+fFT7JXgMvhGCB/jZ0ClB/uWm6An8VXpNas9no/XZYPi3s1gOdZ4eVz5hXglqZ9y/P3zda4HJG6q6uKNmIBDBCl485jAdbBsF7u5VlrPbwZuBbgZLbYCVF6BBMgL/tVkde3D7/HqDQC0r2tKQTIhdPesV1s/jFvhTT3N2AS0QKH9IwYIuxTnUKaN2LmMTIc6XXfw6mAt4AbX6XcWtctgeJ75SCb+kh/+UGRX7mUi+F8haslAAAAAElFTkSuQmCC", "wood_sword": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAADiNXWtAAABxklEQVRIDa2UTUvDQBCGJ1LxM5FaUfxACYonxZMgQi/6Bzz57zx77VmhF0GUglKsF4kGRSs9VKH1A/EQfafMMkmUJk33kN3N7j7v7MzsWNTntr08HmikpSdZx4Dv7xUN5uCwTANmlnGg4eeVa2o2X5nYFwENPy5XaHpqwpib2UUCh8UXVY9W3FlynDEqHV3SVf3LyiSg4d5dnS3XcFyjZ4Ek8J4FAN8trrGf/7OcF38/qYOs4fA5Ahp1i8DRp3KRwFutd/L851hANVjGiW8QhTv2KDMkWwQY7RMJaHil6hPgcE357IZTMQrVc3YRAPLz9PYt5Das4fn7/iMBvjQ/mRgOZk7ApoaUTlgMQn/BsT+J5cJlgfbnN9eOQiFPEOrUkVqwueGGLMehmtfo6haBozfuWJ8bCna2VnnNdRdMsUIqSkDTwkMCmGgR5DYekbRe4DhrbiAgiNgjgxxM/EO2ILjR4Mv+bn0oTQWOQ/dPL3wWN0FZ0JnWDarXjQAAizO2sRyBR8OrzdI4iwBHfqPBcsBRy4kaQaekkQgHaV2VAzzvDDO81f5QcIqJ8KaUH/PQAH9otGM5LjdJyTXbLQRWZh2YzPrT/wDk0QmQoZC9sAAAAABJRU5ErkJggg==", "wooden_board": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAADiNXWtAAABvElEQVRIDa1VPUsDQRDdE0Hx4yRGBGMhMelExCIIAVvrVP47a1trC0tLRWxPBYuIYgjeqVEsTt7C2wx3O/eBLiQ7Ozvz3nzs7gWm5uh3llLpcnn3Hsh1Vp7NKrQ1gbc2V8362oqJHp7MOP7SzJ2+lIDAvb22dQIwCMLlBbvud0xalIVKIIEBihGGi3bGH0ji5NOtNSFHQGCUorvdMnH8YX0luAbm08/4lMeDQwse3Q9t1N32hrm6iZzpy+ubk8sELwGcms2G85XRg4ylQR8a4bxh1s5BCF6C0WgsTKYiyiXJpju6lCPAiTg7vzYgOejtGJTJN1AmNLps5Aikg8wEpcFpYtOlXZGsEsgeZEHZB2RR1geVAFFJkqIoi/a8BLfD7+Dk9ML64S7YSMUlI+CfewAgmQX7QIIqszcDn2O2D6i9e0IK7kMhgTxFdc8/g1QJ0AfcBwz0Qd6Hf3kqGEF25hGlHs8Gnw7q5KxmQCOUSTaaeoLyo/P4nJhk8sNtN+eea7ejCGgsQPHIYQAUP5TU5+JVSsPd1lw6ONq3zzWBMTNaDZgYlTKQ3wKUAqMMuBYBjOsC1yIAeNWICcz5F+VbwC/ROjMRAAAAAElFTkSuQmCC", "gem": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABSUlEQVQ4EWNgGDSA33fOfxAm1UFMyBo0J2gyEDIEJM+u1gS3iAXZABDbc7Yww/ZUTJd83JzCCNKsmKLJcL30GVwbigEK3K8YbpwUY1BMEWOY583PcOrfG4YD794zOAgJMpQHQzS/Of4OrhnEgBvw4+YzoGZNsEaQBEwziA0ypHOtCsOCx0DOcZAIAsANAAlpmL8CkvxgWTMmEQYGITCTAcRO2vqRIcPzN8MMSyGG1+sg4iASxQCYMMj2GdtZgVwQZmBYoPMR7DKQIRw6YCE4gWLAg69iDAxAi0GaUfwKdPappt9Asc8MMjpQZ0GNQInGH1cgfkfRDLeLgeHz1ZdIPAiTEVkEFL+a3c7gsNie+hYuBUofT2a/YxAB+v966V6Gn7fq4PrgDJhqWCIBGQTzL8hlII0ggKwZxMcwACQIAjCDIDxMjTDxgacB8Sh38Gi+lfAAAAAASUVORK5CYII=", "wood": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAAA+klEQVQ4EWNgGDLASpnnPwijO5gFXQCdD9MUFmALkdpwGGzIsbtfGEECYAJdE4iPoRGq6O3b9wzCwoIMqzYcBotgGICuEaYBRIMASPPufafB7EcvPyNcgEsjSCVMM4h97uIdEMUA0nz52U9GRmwaQQpANoEATDO6zSDNIHlwIMpLC6EoRNcI4iM7G6YZJM7y+ftvBjERfoY7956B+AyfPn1l4OPjBrNhrsClGaSIUVeKHRwtOiriYINevfkI1gwiwAbffw7mw/wMl4QyWBDOefmf4c5LBpBB6ACXZpA6eEJCMQgo4WShxgByDT7N6Bah8EFeg3kPRWLQcQAJLYbkz4SnJAAAAABJRU5ErkJggg==", "iron_greatsword": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAADiNXWtAAABqklEQVRIDbWUzY3CMBCFJyuKIDQQJGgCBA2EMqACDhw40ACIVEEqiEgTiUQFEV0E3kjPa2dhwWZ3pMQ/8XxvMh47kn+w2WzWEhux82lrQw+HgyRJInEcSy8UbAPBAJQGeJZlHIa1ELhcLuY5n88t7Xg8tv1+X9P0FYZ3vRDxZDLRydVq5XwMEkD0TEnTNAY4n89Nn50gAToDzsgBx5+MRiPZbrdyvV61gLwFGP2ryBmEVxURTmdEz8gxh+i75iVAZ6aGcIKRmmBjWbIcMV4uly1LkmUZJGDDUfsYA0z4b1DdaTh0FxVFYb6t12u5g2U6ncp+vzeVAh9WS9ffGUOga5jDg5QgUkRup8QBvBogfwDQmIY/gVMcIgByE9ki+uDI7/CHZVqWpQwGA0GLvMPs06kTb750I7mWpTYejyVNU50eDoey2+20z43n+nfaHwKA0yDCP8AcbkpfEXMXoWIWi4WJvKoq1bHvHAr7tLoHgDMleZ4L4QCh/u1WBx6vHuC4ZmF1XSuch+e+sXoAN5uNB9JdGtkCp9Pp4cnk5sOV4i7m+Sj6xPk59vvLDcdYNu3xKT8uAAAAAElFTkSuQmCC"};
+const GEM_ICON=NEW_ICONS.gem;
 const ITEMS={
   stick:{name:'木の枝',icon:'/dream/stick.png?v=5',type:'素材・両手武器カード',rarity:'common',hand:'twoHanded',damage:3,willCost:5,consumable:false,desc:'そこら辺に落ちていた木の枝。\n一応、攻撃にも使える。\n小学生なら最強装備。'},
   stone:{name:'石',icon:'/dream/stone.png?v=5',type:'素材・投擲カード',rarity:'common',hand:'free',damage:2,willCost:3,consumable:true,desc:'平凡な石。\nそれ以下でも、それ以上でもない。\n\nバトルでは2ダメージを与え、使用後に消滅する。'},
+  wood:{name:'木材',icon:NEW_ICONS.wood,type:'素材',rarity:'common',damage:0,willCost:0,consumable:false,desc:'石の斧または鉄の斧を探索へ持っていった時に見つかるコモン素材。\n木製の道具や武器のクラフトに使用する。'},
+  wooden_board:{name:'木の板',icon:NEW_ICONS.wooden_board,type:'片手防具カード',rarity:'common',hand:'oneHanded',damage:0,defense:5,willCost:0,consumable:false,desc:'木材を加工して作った板。\n片手に持つことができ、バトルで使用するとその戦闘中の防御力を5得る。'},
+  wood_sword:{name:'木の剣',icon:NEW_ICONS.wood_sword,type:'片手武器カード',rarity:'common',hand:'oneHanded',damage:10,willCost:15,consumable:false,desc:'木材2個から作る片手武器。\n10ダメージを与え、攻撃時に意志力を15消費する。'},
+  stone_sword:{name:'石の剣',icon:NEW_ICONS.stone_sword,type:'片手武器カード',rarity:'uncommon',hand:'oneHanded',damage:15,willCost:20,consumable:false,desc:'木の剣を石2個で強化した片手武器。\n15ダメージを与え、攻撃時に意志力を20消費する。'},
+  iron_greatsword:{name:'鉄の大剣',icon:NEW_ICONS.iron_greatsword,type:'両手武器カード',rarity:'rare',hand:'twoHanded',damage:30,willCost:50,consumable:false,desc:'石の剣と鉄インゴット4個から作る重い両手武器。\n30ダメージを与え、攻撃時に意志力を50消費する。'},
+  gold:{name:'金',icon:NEW_ICONS.gold,type:'鉱石系素材',rarity:'rare',damage:0,willCost:0,consumable:false,desc:'鉱石系のレア素材。\n鉄のツルハシを探索へ持っていくと発見しやすい。'},
+  steel:{name:'鋼鉄',icon:NEW_ICONS.steel,type:'素材',rarity:'rare',damage:0,willCost:0,consumable:false,desc:'鉄インゴット3個を大量の意志力で鍛え上げたレア素材。\n高品質な武器のクラフトに使用する。'},
+  japanese_sword:{name:'日本刀',icon:NEW_ICONS.japanese_sword,type:'片手武器カード',rarity:'epic',hand:'oneHanded',damage:20,willCost:10,consumable:false,desc:'鋼鉄と金から鍛えたエピック片手武器。\n20ダメージを与え、攻撃時に意志力を10消費する。'},
+  toy_sword:{name:'おもちゃの剣',icon:NEW_ICONS.toy_sword,type:'片手武器カード',rarity:'common',hand:'oneHanded',damage:3,willCost:0,consumable:false,desc:'木の板から作る軽いおもちゃの剣。\n3ダメージを与え、攻撃時の意志力消費は0。'},
   whetstone:{name:'砥石',icon:'/dream/whetstone.png?v=1',type:'素材・強化アイテム',rarity:'common',damage:0,willCost:0,consumable:true,desc:'石を加工して作った簡素な砥石。\n意志力を3消費して武器1個の攻撃力を2上げる。使用後は消滅する。'},
   spear:{name:'石のスピア',icon:'/dream/stone_spear.png?v=5',type:'両手武器カード',rarity:'uncommon',hand:'twoHanded',damage:10,willCost:10,consumable:false,exploreTool:true,exploreTier:1,exploreCategory:'monster',desc:'石と木の枝をくくり付けただけの簡素な武器。\n探索へ持っていくと、将来モンスター素材が出やすくなる。'},
   stone_hoe:{name:'石のクワ',icon:'/dream/stone_hoe.png?v=1',type:'両手武器・探索道具',rarity:'uncommon',hand:'twoHanded',damage:5,willCost:10,consumable:false,exploreTool:true,exploreTier:1,exploreCategory:'ground',desc:'砥石と木の枝から作る石のクワ。\n探索へ持っていくと、地面系素材が出やすくなる。'},
-  stone_axe:{name:'石の斧',icon:'/dream/stone_axe.png?v=1',type:'両手武器・探索道具',rarity:'uncommon',hand:'twoHanded',damage:12,willCost:20,consumable:false,exploreTool:true,exploreTier:1,exploreCategory:'wood',desc:'木の枝と石2個から作る石の斧。\n探索へ持っていくと、木材系素材が出やすくなる。'},
+  stone_axe:{name:'石の斧',icon:'/dream/stone_axe.png?v=1',type:'両手武器・探索道具',rarity:'uncommon',hand:'twoHanded',damage:12,willCost:20,consumable:false,exploreTool:true,exploreTier:1,exploreCategory:'wood',desc:'木の枝と石2個から作る石の斧。\n探索へ持っていくと、木材が見つかるようになる。'},
   iron:{name:'鉄インゴット',icon:'/dream/iron.png?v=1',type:'素材',rarity:'uncommon',damage:0,willCost:0,consumable:false,desc:'加工された鉄のインゴット。\n石の道具を鉄製へ強化するために使う。'},
   iron_spear:{name:'鉄の槍',icon:'/dream/iron_spear.png?v=1',type:'両手武器カード',rarity:'rare',hand:'twoHanded',damage:15,willCost:10,consumable:false,exploreTool:true,exploreTier:2,exploreCategory:'monster',desc:'石のスピアを鉄で強化した槍。\n探索へ持っていくと、将来モンスター素材が出やすくなる。'},
-  iron_axe:{name:'鉄の斧',icon:'/dream/iron_axe.png?v=1',type:'両手武器・探索道具',rarity:'rare',hand:'twoHanded',damage:20,willCost:30,consumable:false,exploreTool:true,exploreTier:2,exploreCategory:'wood',desc:'石の斧を鉄で強化した大型の斧。\n探索へ持っていくと、木材系素材が出やすくなる。'},
+  iron_axe:{name:'鉄の斧',icon:'/dream/iron_axe.png?v=1',type:'両手武器・探索道具',rarity:'rare',hand:'twoHanded',damage:20,willCost:30,consumable:false,exploreTool:true,exploreTier:2,exploreCategory:'wood',desc:'石の斧を鉄で強化した大型の斧。\n探索へ持っていくと、木材がさらに見つかりやすくなる。'},
   iron_scythe:{name:'鉄の大鎌',icon:'/dream/iron_scythe.png?v=1',type:'両手武器カード',rarity:'rare',hand:'twoHanded',damage:10,willCost:10,consumable:false,statusEffects:{bleed:{chance:.4,phases:4}},desc:'石のクワを鉄3個で大鎌へ作り替えた武器。\n攻撃時40%の確率で出血を4フェイズ付与する。'},
-  iron_pickaxe:{name:'鉄のツルハシ',icon:'/dream/iron_pickaxe.png?v=1',type:'両手武器・探索道具',rarity:'rare',hand:'twoHanded',damage:10,willCost:10,consumable:false,exploreTool:true,exploreTier:2,exploreCategory:'stone',desc:'石のクワを鉄2個でツルハシへ作り替えた道具。\n探索へ持っていくと、鉱石・石系素材が出やすくなる。'}
+  iron_pickaxe:{name:'鉄のツルハシ',icon:'/dream/iron_pickaxe.png?v=1',type:'両手武器・探索道具',rarity:'rare',hand:'twoHanded',damage:10,willCost:10,consumable:false,exploreTool:true,exploreTier:2,exploreCategory:'stone',desc:'石のクワを鉄2個でツルハシへ作り替えた道具。\n探索へ持っていくと、鉱石・石系素材が出やすくなり、金を発見できる。'}
 };
 const RECIPES=[
+  {id:'wooden_board',name:'木の板',result:'wooden_board',materials:{wood:2},will:5},
+  {id:'toy_sword',name:'おもちゃの剣',result:'toy_sword',materials:{wooden_board:1},will:0},
+  {id:'wood_sword',name:'木の剣',result:'wood_sword',materials:{wood:2},will:10},
+  {id:'stone_sword',name:'石の剣',result:'stone_sword',materials:{wood_sword:1,stone:2},will:15},
+  {id:'iron_greatsword',name:'鉄の大剣',result:'iron_greatsword',materials:{stone_sword:1,iron:4},will:30},
+  {id:'steel',name:'鋼鉄',result:'steel',materials:{iron:3},will:50},
+  {id:'japanese_sword',name:'日本刀',result:'japanese_sword',materials:{steel:1,gold:1},will:30},
   {id:'whetstone',name:'砥石',result:'whetstone',materials:{stone:1},will:5},
   {id:'spear',name:'石のスピア',result:'spear',materials:{stick:1,stone:1},will:10},
   {id:'stone_hoe',name:'石のクワ',result:'stone_hoe',materials:{whetstone:1,stick:1},will:10},
@@ -492,7 +515,7 @@ const INVENTORY_PAGE_SIZE=20;
 let inventoryPage=0,inventoryFilter='all';
 let lastCraftAt=0;
 const uid=()=>`${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`;
-function fresh(){return{version:6,hp:100,will:100,gems:0,capacity:7,items:[],selectedUid:null,enemyHp:40,enemyStatuses:{bleed:0},phase:'explore',turn:0,log:[],battleSelection:{weapon:null,stones:0},selectedRecipe:'whetstone',exploreToolUid:null}}
+function fresh(){return{version:7,hp:100,will:100,gems:0,capacity:7,items:[],selectedUid:null,enemyHp:40,enemyStatuses:{bleed:0},phase:'explore',turn:0,log:[],battleSelection:{hands:[],stones:0},selectedRecipe:'whetstone',exploreToolUid:null}}
 function migrate(raw){
   const n=fresh();if(!raw||typeof raw!=='object')return n;
   for(const k of ['hp','will','gems','capacity','enemyHp','turn'])if(Number.isFinite(raw[k]))n[k]=raw[k];
@@ -523,7 +546,7 @@ function setPanel(name){document.querySelectorAll('.mode-panel').forEach(x=>x.cl
 function phaseName(){return{explore:'探索フェーズ',action:'行動選択フェーズ',craft:'クラフトフェーズ',combat:'バトルフェーズ',trade:'トレードフェーズ'}[s.phase]||'探索フェーズ'}
 function showGet(result){
   const o=qs('#getOverlay'),img=qs('#getImage'),icon=qs('#getIcon'),name=qs('#getName'),list=qs('#getResults');
-  const results=Array.isArray(result.results)&&result.results.length?result.results:[{name:result.name||'発見',amount:1,icon:result.icon||null,gems:!result.icon}];
+  const results=Array.isArray(result.results)&&result.results.length?result.results:[{name:result.name||'発見',amount:1,icon:result.icon||(!result.icon?GEM_ICON:null),gems:!result.icon}];
   const single=results.length===1;
   name.textContent=single?`${results[0].name}${results[0].amount>1?` ×${results[0].amount}`:''}`:'';
   name.hidden=!single;
@@ -573,19 +596,33 @@ function createExplorePool(category,tier,cost){
     stick:38,
     stone:38,
     iron:4+costRate*13+tier*7,
-    gems:10+costRate*16+tier*9
+    gems:10+costRate*16+tier*9,
+    wood:0,
+    gold:0
   };
-  // ツールは特定結果だけに固定せず、対応カテゴリを「出やすくする」だけにする。
-  if(category==='wood'){weights.stick+=27;weights.stone-=7}
-  else if(category==='stone'){weights.stone+=19;weights.iron+=13;weights.stick-=6}
-  else if(category==='ground'){weights.stone+=11;weights.iron+=6;weights.gems+=8;weights.stick-=4}
-  else if(category==='monster'){weights.iron+=7;weights.gems+=19;weights.stick-=5;weights.stone-=5}
-  return [
+  // 木材は石の斧・鉄の斧を探索へ持っていった場合だけ出現する。
+  if(category==='wood'){
+    weights.wood=38+tier*12+costRate*18;
+    weights.stick+=8;
+    weights.stone=Math.max(4,weights.stone-14);
+  }else if(category==='stone'){
+    weights.stone+=19;weights.iron+=13;weights.stick-=6;
+    // 金は鉱石系レア素材。鉄のツルハシと高い探索意志力で確率が上がる。
+    weights.gold=1+costRate*5+tier*3;
+  }else if(category==='ground'){
+    weights.stone+=11;weights.iron+=6;weights.gems+=8;weights.stick-=4;
+  }else if(category==='monster'){
+    weights.iron+=7;weights.gems+=19;weights.stick-=5;weights.stone-=5;
+  }
+  const pool=[
     {id:'stick',key:'stick',weight:Math.max(1,weights.stick)},
     {id:'stone',key:'stone',weight:Math.max(1,weights.stone)},
     {id:'iron',key:'iron',weight:Math.max(1,weights.iron)},
     {gems:true,key:'gems',weight:Math.max(1,weights.gems)}
   ];
+  if(weights.wood>0)pool.push({id:'wood',key:'wood',weight:weights.wood});
+  if(weights.gold>0)pool.push({id:'gold',key:'gold',weight:weights.gold});
+  return pool;
 }
 function explore(){
   if(s.phase!=='explore')return;
@@ -615,7 +652,7 @@ function explore(){
     if(pick.gems){
       const amount=2+Math.floor(cost/12)+tier*2+Math.floor(Math.random()*4);
       s.gems+=amount;
-      found.push({key:'gems',name:'ジェム',amount,icon:null,gems:true});
+      found.push({key:'gems',name:'ジェム',amount,icon:GEM_ICON,gems:true});
     }else if(addItem(pick.id)){
       found.push({key:pick.id,name:ITEMS[pick.id].name,amount:1,icon:ITEMS[pick.id].icon,gems:false});
     }
@@ -634,7 +671,7 @@ function beginAction(type){
   if(s.phase!=='action')return;
   s.phase=type;
   if(type==='combat'){
-    s.battleSelection={weapon:null,stones:0};
+    s.battleSelection={hands:[],stones:0};
     addLog('夢の影とのバトルを選んだ。');
   }else if(type==='craft'){
     const selected=RECIPES.find(r=>r.id===s.selectedRecipe);
@@ -647,7 +684,7 @@ function beginAction(type){
 function tickStatuses(){
   if(s.enemyStatuses.bleed>0&&s.enemyHp>0){const dmg=Math.max(1,Math.floor(40*.05));s.enemyHp=Math.max(0,s.enemyHp-dmg);s.enemyStatuses.bleed--;addLog(`出血により夢の影へ${dmg}ダメージ。残り${s.enemyStatuses.bleed}フェイズ。`);if(s.enemyHp<=0){s.gems+=10;addLog('出血で夢の影を倒し、10ジェムを獲得した。');s.enemyHp=40;s.enemyStatuses.bleed=0}}
 }
-function recoverAfterPhase(label){tickStatuses();const before=s.will;s.will=Math.min(100,s.will+20);s.turn++;s.phase='explore';s.battleSelection={weapon:null,stones:0};addLog(`${label}が終了した。意志力を${s.will-before}回復した。`);setPanel('explore');toast(`ターン${s.turn}へ。意志力が${s.will-before}回復しました`);render();save()}
+function recoverAfterPhase(label){tickStatuses();const before=s.will;s.will=Math.min(100,s.will+20);s.turn++;s.phase='explore';s.battleSelection={hands:[],stones:0};addLog(`${label}が終了した。意志力を${s.will-before}回復した。`);setPanel('explore');toast(`ターン${s.turn}へ。意志力が${s.will-before}回復しました`);render();save()}
 function recipeMaterialCount(r){return Object.values(r.materials).reduce((a,b)=>a+b,0)}
 function hasRecipeMaterials(r){return Object.entries(r.materials).every(([id,n])=>itemCount(id)>=n)}
 function canCraft(r){
@@ -695,19 +732,85 @@ function finishCraft(){
   if(Date.now()-lastCraftAt<650)return;
   recoverAfterPhase('クラフトフェーズ');
 }
-function sharpenWeapon(targetUid){if(s.will<3)return toast('意志力が足りません');const whet=getItemByUid(s.selectedUid),target=getItemByUid(targetUid);if(!whet||whet.id!=='whetstone'||!target||!ITEMS[target.id].hand)return toast('強化対象を選べません');s.will-=3;target.bonusDamage=(target.bonusDamage||0)+2;removeItemUid(whet.uid);s.selectedUid=target.uid;addLog(`砥石を使い、${ITEMS[target.id].name}の攻撃力を2上げた。`);toast('攻撃力が2上がりました');render();save()}
-function selectedWeaponItem(){return getItemByUid(s.battleSelection.weapon)}
-function selectedBattleCost(){const w=selectedWeaponItem();return(w?ITEMS[w.id].willCost:0)+s.battleSelection.stones*ITEMS.stone.willCost}
-function toggleBattleCard(key){if(s.phase!=='combat')return;if(key==='stone'){if(s.battleSelection.stones<itemCount('stone')){if(selectedBattleCost()+ITEMS.stone.willCost>s.will)return toast('合計意志力が足りません');s.battleSelection.stones++}else s.battleSelection.stones=0}else{const item=getItemByUid(key);if(!item)return;if(s.battleSelection.weapon===key)s.battleSelection.weapon=null;else{const stoneCost=s.battleSelection.stones*ITEMS.stone.willCost;if(stoneCost+ITEMS[item.id].willCost>s.will)return toast('合計意志力が足りません');s.battleSelection.weapon=key}}render()}
+function sharpenWeapon(targetUid){if(s.will<3)return toast('意志力が足りません');const whet=getItemByUid(s.selectedUid),target=getItemByUid(targetUid);if(!whet||whet.id!=='whetstone'||!target||!ITEMS[target.id].hand||ITEMS[target.id].damage<=0)return toast('強化対象を選べません');s.will-=3;target.bonusDamage=(target.bonusDamage||0)+2;removeItemUid(whet.uid);s.selectedUid=target.uid;addLog(`砥石を使い、${ITEMS[target.id].name}の攻撃力を2上げた。`);toast('攻撃力が2上がりました');render();save()}
+function selectedHandItems(){
+  const ids=Array.isArray(s.battleSelection?.hands)?s.battleSelection.hands:[];
+  return ids.map(getItemByUid).filter(Boolean);
+}
+function selectedBattleCost(){return selectedHandItems().reduce((n,x)=>n+(ITEMS[x.id].willCost||0),0)+s.battleSelection.stones*ITEMS.stone.willCost}
+function selectedBattleDamage(){return selectedHandItems().reduce((n,x)=>n+itemDamage(x),0)+s.battleSelection.stones*ITEMS.stone.damage}
+function selectedBattleDefense(){return selectedHandItems().reduce((n,x)=>n+(ITEMS[x.id].defense||0),0)}
+function canAddHandItem(item,current){
+  const d=ITEMS[item.id];
+  if(d.hand==='twoHanded')return {ok:true,next:[item.uid]};
+  if(d.hand==='oneHanded'){
+    const withoutTwo=current.filter(x=>ITEMS[x.id].hand!=='twoHanded');
+    if(withoutTwo.length>=2)return {ok:false,message:'片手アイテムは2個まで選択できます'};
+    return {ok:true,next:[...withoutTwo.map(x=>x.uid),item.uid]};
+  }
+  return {ok:false,message:'このアイテムは手に持てません'};
+}
+function toggleBattleCard(key){
+  if(s.phase!=='combat')return;
+  if(!Array.isArray(s.battleSelection.hands))s.battleSelection.hands=[];
+  if(key==='stone'){
+    if(s.battleSelection.stones<itemCount('stone')){
+      if(selectedBattleCost()+ITEMS.stone.willCost>s.will)return toast('合計意志力が足りません');
+      s.battleSelection.stones++;
+    }else s.battleSelection.stones=0;
+    render();return;
+  }
+  const item=getItemByUid(key);if(!item)return;
+  const existing=s.battleSelection.hands.indexOf(key);
+  if(existing>=0){s.battleSelection.hands.splice(existing,1);render();return}
+  const result=canAddHandItem(item,selectedHandItems());
+  if(!result.ok)return toast(result.message);
+  const old=[...s.battleSelection.hands];s.battleSelection.hands=result.next;
+  if(selectedBattleCost()>s.will){s.battleSelection.hands=old;return toast('合計意志力が足りません')}
+  render();
+}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function showEnemyDamage(amount,label){const f=qs('#enemyDamageFloat'),c=qs('#combatPanel .combat-card'),m=qs('#battleMessage');if(m)m.textContent=label;if(f){f.textContent=`-${amount}`;f.classList.remove('show');void f.offsetWidth;f.classList.add('show')}if(c){c.classList.remove('hit');void c.offsetWidth;c.classList.add('hit')}}
 function applyAttackStatus(item){const bleed=ITEMS[item.id].statusEffects?.bleed;if(bleed&&Math.random()<bleed.chance){s.enemyStatuses.bleed=Math.max(s.enemyStatuses.bleed,bleed.phases);addLog(`${ITEMS[item.id].name}が出血を${bleed.phases}フェイズ付与した。`);qs('#battleMessage').textContent=`出血 ${bleed.phases}フェイズ！`}}
 async function resolveBattle(){
-  if(s.phase!=='combat'||battleAnimating)return;const weapon=selectedWeaponItem(),stones=Math.min(s.battleSelection.stones,itemCount('stone'));if(!weapon&&!stones)return toast('カードを選んでください');const cost=selectedBattleCost();if(cost>s.will)return toast('意志力が足りません');
-  battleAnimating=true;s.will-=cost;s.battleSelection={weapon:null,stones:0};render();let total=0;const attacks=[];if(weapon)attacks.push(weapon);for(let i=0;i<stones;i++)attacks.push({uid:null,id:'stone',bonusDamage:0});
-  for(const a of attacks){if(s.enemyHp<=0)break;const d=itemDamage(a);if(a.id==='stone')removeOneById('stone');showEnemyDamage(d,`${ITEMS[a.id].name}！ ${d}ダメージ`);await sleep(260);s.enemyHp=Math.max(0,s.enemyHp-d);total+=d;addLog(`${ITEMS[a.id].name}で${d}ダメージ。`);if(a.id!=='stone')applyAttackStatus(a);render();await sleep(700)}
-  if(s.enemyHp<=0){s.gems+=10;addLog('夢の影を倒し、10ジェムを獲得した。');qs('#battleMessage').textContent='夢の影を撃破！';render();await sleep(900);s.enemyHp=40;s.enemyStatuses.bleed=0}else{qs('#battleMessage').textContent=`合計${total}ダメージ。夢の影が反撃！`;await sleep(550);s.hp=Math.max(0,s.hp-4);addLog('夢の影の反撃で4ダメージを受けた。');render();await sleep(650)}
-  battleAnimating=false;recoverAfterPhase('バトルフェーズ')
+  if(s.phase!=='combat'||battleAnimating)return;
+  const handItems=selectedHandItems(),stones=Math.min(s.battleSelection.stones,itemCount('stone'));
+  if(!handItems.length&&!stones)return toast('カードを選んでください');
+  const cost=selectedBattleCost();if(cost>s.will)return toast('意志力が足りません');
+  const defense=selectedBattleDefense();
+  battleAnimating=true;s.will-=cost;s.battleSelection={hands:[],stones:0};render();
+  let total=0;
+  for(const support of handItems.filter(x=>(ITEMS[x.id].defense||0)>0)){
+    const value=ITEMS[support.id].defense||0;
+    qs('#battleMessage').textContent=`${ITEMS[support.id].name}！ 防御力${value}`;
+    addLog(`${ITEMS[support.id].name}で防御力${value}を得た。`);
+    render();await sleep(450);
+  }
+  const attacks=handItems.filter(x=>itemDamage(x)>0);
+  for(let i=0;i<stones;i++)attacks.push({uid:null,id:'stone',bonusDamage:0});
+  for(const a of attacks){
+    if(s.enemyHp<=0)break;
+    const d=itemDamage(a);
+    if(a.id==='stone')removeOneById('stone');
+    showEnemyDamage(d,`${ITEMS[a.id].name}！ ${d}ダメージ`);
+    await sleep(260);s.enemyHp=Math.max(0,s.enemyHp-d);total+=d;
+    addLog(`${ITEMS[a.id].name}で${d}ダメージ。`);
+    if(a.id!=='stone')applyAttackStatus(a);
+    render();await sleep(700);
+  }
+  if(s.enemyHp<=0){
+    s.gems+=10;addLog('夢の影を倒し、10ジェムを獲得した。');qs('#battleMessage').textContent='夢の影を撃破！';render();await sleep(900);s.enemyHp=40;s.enemyStatuses.bleed=0;
+  }else{
+    const rawDamage=4,received=Math.max(0,rawDamage-defense);
+    qs('#battleMessage').textContent=`合計${total}ダメージ。夢の影が反撃！`;
+    await sleep(550);
+    s.hp=Math.max(0,s.hp-received);
+    if(defense>0)addLog(`防御力${defense}で反撃ダメージを${rawDamage}から${received}へ軽減した。`);
+    if(received>0)addLog(`夢の影の反撃で${received}ダメージを受けた。`);else addLog('夢の影の反撃を完全に防いだ。');
+    qs('#battleMessage').textContent=received>0?`反撃！ ${received}ダメージ`:`防御成功！ ダメージ0`;
+    render();await sleep(650);
+  }
+  battleAnimating=false;recoverAfterPhase('バトルフェーズ');
 }
 function discardItem(id){const item=getItemByUid(id);if(!item)return;if(!confirm(`${ITEMS[item.id].name}を捨てますか？`))return;removeItemUid(id);addLog(`${ITEMS[item.id].name}を捨てた。`);render();save()}
 function rarityText(d){return `<span class="rarity-${d.rarity}">${RARITY[d.rarity]}</span>`}
@@ -715,13 +818,13 @@ function renderItemCard(){
   const card=qs('#itemCard'),item=getItemByUid(s.selectedUid);
   if(!item){card.innerHTML='<div class="empty-card">下のインベントリからアイテムをタップすると、ここに拡大画像と説明が表示されます。</div>';return}
   const d=ITEMS[item.id];
-  const attack=d.damage>0?`${itemDamage(item)}${item.bonusDamage?`（+${item.bonusDamage}）`:''}`:'0';
+  const attack=d.damage>0?`${itemDamage(item)}${item.bonusDamage?`（+${item.bonusDamage}）`:''}`:'0';const primaryLabel=d.defense?'防御力':'攻撃力';const primaryValue=d.defense||attack;
   let extra='';
   if(item.id==='whetstone'){
-    const weapons=s.items.filter(x=>ITEMS[x.id].hand&&x.uid!==item.uid);
+    const weapons=s.items.filter(x=>ITEMS[x.id].hand&&ITEMS[x.id].damage>0&&x.uid!==item.uid);
     extra=`<div class="sharpen-box"><select id="sharpenTarget">${weapons.length?weapons.map(w=>`<option value="${w.uid}">${ITEMS[w.id].name}（攻撃力${itemDamage(w)}）</option>`).join(''):'<option value="">対象武器なし</option>'}</select><button type="button" class="btn good" id="sharpenBtn" ${!weapons.length||s.will<3?'disabled':''}>研ぐ（意志力3）</button></div>`
   }
-  card.innerHTML=`<div class="item-hero"><img class="item-preview" src="${d.icon}" alt="${d.name}"><div class="item-name">${d.name}</div></div><div class="item-stats"><div class="item-stat"><span>攻撃力</span><b>${attack}</b></div><div class="item-stat"><span>レアリティ</span><b class="rarity-${d.rarity}">${RARITY[d.rarity]}</b></div><div class="item-stat"><span>分類</span><b title="${d.type}">${d.type}</b></div></div><div class="item-desc">${d.desc}${extra}</div><div class="item-buttons"><button type="button" class="btn danger" id="discardSelectedBtn">このアイテムを捨てる</button></div>`;
+  card.innerHTML=`<div class="item-hero"><img class="item-preview" src="${d.icon}" alt="${d.name}"><div class="item-name">${d.name}</div></div><div class="item-stats"><div class="item-stat"><span>${primaryLabel}</span><b>${primaryValue}</b></div><div class="item-stat"><span>レアリティ</span><b class="rarity-${d.rarity}">${RARITY[d.rarity]}</b></div><div class="item-stat"><span>分類</span><b title="${d.type}">${d.type}</b></div></div><div class="item-desc">${d.desc}${extra}</div><div class="item-buttons"><button type="button" class="btn danger" id="discardSelectedBtn">このアイテムを捨てる</button></div>`;
   qs('#discardSelectedBtn').onclick=()=>discardItem(item.uid);
   if(qs('#sharpenBtn'))qs('#sharpenBtn').onclick=()=>sharpenWeapon(qs('#sharpenTarget').value)
 }
@@ -771,7 +874,27 @@ function renderExploreTools(){
   qs('#exploreToolHint').textContent=t?`${EXPLORE_CATEGORY_LABELS[ITEMS[t.id].exploreCategory]}が出やすくなります。ツール等級 ${ITEMS[t.id].exploreTier||1}`:'ツールを選ぶと対応カテゴリが出やすくなり、上位ツールほど希少品も狙いやすくなります。';
   qs('#statusExploreTool').textContent=t?ITEMS[t.id].name:'なし'
 }
-function renderBattleHand(){const hand=qs('#battleHand'),weapons=s.items.filter(x=>ITEMS[x.id].hand==='twoHanded');const stoneCount=itemCount('stone');let html=`<button type="button" class="btn battle-card ${s.battleSelection.stones?'selected':''}" data-battle-card="stone" ${s.phase!=='combat'||battleAnimating||!stoneCount?'disabled':''}><span class="card-count">選択 ${s.battleSelection.stones} / 所持 ${stoneCount}</span><img src="${ITEMS.stone.icon}"><span class="card-name">石</span><span class="card-effect">2ダメージ・使用後消滅</span><span class="card-cost">意志力 3／1個</span></button>`;html+=weapons.map(x=>{const d=ITEMS[x.id],sel=s.battleSelection.weapon===x.uid;const b=d.statusEffects?.bleed;return `<button type="button" class="btn battle-card ${sel?'selected':''}" data-battle-card="${x.uid}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">所持品</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="card-effect">${itemDamage(x)}ダメージ${b?`<br>出血 ${Math.round(b.chance*100)}%・${b.phases}フェイズ`:''}</span><span class="card-cost">意志力 ${d.willCost}</span></button>`}).join('');hand.innerHTML=html;hand.querySelectorAll('[data-battle-card]').forEach(b=>b.onclick=()=>toggleBattleCard(b.dataset.battleCard));const w=selectedWeaponItem(),cost=selectedBattleCost(),damage=(w?itemDamage(w):0)+s.battleSelection.stones*2;qs('#battleSelectionSummary').innerHTML=`選択中：武器 <b>${w?ITEMS[w.id].name:'なし'}</b> ／ 石 <b>${s.battleSelection.stones}個</b><br>合計ダメージ <b>${damage}</b> ／ 合計意志力 <b>${cost}</b>`;qs('#startBattleBtn').disabled=s.phase!=='combat'||battleAnimating||(!w&&!s.battleSelection.stones)||cost>s.will||s.hp<=0}
+function renderBattleHand(){
+  const hand=qs('#battleHand'),equipment=s.items.filter(x=>['oneHanded','twoHanded'].includes(ITEMS[x.id].hand));
+  if(!Array.isArray(s.battleSelection.hands))s.battleSelection.hands=[];
+  const stoneCount=itemCount('stone');
+  let html=`<button type="button" class="btn battle-card ${s.battleSelection.stones?'selected':''}" data-battle-card="stone" ${s.phase!=='combat'||battleAnimating||!stoneCount?'disabled':''}><span class="card-count">選択 ${s.battleSelection.stones} / 所持 ${stoneCount}</span><img src="${ITEMS.stone.icon}"><span class="card-name">石</span><span class="hand-tag">手を使わない</span><span class="card-effect">2ダメージ・使用後消滅</span><span class="card-cost">意志力 3／1個</span></button>`;
+  html+=equipment.map(x=>{
+    const d=ITEMS[x.id],sel=s.battleSelection.hands.includes(x.uid),bleed=d.statusEffects?.bleed;
+    const handText=d.hand==='twoHanded'?'両手':'片手';
+    const effect=[];
+    if(itemDamage(x)>0)effect.push(`${itemDamage(x)}ダメージ`);
+    if(d.defense)effect.push(`防御力${d.defense}`);
+    if(bleed)effect.push(`出血 ${Math.round(bleed.chance*100)}%・${bleed.phases}フェイズ`);
+    return `<button type="button" class="btn battle-card ${d.defense?'defense-card':''} ${sel?'selected':''}" data-battle-card="${x.uid}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">所持品</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">${handText}</span><span class="card-effect">${effect.join('<br>')||'補助アイテム'}</span><span class="card-cost">意志力 ${d.willCost||0}</span></button>`;
+  }).join('');
+  hand.innerHTML=html;
+  hand.querySelectorAll('[data-battle-card]').forEach(b=>b.onclick=()=>toggleBattleCard(b.dataset.battleCard));
+  const selected=selectedHandItems(),cost=selectedBattleCost(),damage=selectedBattleDamage(),defense=selectedBattleDefense();
+  const handNames=selected.length?selected.map(x=>ITEMS[x.id].name).join('＋'):'なし';
+  qs('#battleSelectionSummary').innerHTML=`選択中：手持ち <b>${handNames}</b> ／ 石 <b>${s.battleSelection.stones}個</b><br>合計ダメージ <b>${damage}</b> ／ 防御力 <b>${defense}</b> ／ 合計意志力 <b>${cost}</b>`;
+  qs('#startBattleBtn').disabled=s.phase!=='combat'||battleAnimating||(!selected.length&&!s.battleSelection.stones)||cost>s.will||s.hp<=0;
+}
 function inventoryMatches(item,filter){
   if(filter==='all')return true;
   const d=ITEMS[item.id];
