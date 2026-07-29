@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α4.2 UIリニューアル 修正版13</title>
+<title>Dream Crafter α4.2 UIリニューアル 修正版14</title>
 <style>
 :root{
   --bg:#090d19;--panel:#151c31;--panel2:#202a46;--line:#394767;
@@ -490,6 +490,7 @@ const EXPLORE_CATEGORY_LABELS={stone:'石・鉱石系',wood:'木材系',ground:'
 const EXPLORE_TOOL_IDS=['spear','stone_hoe','stone_axe','iron_axe','iron_pickaxe'];
 const INVENTORY_PAGE_SIZE=20;
 let inventoryPage=0,inventoryFilter='all';
+let lastCraftAt=0;
 const uid=()=>`${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`;
 function fresh(){return{version:6,hp:100,will:100,gems:0,capacity:7,items:[],selectedUid:null,enemyHp:40,enemyStatuses:{bleed:0},phase:'explore',turn:0,log:[],battleSelection:{weapon:null,stones:0},selectedRecipe:'whetstone',exploreToolUid:null}}
 function migrate(raw){
@@ -680,10 +681,19 @@ function craft(recipeId=s.selectedRecipe){
   }
   addLog(`${ITEMS[r.result].name}をクラフトした。意志力${r.will}消費。`);
   toast(`${ITEMS[r.result].name}を作成しました。続けてクラフトできます`);
-  // クラフト後もクラフトフェーズを維持する。
-  // プレイヤーが「クラフトを終える」を押した時だけ、意志力20回復後に次の探索へ進む。
+  // クラフト成功後は必ずクラフトフェーズとクラフト画面を維持する。
+  // 「クラフトを終える」が明示的に押された場合だけ次の探索へ進む。
+  lastCraftAt=Date.now();
+  s.phase='craft';
+  setPanel('craft');
   render();
   save(false);
+}
+function finishCraft(){
+  if(s.phase!=='craft')return;
+  // 同一タップが隣の終了ボタンへ誤って伝わる事故を防ぐ。
+  if(Date.now()-lastCraftAt<650)return;
+  recoverAfterPhase('クラフトフェーズ');
 }
 function sharpenWeapon(targetUid){if(s.will<3)return toast('意志力が足りません');const whet=getItemByUid(s.selectedUid),target=getItemByUid(targetUid);if(!whet||whet.id!=='whetstone'||!target||!ITEMS[target.id].hand)return toast('強化対象を選べません');s.will-=3;target.bonusDamage=(target.bonusDamage||0)+2;removeItemUid(whet.uid);s.selectedUid=target.uid;addLog(`砥石を使い、${ITEMS[target.id].name}の攻撃力を2上げた。`);toast('攻撃力が2上がりました');render();save()}
 function selectedWeaponItem(){return getItemByUid(s.battleSelection.weapon)}
@@ -822,7 +832,7 @@ qs('#exploreCost').onblur=()=>{readExploreCost(true);render()};
 qs('#exploreTool').onchange=e=>{s.exploreToolUid=e.target.value||null;render();save()};
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>beginAction(b.dataset.action));
 qs('#expandBtn').onclick=()=>{const c=expandCost();if(s.capacity<20&&s.gems>=c){s.gems-=c;s.capacity++;addLog(`ジェムを${c}消費し、インベントリを${s.capacity}枠へ拡張した。`);render();save()}};
-qs('#craftBtn').onclick=()=>craft(s.selectedRecipe);qs('#skipCraftBtn').onclick=()=>recoverAfterPhase('クラフトフェーズ');qs('#startBattleBtn').onclick=resolveBattle;qs('#fleeBtn').onclick=()=>{if(s.phase==='combat')recoverAfterPhase('バトルフェーズ')};qs('#finishTradeBtn').onclick=()=>{if(s.phase==='trade')recoverAfterPhase('トレードフェーズ')};qs('#saveBtn').onclick=()=>save(true);
+qs('#craftBtn').onclick=e=>{e.preventDefault();e.stopPropagation();craft(s.selectedRecipe)};qs('#skipCraftBtn').onclick=e=>{e.preventDefault();e.stopPropagation();finishCraft()};qs('#startBattleBtn').onclick=resolveBattle;qs('#fleeBtn').onclick=()=>{if(s.phase==='combat')recoverAfterPhase('バトルフェーズ')};qs('#finishTradeBtn').onclick=()=>{if(s.phase==='trade')recoverAfterPhase('トレードフェーズ')};qs('#saveBtn').onclick=()=>save(true);
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{inventoryFilter=b.dataset.filter;inventoryPage=0;render()});qs('#inventoryPrev').onclick=()=>{inventoryPage=Math.max(0,inventoryPage-1);render()};qs('#inventoryNext').onclick=()=>{inventoryPage++;render()};
 qs('#resetBtn').onclick=()=>{if(!confirm('テストデータをすべてリセットしますか？'))return;s=fresh();localStorage.removeItem(SAVE_KEY);setPanel('explore');render();save();toast('最初から開始しました')};
 setPanel(s.phase==='action'?'action':s.phase);render();
