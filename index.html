@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α4.3 ジェム更新・ドッペルゲンガー実装版57</title>
+<title>Dream Crafter α4.4 武器・盾・防具破損判定版58</title>
 <style>
 :root{
   --bg:#090d19;--panel:#151c31;--panel2:#202a46;--line:#394767;
@@ -1468,7 +1468,7 @@ function canAddItemToList(items,id,amount=1,capacity=20){
   for(let i=0;i<amount;i++)draft.push({uid:`preview_${id}_${i}_${draft.length}`,id,turnBonusDamage:0});
   return slotCountForItems(draft)<=capacity;
 }
-function fresh(){return{version:26,hp:100,maxHp:100,will:100,maxWill:100,armor:0,gems:0,capacity:10,items:[],selectedUid:null,playerStatuses:{bleed:0,burn:0,bind:0},equipment:emptyEquipment(),accessories:emptyAccessories(),enemyHp:100,enemyMaxHp:100,enemyWill:100,enemyMaxWill:100,enemyArmor:0,enemyStatuses:{bleed:0,burn:0,bind:0},enemyEquipment:emptyEquipment(),enemyAccessories:emptyAccessories(),otherPlayers:defaultOtherPlayers(),phase:'explore',turn:0,log:[],battleSelection:emptyItemSelection(),selectedRecipe:'wood_ring',exploreToolUid:null,fieldId:'plains_dawn',nextFieldId:randomFieldIdForTurn(1)}}
+function fresh(){return{version:27,hp:100,maxHp:100,will:100,maxWill:100,armor:0,gems:0,capacity:10,items:[],selectedUid:null,playerStatuses:{bleed:0,burn:0,bind:0},equipment:emptyEquipment(),accessories:emptyAccessories(),enemyHp:100,enemyMaxHp:100,enemyWill:100,enemyMaxWill:100,enemyArmor:0,enemyStatuses:{bleed:0,burn:0,bind:0},enemyEquipment:emptyEquipment(),enemyAccessories:emptyAccessories(),otherPlayers:defaultOtherPlayers(),phase:'explore',turn:0,log:[],battleSelection:emptyItemSelection(),selectedRecipe:'wood_ring',exploreToolUid:null,fieldId:'plains_dawn',nextFieldId:randomFieldIdForTurn(1)}}
 function migrate(raw){
   const n=fresh();if(!raw||typeof raw!=='object')return n;
   for(const k of ['hp','maxHp','will','maxWill','armor','gems','capacity','enemyHp','enemyMaxHp','enemyWill','enemyMaxWill','enemyArmor','turn'])if(Number.isFinite(raw[k]))n[k]=raw[k];
@@ -2014,21 +2014,107 @@ function incomingDamageAfterAccessories(value,target){
 }
 function phaseDamageReduction(targetId){return Math.max(0,Math.floor(Number(battlePhaseBuffs.damageReduction[targetId])||0))}
 function phaseAttackBoost(targetId){return Math.max(0,Math.floor(Number(battlePhaseBuffs.attackBoost[targetId])||0))}
-function applyBattleDamage({baseDamage,target,data={},temporaryDefense=0,armorPierce=0,allowCritical=false,allowWhip=false,weaponAttack=false,attackerId='self'}){
+function breakChanceFromRatio(stronger,weaker){
+  const strong=Math.max(0,Number(stronger)||0),weak=Math.max(0,Number(weaker)||0);
+  if(strong<=weak||weak<=0)return weak<=0&&strong>0?100:0;
+  return Math.max(0,Math.min(100,(strong/weak-1)*100));
+}
+function formatBreakChance(value){const n=Math.max(0,Math.min(100,Number(value)||0));return Number.isInteger(n)?String(n):n.toFixed(1).replace(/\.0$/,'')}
+function phaseShieldList(store,targetId){if(!store[targetId])store[targetId]=[];return store[targetId]}
+function phaseShieldTotal(entries){return(Array.isArray(entries)?entries:[]).reduce((sum,e)=>sum+Math.max(0,Number(e?.remaining)||0),0)}
+function addPhaseShield(store,targetId,{ref,id,defense,ownerId}){
+  const entry={ref,id,defense:Math.max(0,Number(defense)||0),remaining:Math.max(0,Number(defense)||0),ownerId};
+  phaseShieldList(store,targetId).push(entry);return entry;
+}
+function consumePhaseShields(entries,amount){
+  let left=Math.max(0,Number(amount)||0);
+  for(const entry of Array.isArray(entries)?entries:[]){
+    if(left<=0)break;
+    const remaining=Math.max(0,Number(entry.remaining)||0),used=Math.min(remaining,left);
+    entry.remaining=remaining-used;left-=used;
+  }
+}
+function armorPieceEntries(target){
+  if(!target)return[];
+  const pieces=[];
+  for(const slot of Object.keys(ARMOR_SLOT_LABELS)){
+    const ref=target.equipment?.[slot],item=ref?resolveStoredItemRef(ref):null,data=item?ITEMS[item.id]:null;
+    if(item&&data?.armorSlot===slot&&(Number(data.defense)||0)>0)pieces.push({slot,ref,itemId:item.id,name:data.name,defense:Number(data.defense)||0});
+  }
+  return pieces;
+}
+function weightedArmorPiece(pieces){
+  const list=(Array.isArray(pieces)?pieces:[]).filter(x=>(Number(x.defense)||0)>0);if(!list.length)return null;
+  let roll=Math.random()*list.reduce((sum,x)=>sum+(Number(x.defense)||0),0);
+  for(const piece of list){roll-=Number(piece.defense)||0;if(roll<=0)return piece}
+  return list[list.length-1];
+}
+function destroyItemReference(ref,holderTarget=null){
+  const item=resolveStoredItemRef(ref);if(!item)return null;
+  const data=ITEMS[item.id],result={id:item.id,name:data?.name||item.id,ref};
+  if(typeof ref==='string'&&ref.startsWith(VIRTUAL_ENEMY_ITEM_PREFIX)){if(holderTarget)clearStoredItemRefOnTarget(holderTarget,ref)}else removeItemUid(ref);
+  return result;
+}
+function resolveEquipmentBreak({weaponAttack=false,attackerId='self',attackerItem=null,target,attackAtShield=0,attackAfterShield=0,shieldCandidates=[],shieldEntries=[]}){
+  if(!weaponAttack||!attackerItem||!target)return null;
+  const attacker=targetState(attackerId),attackerLabel=attacker?.label||'攻撃者';
+  let outcome=null;
+  const activeShields=(Array.isArray(shieldCandidates)?shieldCandidates:[]).filter(x=>x&&x.entry&&x.strength>0);
+  if(attackAtShield>0&&activeShields.length){
+    const maxStrength=Math.max(...activeShields.map(x=>x.strength)),strongest=activeShields.filter(x=>x.strength===maxStrength),candidate=strongest[Math.floor(Math.random()*strongest.length)];
+    if(attackAtShield>maxStrength){const chance=breakChanceFromRatio(attackAtShield,maxStrength);if(Math.random()*100<chance)outcome={kind:'shield',chance,candidate}}
+    else if(maxStrength>attackAtShield){const chance=breakChanceFromRatio(maxStrength,attackAtShield);if(Math.random()*100<chance)outcome={kind:'weapon',chance}}
+  }
+  if(!outcome&&attackAfterShield>0){
+    const pieces=armorPieceEntries(target),total=pieces.reduce((sum,x)=>sum+x.defense,0),maxPiece=pieces.length?Math.max(...pieces.map(x=>x.defense)):0;
+    if(total>0&&maxPiece>0){
+      if(attackAfterShield<=maxPiece){
+        const chance=breakChanceFromRatio(maxPiece,attackAfterShield);if(Math.random()*100<chance)outcome={kind:'weapon',chance};
+      }else if(attackAfterShield<=total){
+        const armorChance=Math.max(5,Math.min(15,5+10*(attackAfterShield-maxPiece)/Math.max(1,total-maxPiece))),weaponChance=1,roll=Math.random()*100;
+        if(roll<armorChance)outcome={kind:'armor',chance:armorChance,piece:weightedArmorPiece(pieces)};
+        else if(roll<armorChance+weaponChance)outcome={kind:'weapon',chance:weaponChance};
+      }else{
+        const chance=breakChanceFromRatio(attackAfterShield,total);if(Math.random()*100<chance)outcome={kind:'armor',chance,piece:weightedArmorPiece(pieces)};
+      }
+    }
+  }
+  if(!outcome)return null;
+  if(outcome.kind==='weapon'){
+    const broken=destroyItemReference(attackerItem.uid,attacker);if(!broken)return null;
+    return{kind:'weapon',itemId:broken.id,itemName:broken.name,chance:outcome.chance,badge:`武器破損：${broken.name}`,logText:`${attackerLabel}の${broken.name}が防御に耐えられず破損した（${formatBreakChance(outcome.chance)}%判定）。`};
+  }
+  if(outcome.kind==='shield'){
+    const entry=outcome.candidate?.entry;if(!entry)return null;
+    const index=shieldEntries.indexOf(entry);if(index>=0)shieldEntries.splice(index,1);
+    const holder=targetState(entry.ownerId),broken=destroyItemReference(entry.ref,holder)||{id:entry.id,name:ITEMS[entry.id]?.name||entry.id};
+    return{kind:'shield',itemId:broken.id,itemName:broken.name,chance:outcome.chance,badge:`盾破損：${broken.name}`,logText:`${target.label}を守った${broken.name}が攻撃に耐えられず破損した（${formatBreakChance(outcome.chance)}%判定）。`};
+  }
+  const piece=outcome.piece;if(!piece)return null;
+  const broken=destroyItemReference(piece.ref,target)||{id:piece.itemId,name:piece.name};
+  return{kind:'armor',itemId:broken.id,itemName:broken.name,chance:outcome.chance,badge:`防具破損：${broken.name}`,logText:`${target.label}の${broken.name}が攻撃に耐えられず破損した（${formatBreakChance(outcome.chance)}%判定）。`};
+}
+function applyBattleDamage({baseDamage,target,data={},temporaryDefense=0,armorPierce=0,allowCritical=false,allowWhip=false,weaponAttack=false,attackerId='self',attackerItem=null,shieldEntries=[]}){
   let damage=Math.max(0,Math.floor(Number(baseDamage)||0));
   const attackBoost=weaponAttack?phaseAttackBoost(attackerId):0;damage+=attackBoost;
   const critical=allowCritical&&Math.random()*100<accessoryEffectTotals(targetState(attackerId)).critRate;if(critical)damage*=2;
-  const permanentDefense=armorDefense(target),totalDefense=permanentDefense+Math.max(0,temporaryDefense),whipBonus=Boolean(allowWhip&&data.whip&&totalDefense<=0);if(whipBonus)damage=Math.round(damage*1.5);
+  const permanentDefense=armorDefense(target),shieldDefense=Math.max(0,Number(temporaryDefense)||0),totalDefense=permanentDefense+shieldDefense,whipBonus=Boolean(allowWhip&&data.whip&&totalDefense<=0);if(whipBonus)damage=Math.round(damage*1.5);
   const priorityBefore=damage,priorityFlat=phaseDamageReduction(target.id),afterPriority=Math.max(0,damage-priorityFlat),priorityReduced=priorityBefore-afterPriority;damage=afterPriority;
   const copperSetReduction=incomingDamageBeforeDefense(damage,target);damage=copperSetReduction.damage;
-  const pierce=Math.max(0,Number(armorPierce)||0),permanentPierced=Math.min(permanentDefense,pierce),remainingPierce=Math.max(0,pierce-permanentPierced),temporaryPierced=Math.min(Math.max(0,temporaryDefense),remainingPierce),piercedDefense=permanentPierced+temporaryPierced;
-  const effectivePermanentDefense=Math.max(0,permanentDefense-permanentPierced),effectiveTemporaryDefense=Math.max(0,Math.max(0,temporaryDefense)-temporaryPierced);
-  const permanentAbsorbed=Math.min(effectivePermanentDefense,damage),afterPermanent=Math.max(0,damage-permanentAbsorbed),temporaryAbsorbed=Math.min(effectiveTemporaryDefense,afterPermanent),armorDefenseAbsorbed=permanentAbsorbed+temporaryAbsorbed,afterDefense=Math.max(0,damage-armorDefenseAbsorbed);
+  const attackAtShield=damage;
+  const shieldCandidates=(Array.isArray(shieldEntries)?shieldEntries:[]).filter(e=>(Number(e?.remaining)||0)>0).map(entry=>({entry,strength:Number(entry.remaining)||0}));
+  const pierce=Math.max(0,Number(armorPierce)||0),temporaryPierced=Math.min(shieldDefense,pierce),remainingPierce=Math.max(0,pierce-temporaryPierced),permanentPierced=Math.min(permanentDefense,remainingPierce),piercedDefense=temporaryPierced+permanentPierced;
+  const effectiveTemporaryDefense=Math.max(0,shieldDefense-temporaryPierced),effectivePermanentDefense=Math.max(0,permanentDefense-permanentPierced);
+  const temporaryAbsorbed=Math.min(effectiveTemporaryDefense,damage),afterTemporary=Math.max(0,damage-temporaryAbsorbed),attackAfterShield=afterTemporary;
+  const permanentAbsorbed=Math.min(effectivePermanentDefense,afterTemporary),armorDefenseAbsorbed=temporaryAbsorbed+permanentAbsorbed,afterDefense=Math.max(0,afterTemporary-permanentAbsorbed);
   const steelSetReduction=incomingDamageAfterDefenseSet(afterDefense,target),accessoryReduction=incomingDamageAfterAccessories(steelSetReduction.damage,target),finalDamage=accessoryReduction.damage;
   const guardHit=applyArmorBeforeHp(target,finalDamage);
-  return{attackBoost,critical,whipBonus,priorityReduced,copperSetReduction,armorDefenseAbsorbed,temporaryAbsorbed,steelSetReduction,accessoryReduction,finalDamage,guardAbsorbed:guardHit.armorDamage,hpDamage:guardHit.hpDamage,pierce,piercedDefense};
+  consumePhaseShields(shieldEntries,temporaryAbsorbed);
+  const breakEvent=resolveEquipmentBreak({weaponAttack,attackerId,attackerItem,target,attackAtShield,attackAfterShield,shieldCandidates,shieldEntries});
+  const temporaryRemaining=Array.isArray(shieldEntries)&&shieldEntries.length?phaseShieldTotal(shieldEntries):Math.max(0,shieldDefense-temporaryAbsorbed);
+  return{attackBoost,critical,whipBonus,priorityReduced,copperSetReduction,armorDefenseAbsorbed,temporaryAbsorbed,permanentAbsorbed,steelSetReduction,accessoryReduction,finalDamage,guardAbsorbed:guardHit.armorDamage,hpDamage:guardHit.hpDamage,pierce,piercedDefense,breakEvent,temporaryRemaining};
 }
-function damageOutcomeText(out){const parts=[];if(out.attackBoost)parts.push(`ツノ強化+${out.attackBoost}`);if(out.critical)parts.push('クリティカル');if(out.whipBonus)parts.push('防御0で1.5倍');if(out.priorityReduced)parts.push(`最優先軽減${out.priorityReduced}`);if(out.copperSetReduction.triggered)parts.push(`銅フルセット軽減${out.copperSetReduction.reduced}`);if(out.armorDefenseAbsorbed)parts.push(`防御軽減${out.armorDefenseAbsorbed}`);if(out.steelSetReduction.active)parts.push(`鋼鉄フルセット軽減${out.steelSetReduction.reduced}`);if(out.accessoryReduction.reduced)parts.push(`アクセサリー軽減${out.accessoryReduction.reduced}`);if(out.guardAbsorbed)parts.push(`装甲吸収${out.guardAbsorbed}`);return parts.length?`（${parts.join('・')}）`:''}
+function damageOutcomeText(out){const parts=[];if(out.attackBoost)parts.push(`ツノ強化+${out.attackBoost}`);if(out.critical)parts.push('クリティカル');if(out.whipBonus)parts.push('防御0で1.5倍');if(out.priorityReduced)parts.push(`最優先軽減${out.priorityReduced}`);if(out.copperSetReduction.triggered)parts.push(`銅フルセット軽減${out.copperSetReduction.reduced}`);if(out.armorDefenseAbsorbed)parts.push(`防御軽減${out.armorDefenseAbsorbed}`);if(out.steelSetReduction.active)parts.push(`鋼鉄フルセット軽減${out.steelSetReduction.reduced}`);if(out.accessoryReduction.reduced)parts.push(`アクセサリー軽減${out.accessoryReduction.reduced}`);if(out.guardAbsorbed)parts.push(`装甲吸収${out.guardAbsorbed}`);if(out.breakEvent)parts.push(out.breakEvent.badge);return parts.length?`（${parts.join('・')}）`:''}
 function actionWillBadges(action){const info=action?.costInfo;if(!info||!info.reduced)return[];const badges=[changeBadge(`意志力 ${info.base}→${info.cost}`,'will')];if(info.chanceReduction)badges.push(changeBadge(`銅アクセサリー発動 -${info.chanceReduction}`,'buff'));return badges}
 function selectedBattleCost(){
   const sel=normalizeItemSelection();
@@ -2241,7 +2327,7 @@ function buildDoppelgangerActions(playerActions){
   }));
 }
 function doppelgangerCostBadges(action){const info=action?.costInfo;if(!info||!info.reduced)return[];const badges=[changeBadge(`意志力 ${info.base}→${info.cost}`,'will')];if(info.chanceReduction)badges.push(changeBadge(`プレイヤー側軽減を模倣 -${info.chanceReduction}`,'buff'));return badges}
-async function executeDoppelgangerAction(action,context={shields:{},weaponBonuses:{}}){
+async function executeDoppelgangerAction(action,context={shields:{},shieldItems:{},weaponBonuses:{}}){
   const enemy=targetState('enemy');
   if(!enemy||!action?.itemId)return;
   const data=ITEMS[action.itemId];
@@ -2260,7 +2346,7 @@ async function executeDoppelgangerAction(action,context={shields:{},weaponBonuse
   if(!target)return;
   if(action.kind==='use'){
     const virtualItem={uid:virtualEnemyItemRef(action.itemId),id:action.itemId,turnBonusDamage:0};
-    const before=targetSnapshot(target),outcome=applyBattleUse(virtualItem,action.target,{shields:context.shields,skipConsume:true,logActorLabel:ENEMY_NAME}),after=targetSnapshot(target);
+    const before=targetSnapshot(target),outcome=applyBattleUse(virtualItem,action.target,{shields:context.shields,shieldItems:context.shieldItems,skipConsume:true,logActorLabel:ENEMY_NAME}),after=targetSnapshot(target);
     qs('#battleMessage').textContent=outcome.text;render();presentBattleAction({actorLabel:ENEMY_NAME,itemId:action.itemId,targetId:action.target,title:outcome.text,before,after,extras:[...(outcome.extras||[]),...doppelgangerCostBadges(action)]});await sleep(850);
     return;
   }
@@ -2284,7 +2370,7 @@ async function executeDoppelgangerAction(action,context={shields:{},weaponBonuse
     return;
   }
   if(data.defense){
-    const before=targetSnapshot(target);context.shields[target.id]=(context.shields[target.id]||0)+data.defense;
+    const before=targetSnapshot(target),ref=virtualEnemyItemRef(action.itemId);addPhaseShield(context.shieldItems,target.id,{ref,id:action.itemId,defense:data.defense,ownerId:'enemy'});context.shields[target.id]=phaseShieldTotal(phaseShieldList(context.shieldItems,target.id));
     const after={...targetSnapshot(target),defense:before.defense+(context.shields[target.id]||0)},beforeWithShield={...before,defense:before.defense};
     const title=`${data.name}→${target.label}：一時防御力${data.defense}`;
     addLog(`${ENEMY_NAME}は${data.name}を${target.label}に使用し、このフェーズ中の防御力${data.defense}を得た。`);qs('#battleMessage').textContent=title;
@@ -2294,14 +2380,14 @@ async function executeDoppelgangerAction(action,context={shields:{},weaponBonuse
   let damage=(Number(data.damage)||0)+(Number(action.turnBonusDamage)||0)+(Number(context.weaponBonuses[action.itemId])||0);
   if(damage>0){
     const before=targetSnapshot(target);
-    const temporaryDefense=context.shields[target.id]||0,armorPierce=Math.max(0,Number(data.armorPierce)||0);
-    const out=applyBattleDamage({baseDamage:damage,target,data,temporaryDefense,armorPierce,allowCritical:action.kind!=='stone',allowWhip:true,weaponAttack:action.kind==='hand',attackerId:'enemy'});
-    context.shields[target.id]=Math.max(0,temporaryDefense-out.temporaryAbsorbed);
+    const temporaryDefense=context.shields[target.id]||0,armorPierce=Math.max(0,Number(data.armorPierce)||0),shieldEntries=phaseShieldList(context.shieldItems,target.id),attackerItem={uid:virtualEnemyItemRef(action.itemId),id:action.itemId,turnBonusDamage:action.turnBonusDamage||0};
+    const out=applyBattleDamage({baseDamage:damage,target,data,temporaryDefense,armorPierce,allowCritical:action.kind!=='stone',allowWhip:true,weaponAttack:action.kind==='hand',attackerId:'enemy',attackerItem,shieldEntries});
+    context.shields[target.id]=out.temporaryRemaining;
     const statusApplied=action.kind!=='stone'&&out.finalDamage>0?applyAttackStatus({id:action.itemId},target.id):false;
     const after=targetSnapshot(target),title=`${data.name}→${target.label}：${out.finalDamage}ダメージ（装甲${out.guardAbsorbed}・HP${out.hpDamage}）${damageOutcomeText(out)}${armorPierce?`（防御力貫通${out.piercedDefense}/${armorPierce}）`:''}`;
     qs('#battleMessage').textContent=title;
-    addLog(`${ENEMY_NAME}は${data.name}を${target.label}に使用し、${out.finalDamage}ダメージ（装甲${out.guardAbsorbed}・HP${out.hpDamage}）${damageOutcomeText(out)}。`);
-    const extras=[...doppelgangerCostBadges(action)];if(out.attackBoost)extras.push(changeBadge(`ツノ強化 +${out.attackBoost}`,'buff'));if(out.critical)extras.push(changeBadge('クリティカル×2','damage'));if(armorPierce)extras.push(changeBadge(`防御力貫通 ${out.piercedDefense}/${armorPierce}`,'debuff'));if(out.priorityReduced)extras.push(changeBadge(`最優先軽減 -${out.priorityReduced}`,'buff'));if(out.copperSetReduction.triggered)extras.push(changeBadge(`銅フルセット -${out.copperSetReduction.reduced}`,'buff'));if(out.armorDefenseAbsorbed)extras.push(changeBadge(`防御で${out.armorDefenseAbsorbed}軽減`,'buff'));if(out.steelSetReduction.active)extras.push(changeBadge(`鋼鉄フルセット 50%カット（-${out.steelSetReduction.reduced}）`,'buff'));if(out.accessoryReduction.reduced)extras.push(changeBadge(`アクセサリーで${out.accessoryReduction.reduced}軽減`,'buff'));if(out.guardAbsorbed)extras.push(changeBadge(`装甲で${out.guardAbsorbed}吸収`,'buff'));if(out.whipBonus)extras.push(changeBadge('鞭1.5倍','damage'));if(statusApplied&&after.bleed===before.bleed)extras.push(changeBadge('状態付与','debuff'));
+    addLog(`${ENEMY_NAME}は${data.name}を${target.label}に使用し、${out.finalDamage}ダメージ（装甲${out.guardAbsorbed}・HP${out.hpDamage}）${damageOutcomeText(out)}。`);if(out.breakEvent)addLog(out.breakEvent.logText);
+    const extras=[...doppelgangerCostBadges(action)];if(out.attackBoost)extras.push(changeBadge(`ツノ強化 +${out.attackBoost}`,'buff'));if(out.critical)extras.push(changeBadge('クリティカル×2','damage'));if(armorPierce)extras.push(changeBadge(`防御力貫通 ${out.piercedDefense}/${armorPierce}`,'debuff'));if(out.priorityReduced)extras.push(changeBadge(`最優先軽減 -${out.priorityReduced}`,'buff'));if(out.copperSetReduction.triggered)extras.push(changeBadge(`銅フルセット -${out.copperSetReduction.reduced}`,'buff'));if(out.armorDefenseAbsorbed)extras.push(changeBadge(`防御で${out.armorDefenseAbsorbed}軽減`,'buff'));if(out.steelSetReduction.active)extras.push(changeBadge(`鋼鉄フルセット 50%カット（-${out.steelSetReduction.reduced}）`,'buff'));if(out.accessoryReduction.reduced)extras.push(changeBadge(`アクセサリーで${out.accessoryReduction.reduced}軽減`,'buff'));if(out.guardAbsorbed)extras.push(changeBadge(`装甲で${out.guardAbsorbed}吸収`,'buff'));if(out.breakEvent)extras.push(changeBadge(`${out.breakEvent.badge}（${formatBreakChance(out.breakEvent.chance)}%）`,'damage'));if(out.whipBonus)extras.push(changeBadge('鞭1.5倍','damage'));if(statusApplied&&after.bleed===before.bleed)extras.push(changeBadge('状態付与','debuff'));
     render();presentBattleAction({actorLabel:ENEMY_NAME,itemId:action.itemId,targetId:target.id,title,before,after,extras});await sleep(900);
   }
 }
@@ -2328,8 +2414,8 @@ async function resolveBattle(){
   const enemyTotalCost=enemyActions.reduce((sum,action)=>sum+Math.max(0,Number(action.cost)||0),0);
   const cost=actions.reduce((sum,action)=>sum+action.cost,0);if(cost>s.will)return toast(`意志力が足りません（アクセサリー適用後 ${cost}必要）`);
   battleAnimating=true;s.will-=cost;s.enemyWill=Math.max(0,s.enemyWill-enemyTotalCost);s.battleSelection=emptyItemSelection();render();
-  const shields={};
-  const enemyContext={shields,weaponBonuses:{}};
+  const shields={},shieldItems={};
+  const enemyContext={shields,shieldItems,weaponBonuses:{}};
   for(const action of actions){
     if(action.kind==='sharpen'){
       const whet=getItemByUid(action.item.uid),weapon=getItemByUid(action.weapon.uid);
@@ -2344,7 +2430,7 @@ async function resolveBattle(){
     }
     if(action.kind==='use'){
       const item=getItemByUid(action.item.uid),target=targetState(action.target);if(!item||!target)continue;
-      const before=targetSnapshot(target),outcome=applyBattleUse(item,action.target,{shields}),after=targetSnapshot(target);
+      const before=targetSnapshot(target),outcome=applyBattleUse(item,action.target,{shields,shieldItems}),after=targetSnapshot(target);
       qs('#battleMessage').textContent=outcome.text;render();presentBattleAction({actorLabel:'あなた',itemId:action.item.id,targetId:action.target,title:outcome.text,before,after,extras:[...(outcome.extras||[]),...actionWillBadges(action)]});await sleep(850);continue;
     }
     const target=targetState(action.target);if(!target)continue;
@@ -2368,7 +2454,7 @@ async function resolveBattle(){
       continue;
     }
     if(d.defense){
-      const before=targetSnapshot(target);shields[target.id]=(shields[target.id]||0)+d.defense;
+      const before=targetSnapshot(target);addPhaseShield(shieldItems,target.id,{ref:action.item.uid,id:action.item.id,defense:d.defense,ownerId:'self'});shields[target.id]=phaseShieldTotal(phaseShieldList(shieldItems,target.id));
       const after={...targetSnapshot(target),defense:before.defense+(shields[target.id]||0)},beforeWithShield={...before,defense:before.defense};
       const title=`${d.name}→${target.label}：一時防御力${d.defense}`;
       addLog(`${d.name}を${target.label}に使用し、このフェーズ中の防御力${d.defense}を得た。`);qs('#battleMessage').textContent=title;
@@ -2378,14 +2464,14 @@ async function resolveBattle(){
     if(damage>0){
       const before=targetSnapshot(target);
       if(action.kind==='stone')removeOneById('stone');
-      const temporaryDefense=shields[target.id]||0,armorPierce=Math.max(0,Number(d.armorPierce)||0);
-      const out=applyBattleDamage({baseDamage:damage,target,data:d,temporaryDefense,armorPierce,allowCritical:action.kind!=='stone',allowWhip:true,weaponAttack:action.kind==='hand',attackerId:'self'});
-      shields[target.id]=Math.max(0,temporaryDefense-out.temporaryAbsorbed);
+      const temporaryDefense=shields[target.id]||0,armorPierce=Math.max(0,Number(d.armorPierce)||0),shieldEntries=phaseShieldList(shieldItems,target.id);
+      const out=applyBattleDamage({baseDamage:damage,target,data:d,temporaryDefense,armorPierce,allowCritical:action.kind!=='stone',allowWhip:true,weaponAttack:action.kind==='hand',attackerId:'self',attackerItem:action.item,shieldEntries});
+      shields[target.id]=out.temporaryRemaining;
       const statusApplied=action.kind!=='stone'&&out.finalDamage>0?applyAttackStatus(action.item,target.id):false;
       const after=targetSnapshot(target),title=`${d.name}→${target.label}：${out.finalDamage}ダメージ（装甲${out.guardAbsorbed}・HP${out.hpDamage}）${damageOutcomeText(out)}${armorPierce?`（防御力貫通${out.piercedDefense}/${armorPierce}）`:''}`;
       if(target.id==='enemy')showEnemyDamage(out.finalDamage,title);else qs('#battleMessage').textContent=title;
-      addLog(`${d.name}を${target.label}に使用し、${out.finalDamage}ダメージ（装甲${out.guardAbsorbed}・HP${out.hpDamage}）${damageOutcomeText(out)}。`);
-      const extras=[...actionWillBadges(action)];if(out.attackBoost)extras.push(changeBadge(`ツノ強化 +${out.attackBoost}`,'buff'));if(out.critical)extras.push(changeBadge('クリティカル×2','damage'));if(armorPierce)extras.push(changeBadge(`防御力貫通 ${out.piercedDefense}/${armorPierce}`,'debuff'));if(out.priorityReduced)extras.push(changeBadge(`最優先軽減 -${out.priorityReduced}`,'buff'));if(out.copperSetReduction.triggered)extras.push(changeBadge(`銅フルセット -${out.copperSetReduction.reduced}`,'buff'));if(out.armorDefenseAbsorbed)extras.push(changeBadge(`防御で${out.armorDefenseAbsorbed}軽減`,'buff'));if(out.steelSetReduction.active)extras.push(changeBadge(`鋼鉄フルセット 50%カット（-${out.steelSetReduction.reduced}）`,'buff'));if(out.accessoryReduction.reduced)extras.push(changeBadge(`アクセサリーで${out.accessoryReduction.reduced}軽減`,'buff'));if(out.guardAbsorbed)extras.push(changeBadge(`装甲で${out.guardAbsorbed}吸収`,'buff'));if(out.whipBonus)extras.push(changeBadge('鞭1.5倍','damage'));if(statusApplied&&after.bleed===before.bleed)extras.push(changeBadge('状態付与','debuff'));
+      addLog(`${d.name}を${target.label}に使用し、${out.finalDamage}ダメージ（装甲${out.guardAbsorbed}・HP${out.hpDamage}）${damageOutcomeText(out)}。`);if(out.breakEvent)addLog(out.breakEvent.logText);
+      const extras=[...actionWillBadges(action)];if(out.attackBoost)extras.push(changeBadge(`ツノ強化 +${out.attackBoost}`,'buff'));if(out.critical)extras.push(changeBadge('クリティカル×2','damage'));if(armorPierce)extras.push(changeBadge(`防御力貫通 ${out.piercedDefense}/${armorPierce}`,'debuff'));if(out.priorityReduced)extras.push(changeBadge(`最優先軽減 -${out.priorityReduced}`,'buff'));if(out.copperSetReduction.triggered)extras.push(changeBadge(`銅フルセット -${out.copperSetReduction.reduced}`,'buff'));if(out.armorDefenseAbsorbed)extras.push(changeBadge(`防御で${out.armorDefenseAbsorbed}軽減`,'buff'));if(out.steelSetReduction.active)extras.push(changeBadge(`鋼鉄フルセット 50%カット（-${out.steelSetReduction.reduced}）`,'buff'));if(out.accessoryReduction.reduced)extras.push(changeBadge(`アクセサリーで${out.accessoryReduction.reduced}軽減`,'buff'));if(out.guardAbsorbed)extras.push(changeBadge(`装甲で${out.guardAbsorbed}吸収`,'buff'));if(out.breakEvent)extras.push(changeBadge(`${out.breakEvent.badge}（${formatBreakChance(out.breakEvent.chance)}%）`,'damage'));if(out.whipBonus)extras.push(changeBadge('鞭1.5倍','damage'));if(statusApplied&&after.bleed===before.bleed)extras.push(changeBadge('状態付与','debuff'));
       render();presentBattleAction({actorLabel:'あなた',itemId:action.item.id,targetId:target.id,title,before,after,extras});await sleep(900);
     }
   }
@@ -2448,7 +2534,7 @@ function applyBattleUse(item,targetId,context={}){
   if(effect.maxWillPercent){const gain=Math.max(1,Math.ceil(target.maxWill*Math.max(0,Number(effect.maxWillPercent))/100));target.maxWill+=gain;effects.push(`最大意志力を${gain}増加（${effect.maxWillPercent}%）`)}
   if(effect.bindChance){if(Math.random()<effect.bindChance){target.statuses.bind=Math.max(target.statuses.bind||0,Math.max(1,Math.floor(effect.bindTurns||1)));effects.push(`拘束を${effect.bindTurns||1}ターン付与`)}else effects.push('拘束に失敗')}
   if(effect.burnTurns){target.statuses.burn=Math.max(0,Math.floor(target.statuses.burn||0))+Math.max(1,Math.floor(effect.burnTurns));effects.push(`火傷を${effect.burnTurns}ターン追加`)}
-  if(effect.damage){const out=applyBattleDamage({baseDamage:effect.damage,target,data:d,temporaryDefense:context.shields?.[target.id]||0,armorPierce:0,allowCritical:false,allowWhip:false,weaponAttack:false});if(context.shields)context.shields[target.id]=Math.max(0,(context.shields[target.id]||0)-out.temporaryAbsorbed);effects.push(`${out.finalDamage}ダメージ（装甲${out.guardAbsorbed}・HP${out.hpDamage}）${damageOutcomeText(out)}`);if(out.priorityReduced)extras.push(changeBadge(`最優先軽減 -${out.priorityReduced}`,'buff'));if(out.guardAbsorbed)extras.push(changeBadge(`装甲 -${out.guardAbsorbed}`,'damage'))}
+  if(effect.damage){const shieldEntries=context.shieldItems?phaseShieldList(context.shieldItems,target.id):[],out=applyBattleDamage({baseDamage:effect.damage,target,data:d,temporaryDefense:context.shields?.[target.id]||0,armorPierce:0,allowCritical:false,allowWhip:false,weaponAttack:false,shieldEntries});if(context.shields)context.shields[target.id]=out.temporaryRemaining;effects.push(`${out.finalDamage}ダメージ（装甲${out.guardAbsorbed}・HP${out.hpDamage}）${damageOutcomeText(out)}`);if(out.priorityReduced)extras.push(changeBadge(`最優先軽減 -${out.priorityReduced}`,'buff'));if(out.guardAbsorbed)extras.push(changeBadge(`装甲 -${out.guardAbsorbed}`,'damage'))}
   if(target.hp>beforeHp)effects.push(`HPを${target.hp-beforeHp}回復`);
   if(target.will>beforeWill)effects.push(`意志力を${target.will-beforeWill}回復`);
   if(target.maxHp>beforeMax)effects.push(`最大HPを${target.maxHp-beforeMax}増加`);
