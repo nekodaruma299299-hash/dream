@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α5.2.0 効果音システム実装版</title>
+<title>Dream Crafter α5.2.1 効果音タイミング調整版</title>
 <style>
 :root{
   --bg:#090d19;--panel:#151c31;--panel2:#202a46;--line:#394767;
@@ -2674,10 +2674,15 @@ function craftSfxForRecipe(recipe){
   return'forge_uniform';
 }
 function combatActionSfxName(entry){
-  const action=entry?.action||{},item=action.item||{},data=ITEMS[item.id]||{},label=`${data.name||''} ${data.type||''}`;
+  const action=entry?.action||{},itemId=action.item?.id||action.itemId||null,item=action.item||{id:itemId},data=ITEMS[itemId]||{},label=`${data.name||''} ${data.type||''}`;
   if(action.kind==='sharpen')return'forge_uniform';
   if(action.kind==='stone')return'throw';
-  if(action.kind==='use'&&isFoodItem(data))return isDrinkItem(data)?'drink':'eat';
+  if(action.kind==='use'){
+    /* 回復・意志回復・食品は食事音。飲む音を使うのはワインだけ。 */
+    if(itemId==='wine'||data.name==='ワイン')return'drink';
+    const effect=data.useEffect||{};
+    if(isFoodItem(data)||effect.healHp||effect.healWill||effect.healWillPercent)return'eat';
+  }
   if(action.specialDamageType==='fireUnblockable'||data.useEffect?.ignitedRock||data.useEffect?.explosiveRock||/爆裂|爆発|爆弾/.test(label))return'explosion';
   if(/投擲|投げ/.test(label))return'throw';
   if(data.fireElement||action.specialDamageType==='fire'||/魔法|霊体|夢術|炎|火球/.test(label))return'magic';
@@ -2817,14 +2822,18 @@ function showGet(result){
   playHighestRaritySfx(results.filter(r=>r.source!=='broken'&&r.key&&ITEMS[r.key]).map(r=>r.key));
   o.classList.add('show','waiting-confirm');clearTimeout(getTimer);
 }
-function closeExploreResult(){
-  const o=qs('#getOverlay');
+function closeExploreResult(withSound=false){
+  const o=qs('#getOverlay'),wasOpen=exploreResultAwaitingContinue||Boolean(o?.classList.contains('show'));
+  /* pointerup・clickの重複イベントでは、最初の1回だけ処理と音を実行する。 */
+  if(!wasOpen)return false;
+  if(withSound)playSfx('ui_confirm');
   if(o)o.classList.remove('show','waiting-confirm');
   exploreResultAwaitingContinue=false;
   if(s.phase==='result'||s.phase==='explore')s.phase='action';
   setPanel('action');
   try{render()}catch(error){console.error('クラフト／トレード選択画面の描画に失敗しました',error)}
   save(false);
+  return true;
 }
 
 function weightedPick(entries){
@@ -3979,7 +3988,10 @@ async function showCombatActionPhase(entry){
   /* ドッペルゲンガーと対人戦を区別せず、別の行動者からプレイヤーへ届く行動を確認対象にする。 */
   const requiresRecipientConfirmation=info.target?.kind==='player'&&!isSelfDirected;
   if(!requiresRecipientConfirmation){
-    if(isSelfDirected){qs('#combatFlowTarget').textContent=`${info.data.name}を使用しました`;await sleep(600)}
+    /* 効果音は、演出内で「〇〇を使用しました」と表示した瞬間に鳴らす。 */
+    qs('#combatFlowTarget').textContent=`${info.data.name}を使用しました`;
+    playCombatActionSfx(entry);
+    await sleep(600);
     hideCombatPhaseOverlay();
     return true;
   }
@@ -3996,6 +4008,14 @@ async function showCombatActionPhase(entry){
 
   /* 攻撃・通常行動は10秒後に進む。食品は10秒後に食べない。 */
   const accepted=await waitForCombatActionDecision(info.targetId,{defaultAccepted:!food,timeoutMs:10000});
+  if(accepted){
+    /* 確認後も、効果適用画面へ切り替わる前に使用表示と音を同期させる。 */
+    overlay.className='combat-phase-overlay show performance';
+    overlay.dataset.targetId=info.targetId;
+    qs('#combatFlowTarget').textContent=`${info.data.name}を使用しました`;
+    playCombatActionSfx(entry);
+    await sleep(600);
+  }
   hideCombatPhaseOverlay();return accepted;
 }
 function refundDeclinedAction(entry){
@@ -4010,7 +4030,7 @@ async function executeBattleEntryWithPhase(entry,executor){
     addLog(title);qs('#battleMessage').textContent=title;render();presentBattleAction({actorLabel:owner,itemId:info.itemId,targetId:info.targetId,title,extras:[changeBadge(food?'食べない':'使用しない','neutral'),changeBadge('アイテム返却・効果なし','buff')]});await sleep(700);return false;
   }
   battleRecipientDecision=true;
-  try{await executor(entry.action);playCombatActionSfx(entry)}finally{battleRecipientDecision=null}
+  try{await executor(entry.action)}finally{battleRecipientDecision=null}
   return true;
 }
 
@@ -4553,10 +4573,10 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{inventoryFi
 qs('#cancelDiscardBtn').onclick=closeDiscardDialog;qs('#confirmDiscardBtn').onclick=confirmDiscard;qs('#discardModal').onclick=e=>{if(e.target===qs('#discardModal'))closeDiscardDialog()};qs('#discardAmount').oninput=e=>{const max=Math.max(1,Math.floor(Number(e.target.max)||1)),value=Math.floor(Number(e.target.value));if(Number.isFinite(value)&&value>max)e.target.value=String(max)};document.addEventListener('keydown',e=>{if(e.key==='Escape'&&qs('#discardModal').classList.contains('show'))closeDiscardDialog()});
 const getContinueBtn=qs('#getContinueBtn');
 if(getContinueBtn){
-  getContinueBtn.onclick=e=>{e.preventDefault();e.stopPropagation();closeExploreResult()};
-  getContinueBtn.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();closeExploreResult()});
+  getContinueBtn.onclick=e=>{e.preventDefault();e.stopPropagation();closeExploreResult(true)};
+  getContinueBtn.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();closeExploreResult(true)});
 }
-document.addEventListener('click',e=>{const button=e.target.closest?.('#getContinueBtn');if(button){e.preventDefault();e.stopPropagation();closeExploreResult()}},true);
+document.addEventListener('click',e=>{const button=e.target.closest?.('#getContinueBtn');if(button){e.preventDefault();e.stopPropagation();closeExploreResult(true)}},true);
 qs('#resetBtn').onclick=()=>{
   if(!confirm('テストデータをすべてリセットしますか？'))return;
   const overlay=qs('#getOverlay');if(overlay)overlay.classList.remove('show','waiting-confirm');hideCombatPhaseOverlay();if(combatActionDecisionResolver)resolveCombatActionDecision(false);
