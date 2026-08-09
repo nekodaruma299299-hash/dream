@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.5 Online Room</title>
+<title>Dream Crafter α7.13.6 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.5・オンライン確定消失根本修正版";
+const BUILD_LABEL="α7.13.6・先行確定・休憩観戦修正版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -6414,7 +6414,14 @@ function onlineHandleHostMessage(senderId,message){
     const lateSpectator=onlineSession.started===true,member=onlinePublicMember({id:senderId,name:message.name,connected:true,hp:lateSpectator?0:100,spectator:lateSpectator,turnReady:lateSpectator,phase:lateSpectator?'spectator':'explore',turn:s.turn,activityLabel:lateSpectator?'観戦中':''});onlineSession.members.set(senderId,member);onlineSend(onlineSession.connections.get(senderId),{protocol:ONLINE_PROTOCOL,type:'welcome',hostId:onlineSession.hostId,settings:currentRoomSettings,members:onlineRosterPayload(),started:onlineSession.started,lateSpectator,currentTurn:s.turn,fieldId:s.fieldId,nextFieldId:s.nextFieldId,timer:onlineTimerPayload(),serverNow:Date.now()});onlineBroadcastRoster();return
   }
   if(message.type==='snapshot'){
-    const current=onlineSession.members.get(senderId)||{id:senderId,name:'プレイヤー'};onlineSession.members.set(senderId,onlinePublicMember({...current,...message.member,id:senderId,connected:true}));onlineBroadcastRoster();onlineCheckStageTimer();onlineCheckTurnAdvance();return
+    const current=onlineSession.members.get(senderId)||{id:senderId,name:'プレイヤー'},incoming=message.member||{},incomingTurn=Math.max(0,Math.floor(Number(incoming.turn)||0));
+    /* 遅れて届いた定期スナップショットで、同じターンの「休憩/準備完了」を未完了に巻き戻さない。 */
+    if(incomingTurn<s.turn)return;
+    const sameTurn=incomingTurn===Math.max(0,Math.floor(Number(current.turn)||0));
+    const merged={...current,...incoming,id:senderId,connected:true};
+    if(sameTurn&&current.turnReady===true){merged.turnReady=true;merged.phase='waiting';merged.activityLabel=current.activityLabel||merged.activityLabel}
+    if(sameTurn&&current.battleReady===true)merged.battleReady=true;
+    onlineSession.members.set(senderId,onlinePublicMember(merged));onlineBroadcastRoster();onlineCheckStageTimer();onlineHostMaybeStartCombatRound();onlineCheckTurnAdvance();return
   }
   if(message.type==='targetPatch'){
     if(onlineSession.combatRoundActive&&onlineSession.combatCurrentEntry&&onlineSession.combatCurrentEntry.actorId!==senderId)return;
@@ -6432,10 +6439,10 @@ function onlineHandleHostMessage(senderId,message){
   if(message.type==='iceAgeStart'){if(onlineSession.combatRoundActive&&onlineSession.combatCurrentEntry?.actorId!==senderId)return;applyIceAgeState(Math.max(1,Math.min(5,Number(message.turns)||5)),senderId);onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'iceAgeState',turns:s.iceAgeTurns,casterId:senderId,turn:s.turn});return}
   if(message.type==='timerRequest'){const limits={explore:currentRoomSettings.exploreLimit,action:currentRoomSettings.actionLimit,itemUse:currentRoomSettings.itemUseLimit};if(message.kind in limits){const turn=Math.max(0,Math.floor(Number(message.turn)||s.turn));if(message.kind==='itemUse')onlineCheckStageTimer();else onlineHostStartPersonalTimer(senderId,message.kind,limits[message.kind],turn)}return}
   if(message.type==='personalTimerDone'){const kind=String(message.kind||''),turn=Math.max(0,Math.floor(Number(message.turn)||s.turn)),key=onlinePersonalTimerKey(senderId,kind,turn),timer=onlineSession.personalTimers.get(key);if(timer)onlineHostStoreCarryFromTimer(senderId,timer);onlineHostClearPersonalTimer(senderId,kind,turn);return}
-  if(message.type==='turnReady'){const member=onlineSession.members.get(senderId);if(member){member.turnReady=true;member.turn=Math.max(0,Math.floor(Number(message.turn)||member.turn||0));member.phase='waiting'}onlineBroadcastRoster();onlineCheckTurnAdvance();return}
+  if(message.type==='turnReady'){const member=onlineSession.members.get(senderId),turn=Math.max(0,Math.floor(Number(message.turn)||0));if(turn!==s.turn)return;if(member){member.turnReady=true;member.turn=turn;member.phase='waiting';member.updatedAt=Date.now()}onlineBroadcastRoster();onlineHostMaybeStartCombatRound();onlineCheckTurnAdvance();return}
   if(message.type==='itemUseArrived'){
     const member=onlineSession.members.get(senderId),turn=Math.max(0,Math.floor(Number(message.turn)||0));
-    if(member&&turn===s.turn&&!member.spectator&&Number(member.hp)>0){member.phase='combat';member.turn=turn;member.turnReady=false;member.activityLabel=member.battleReady?'使用カード確定済み':'カード選択中';member.updatedAt=Date.now()}
+    if(member&&turn===s.turn&&!member.spectator&&Number(member.hp)>0&&member.turnReady!==true){member.phase='combat';member.turn=turn;member.turnReady=false;member.activityLabel=member.battleReady?'使用カード確定済み':'カード選択中';member.updatedAt=Date.now()}
     onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'itemUseArrivedAck',turn:s.turn});onlineBroadcastRoster();onlineCheckStageTimer();return
   }
   if(message.type==='combatSubmit'){
@@ -8623,7 +8630,8 @@ function recordSharedCombatAction(payload={}){
   if(same){top.count=Math.max(1,Number(top.count)||1)+entry.count;top.title=entry.title;top.changes=entry.changes}else itemUseResultEntries.push(entry);
 }
 function showSharedCombatAction(payload={}){
-  const view=qs('#sharedActionView');if(!view||(!onlineSession.localSpectator&&s.phase!=='combat')||(!onlineSession.localSpectator&&onlineSession.turnReady))return;
+  /* 休憩済みの待機画面でも、ほかのプレイヤーのカードと結果を中央に表示する。 */
+  const view=qs('#sharedActionView'),restWatching=onlineSession.started&&onlineSession.turnReady&&onlineSession.pendingTurnLabel==='休憩';if(!view||(!onlineSession.localSpectator&&s.phase!=='combat'&&!restWatching))return;
   const data=payload.itemId?ITEMS[payload.itemId]:null,count=Math.max(1,Math.floor(Number(payload.count)||1)),changes=(Array.isArray(payload.changes)?payload.changes:[]).slice(0,10);
   view.innerHTML=`<div class="shared-action-card">${data?`<img src="${data.icon}" alt="${safeHtml(data.name)}">`:'<div class="shared-action-placeholder">🎴</div>'}<div class="shared-action-main"><div class="shared-action-head"><b>${safeHtml(payload.actorLabel||'プレイヤー')}の行動</b><span>対象：${safeHtml(payload.targetLabel||'対象なし')}</span></div><div class="shared-action-name">${safeHtml(data?.name||'特殊行動')}${count>1?` ×${count}`:''}</div><div class="shared-action-title">${safeHtml(payload.title||'行動を実行しました')}</div><div class="shared-action-badges">${changes.map(change=>`<span class="change-badge ${safeHtml(change.tone||'neutral')}">${safeHtml(change.text)}</span>`).join('')}</div></div></div>`;
   view.classList.remove('show');void view.offsetWidth;view.classList.add('show');
