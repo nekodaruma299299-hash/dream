@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.12.5 Online Room</title>
+<title>Dream Crafter α7.13.0 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -3997,7 +3997,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.12.5・アヴァターラ配置根本修正版";
+const BUILD_LABEL="α7.13.0・装備バランス＆チャット方向修正版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -5303,7 +5303,7 @@ function getMagicDefense(itemOrData){
   }
   if(data.armorSlot){
     const defense=Math.max(0,Number(data.defense)||0),will=Math.max(0,Number(data.willCost)||0);
-    return will>0?Math.round((defense*defense)/(3*will)):0;
+    return will>0?Math.round((defense*defense)/(6*will)):0;
   }
   return 0;
 }
@@ -5316,7 +5316,7 @@ function getArmorMagicDefense(target){
     defense+=Math.max(0,Number(data.defense)||0);
     will+=Math.max(0,Number(data.willCost)||0);
   }
-  return will>0?Math.round((defense*defense)/(3*will)):0;
+  return will>0?Math.round((defense*defense)/(6*will)):0;
 }
 function getShieldMagicDefense(itemOrData){return getMagicDefense(itemOrData)}
 function getTotalMagicDefense(target,shieldItemOrData=null){return getArmorMagicDefense(target)+getShieldMagicDefense(shieldItemOrData)}
@@ -5411,6 +5411,36 @@ Object.assign(ITEMS.pyroclasm_scroll,{desc:'【パイロクラズム】杖と同
 Object.assign(ITEMS.ashes_of_ignis_scroll,{desc:'【アシェズ・オブ・イグニス】杖と同時使用する最上位火属性魔法。基本魔法ダメージ100。実際に与えたダメージ量に応じて相手の所持品を灰へ変える特殊効果を持つ。ダメージは杖倍率の対象。非常に高コストだが、HPと資産を同時に破壊できる。'});
 for(const id of ['flare_scroll','fireball_scroll','flame_bloom_scroll','fire_ring_scroll','pyroclasm_scroll','ashes_of_ignis_scroll']){if(ITEMS[id])ITEMS[id].effectText=ITEMS[id].desc}
 for(const id of ['cold_scroll','ice_spear_scroll','ice_lance_scroll','frozen_in_ice_scroll','blizzard_scroll','the_ice_age_scroll']){if(ITEMS[id])ITEMS[id].effectText=ITEMS[id].desc}
+
+/* α7.13.0: 低レア両手武器の突出を抑え、防具の装備コストを約1/2へ調整。 */
+const ALPHA_713_WEAPON_BALANCE={
+  bone_crusher:{damage:30,from:40},
+  spear:{damage:7,from:10},
+  stone_axe:{damage:10,from:12},
+  copper_spear:{damage:12,from:15}
+};
+for(const [id,change] of Object.entries(ALPHA_713_WEAPON_BALANCE)){
+  const data=ITEMS[id];
+  if(!data)continue;
+  data.damage=change.damage;
+  for(const key of ['desc','effectText']){
+    if(typeof data[key]==='string')data[key]=data[key].replace(new RegExp(`${change.from}ダメージ`,'g'),`${change.damage}ダメージ`);
+  }
+}
+for(const data of Object.values(ITEMS)){
+  if(!data?.armorSlot)continue;
+  const oldCost=Math.max(0,Math.round(Number(data.willCost)||0));
+  const newCost=Math.ceil(oldCost/2);
+  data.willCost=newCost;
+  for(const key of ['desc','effectText']){
+    if(typeof data[key]!=='string')continue;
+    data[key]=data[key]
+      .replace(new RegExp(`意志力を${oldCost}消費`,'g'),`意志力を${newCost}消費`)
+      .replace(new RegExp(`意志力${oldCost}を消費`,'g'),`意志力${newCost}を消費`)
+      .replace(new RegExp(`意志力${oldCost}で`,'g'),`意志力${newCost}で`)
+      .replace(new RegExp(`装備意志力${oldCost}`,'g'),`装備意志力${newCost}`);
+  }
+}
 
 for(const data of Object.values(ITEMS))if(data?.shieldType)data.effectText=`このターン中に盾を構える。攻撃を受けた時に防御するか選択でき、防御した場合だけ意志力${data.shieldWillCost}を消費して、防具より先に${data.shieldDefense}ダメージを軽減する。攻撃との力関係により盾または攻撃武器が破損することがある。`;
 for(const data of Object.values(ITEMS))appendMagicDefenseText(data);
@@ -11478,9 +11508,9 @@ body.real-tutorial-active #contextTutorialWindow.show{
 
 /* 中央を横切るチャット */
 #dcChatFlyLayer{position:absolute;inset:0;z-index:900;overflow:hidden;pointer-events:none;border-radius:inherit}
-.dc-chat-fly{position:absolute;left:0;max-width:min(620px,72vw);padding:6px 12px;border:1px solid #ffffff80;border-radius:999px;background:#050911c7;color:#fff;text-shadow:0 2px 3px #000;font-size:clamp(11px,1.35vw,17px);font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 18px #0009;animation:dcChatLeftToRight 7s linear forwards;will-change:transform}
+.dc-chat-fly{position:absolute;left:0;max-width:min(620px,72vw);padding:6px 12px;border:1px solid #ffffff80;border-radius:999px;background:#050911c7;color:#fff;text-shadow:0 2px 3px #000;font-size:clamp(11px,1.35vw,17px);font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 18px #0009;animation:dcChatRightToLeft 7s linear forwards;will-change:transform}
 .dc-chat-fly b{color:#99c8ff;margin-right:.45em}
-@keyframes dcChatLeftToRight{from{transform:translateX(calc(-100% - 30px))}to{transform:translateX(calc(100vw + 30px))}}
+@keyframes dcChatRightToLeft{from{transform:translateX(calc(100vw + 30px))}to{transform:translateX(calc(-100% - 30px))}}
 
 /* 招待確認 */
 .dc-trade-invite-overlay{position:fixed;inset:0;z-index:2147482300;display:none;align-items:center;justify-content:center;padding:16px;background:#02050db8;backdrop-filter:blur(4px)}
