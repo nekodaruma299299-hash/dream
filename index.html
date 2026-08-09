@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.0 Online Room</title>
+<title>Dream Crafter α7.13.3 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -1424,10 +1424,12 @@ select,input[type=number]{width:100%;padding:10px 11px;border-radius:10px;border
 /* α5.2.0: 効果音設定 */
 .sound-controls{display:flex;align-items:center;gap:6px;padding:4px 7px;border:1px solid #465477;border-radius:10px;background:#0b1020}
 .sound-toggle{min-width:86px;padding:5px 8px!important}
+.sound-reload{min-width:34px;padding:5px 7px!important;font-weight:1000}
+.sound-reload.reloading{opacity:.65;pointer-events:none}
 .sound-volume{width:92px;accent-color:#a985ff;cursor:pointer}
 .sound-volume-text{min-width:34px;text-align:right;color:#dce4ff;font-size:9px;font-weight:900}
 .sound-controls.muted .sound-volume{opacity:.45}
-@media(max-width:700px){.sound-controls{gap:4px;padding:3px 5px}.sound-toggle{min-width:42px;font-size:0!important}.sound-toggle::after{content:'🔊';font-size:15px}.sound-controls.muted .sound-toggle::after{content:'🔇'}.sound-volume{width:64px}.sound-volume-text{display:none}}
+@media(max-width:700px){.sound-controls{gap:4px;padding:3px 5px}.sound-toggle{min-width:42px;font-size:0!important}.sound-toggle::after{content:'🔊';font-size:15px}.sound-controls.muted .sound-toggle::after{content:'🔇'}.sound-reload{min-width:34px;font-size:0!important}.sound-reload::after{content:'↻';font-size:17px}.sound-volume{width:64px}.sound-volume-text{display:none}}
 
 
 
@@ -1706,6 +1708,7 @@ body.layout-phone-landscape .sound-toggle{height:30px!important;min-height:30px!
 body.layout-phone-landscape .sound-controls{height:30px!important;padding:0!important;gap:0!important;border:0!important;background:none!important;box-shadow:none!important;}
 body.layout-phone-landscape .sound-volume,
 body.layout-phone-landscape .sound-volume-text{display:none!important;}
+body.layout-phone-landscape .sound-reload{height:30px!important;min-height:30px!important;min-width:30px!important;padding:2px 5px!important;border-radius:7px!important;}
 body.layout-phone-landscape .game-layout{
   width:100%;height:calc(100dvh - 39px)!important;min-height:0!important;
   display:grid!important;
@@ -3648,6 +3651,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
     <div class="topbuttons">
       <div class="sound-controls" id="soundControls" title="効果音設定">
         <button type="button" class="btn small sound-toggle" id="soundToggleBtn" aria-pressed="true">🔊 効果音</button>
+        <button type="button" class="btn small sound-reload" id="soundReloadBtn" title="音が出ない時にサウンドを再読み込み" aria-label="サウンドを再読み込み">↻ 再読込</button>
         <input class="sound-volume" id="soundVolume" type="range" min="0" max="100" step="1" value="65" aria-label="効果音の音量">
         <span class="sound-volume-text" id="soundVolumeText">65%</span>
       </div>
@@ -3997,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.0・装備バランス＆チャット方向修正版";
+const BUILD_LABEL="α7.13.3・カード選択到着同期修正版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -4061,6 +4065,21 @@ function unlockSfx(){
   const prepare=()=>{primeSfx();try{const buffer=ctx.createBuffer(1,1,22050),source=ctx.createBufferSource();source.buffer=buffer;source.connect(ctx.destination);source.start(0)}catch{}};
   if(ctx.state==='suspended')ctx.resume().then(prepare).catch(()=>{});else prepare();
 }
+function reloadDreamCrafterSound(){
+  const button=document.getElementById('soundReloadBtn'),oldContext=sfxAudioContext;
+  if(button){button.classList.add('reloading');button.textContent='↻ 読込中';button.setAttribute('aria-busy','true')}
+  sfxAudioContext=null;sfxBuffers.clear();sfxDecodePromises.clear();sfxLastPlayed.clear();
+  try{if(oldContext&&oldContext.state!=='closed')oldContext.close().catch(()=>{})}catch{}
+  soundSettings.enabled=true;saveSoundSettings();updateSoundControls();
+  const ctx=getSfxContext();
+  const finish=()=>{
+    primeSfx();
+    playSfx('ui_confirm',{cooldown:0,volume:1});
+    if(button){button.classList.remove('reloading');button.textContent='✓ 完了';button.removeAttribute('aria-busy');setTimeout(()=>{button.textContent='↻ 再読込'},1200)}
+  };
+  if(!ctx){finish();return}
+  if(ctx.state==='suspended')ctx.resume().then(finish).catch(finish);else finish();
+}
 function fallbackPlaySfx(name,volume){
   try{const audio=new Audio(SFX_DATA[name]);audio.preload='auto';audio.volume=Math.max(0,Math.min(1,volume));audio.play().catch(()=>{})}catch{}
 }
@@ -4093,8 +4112,9 @@ function initDreamCrafterSfx(){
 // キーボード
 // ---------------------------------------------------------------------------
 document.addEventListener('keydown',unlockSfx,{once:true,capture:true});
-  const toggle=document.getElementById('soundToggleBtn'),range=document.getElementById('soundVolume');
+  const toggle=document.getElementById('soundToggleBtn'),reload=document.getElementById('soundReloadBtn'),range=document.getElementById('soundVolume');
   if(toggle)toggle.onclick=()=>{soundSettings.enabled=!soundSettings.enabled;saveSoundSettings();updateSoundControls();if(soundSettings.enabled){unlockSfx();playSfx('ui_cursor',{cooldown:0})}};
+  if(reload)reload.onclick=reloadDreamCrafterSound;
   if(range){range.oninput=()=>{soundSettings.volume=Math.max(0,Math.min(1,Number(range.value)/100));saveSoundSettings();updateSoundControls()};range.onchange=()=>playSfx('ui_cursor',{cooldown:0})};
   // ---------------------------------------------------------------------------
 // クリック
@@ -6259,6 +6279,35 @@ function onlineHostPrepareCombatSubmission(senderId,message){
   if(totalCost>(Math.max(0,Number(member.will)||0)+Math.max(0,Number(member.overWill)||0)))return{ok:false,reason:`意志力が足りません（サーバー判定 ${totalCost}必要）`};
   return{ok:true,senderId,turn:s.turn,actions,totalCost,submittedAt:Date.now()};
 }
+function onlineClearPendingCombatSubmit(){
+  if(onlineSession.pendingCombatSubmitTimer){clearTimeout(onlineSession.pendingCombatSubmitTimer);onlineSession.pendingCombatSubmitTimer=null}
+  onlineSession.pendingCombatSubmit=null;onlineSession.pendingCombatSubmitAttempts=0;
+}
+function onlineClearItemUseArrival(){
+  if(onlineSession.itemUseArrivalTimer){clearTimeout(onlineSession.itemUseArrivalTimer);onlineSession.itemUseArrivalTimer=null}
+  onlineSession.itemUseArrivalTurn=null;onlineSession.itemUseArrivalAttempts=0;
+}
+function onlineAnnounceItemUseArrival(){
+  if(!onlineSession.started||s.phase!=='combat'||onlineSession.turnReady)return;
+  onlineClearItemUseArrival();onlineSession.itemUseArrivalTurn=s.turn;onlineSession.itemUseArrivalAttempts=0;
+  const send=()=>{
+    if(!onlineSession.started||s.phase!=='combat'||onlineSession.turnReady||onlineSession.itemUseArrivalTurn!==s.turn){onlineClearItemUseArrival();return}
+    onlineSession.itemUseArrivalAttempts++;onlineSendToHost({protocol:ONLINE_PROTOCOL,type:'itemUseArrived',turn:s.turn,attempt:onlineSession.itemUseArrivalAttempts});
+    if(onlineSession.itemUseArrivalTurn===s.turn)onlineSession.itemUseArrivalTimer=setTimeout(send,Math.min(4000,1000+onlineSession.itemUseArrivalAttempts*350));
+  };
+  send();
+}
+function onlineSendCombatSubmitReliable(payload){
+  onlineClearPendingCombatSubmit();onlineSession.pendingCombatSubmit=payload;onlineSession.pendingCombatSubmitAttempts=0;
+  const send=()=>{
+    if(!onlineSession.started||!battleSubmissionLocked||s.phase!=='combat'||onlineSession.combatRoundToken){onlineClearPendingCombatSubmit();return}
+    onlineSession.pendingCombatSubmitAttempts++;
+    onlineSendToHost(payload);
+    /* アプリ復帰直後などに最初の送信が欠けても、部屋主の受領通知まで自動再送する。 */
+    if(onlineSession.pendingCombatSubmit===payload)onlineSession.pendingCombatSubmitTimer=setTimeout(send,Math.min(4000,1200+onlineSession.pendingCombatSubmitAttempts*400));
+  };
+  send();
+}
 function onlineAliveCombatMemberIds(){return onlineRosterPayload().filter(m=>m.connected!==false&&!m.spectator&&Number(m.hp)>0&&m.turnReady!==true&&m.turn===s.turn).map(m=>m.id)}
 function onlineCombatPlanGroupKey(entry){
   const action=entry?.action||{},itemId=action.item?.id||'';
@@ -6377,8 +6426,17 @@ function onlineHandleHostMessage(senderId,message){
   if(message.type==='timerRequest'){const limits={explore:currentRoomSettings.exploreLimit,action:currentRoomSettings.actionLimit,itemUse:currentRoomSettings.itemUseLimit};if(message.kind in limits){const turn=Math.max(0,Math.floor(Number(message.turn)||s.turn));if(message.kind==='itemUse')onlineCheckStageTimer();else onlineHostStartPersonalTimer(senderId,message.kind,limits[message.kind],turn)}return}
   if(message.type==='personalTimerDone'){const kind=String(message.kind||''),turn=Math.max(0,Math.floor(Number(message.turn)||s.turn)),key=onlinePersonalTimerKey(senderId,kind,turn),timer=onlineSession.personalTimers.get(key);if(timer)onlineHostStoreCarryFromTimer(senderId,timer);onlineHostClearPersonalTimer(senderId,kind,turn);return}
   if(message.type==='turnReady'){const member=onlineSession.members.get(senderId);if(member){member.turnReady=true;member.turn=Math.max(0,Math.floor(Number(message.turn)||member.turn||0));member.phase='waiting'}onlineBroadcastRoster();onlineCheckTurnAdvance();return}
+  if(message.type==='itemUseArrived'){
+    const member=onlineSession.members.get(senderId),turn=Math.max(0,Math.floor(Number(message.turn)||0));
+    if(member&&turn===s.turn&&!member.spectator&&Number(member.hp)>0){member.phase='combat';member.turn=turn;member.turnReady=false;member.activityLabel=member.battleReady?'使用カード確定済み':'カード選択中';member.updatedAt=Date.now()}
+    onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'itemUseArrivedAck',turn:s.turn});onlineBroadcastRoster();onlineCheckStageTimer();return
+  }
   if(message.type==='combatSubmit'){
-    if(onlineSession.combatRoundActive){onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'combatSubmitRejected',reason:'すでにサーバー処理が始まっています。'});return}
+    /* 同じ確定通知の再送は成功通知を返す。処理開始後もロックを解除させない。 */
+    if(onlineSession.combatSubmissions.has(senderId)){
+      const existing=onlineSession.combatSubmissions.get(senderId);onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'combatSubmitAccepted',turn:s.turn,totalCost:existing.totalCost,ready:onlineSession.combatSubmissions.size,total:onlineAliveCombatMemberIds().length,duplicate:true});onlineHostMaybeStartCombatRound();return
+    }
+    if(onlineSession.combatRoundActive){onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'combatSubmitAccepted',turn:s.turn,totalCost:0,ready:onlineAliveCombatMemberIds().length,total:onlineAliveCombatMemberIds().length,roundStarted:true});return}
     const prepared=onlineHostPrepareCombatSubmission(senderId,message);if(!prepared.ok){onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'combatSubmitRejected',reason:prepared.reason});return}
     onlineSession.combatSubmissions.set(senderId,prepared);const member=onlineSession.members.get(senderId);if(member){member.battleReady=true;member.activityLabel='使用カード確定済み';member.phase='combat'}onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'combatSubmitAccepted',turn:s.turn,totalCost:prepared.totalCost,ready:onlineSession.combatSubmissions.size,total:onlineAliveCombatMemberIds().length});onlineBroadcastRoster();onlineHostMaybeStartCombatRound();return
   }
@@ -6408,9 +6466,10 @@ function onlineHandleClientMessage(message){
 
   if(message.type==='combatFrozenCancel'){const refund=Math.max(0,Math.floor(Number(message.refund)||0));refundLocalWill(refund);s.battleSelection=emptyItemSelection();addLog(`フローズン・イン・アイスにより、このターンの他カードが無効化された。意志力${refund}は消費されなかった。`);render();save(false);onlinePublishSnapshot();return}
   if(message.type==='iceAgeState'){applyIceAgeState(message.turns,message.casterId);return}
-  if(message.type==='combatSubmitAccepted'){onlineSession.activityLabel='サーバー判定待ち';toast(`カード確定：サーバー計算後の意志力${Math.max(0,Number(message.totalCost)||0)}（${message.ready}/${message.total}人）`);return}
-  if(message.type==='combatSubmitRejected'){battleSubmissionLocked=false;battleResolutionStarted=false;onlineSession.activityLabel='カード選択中';if(onlineSession.serverTimer)onlineApplyServerTimer(onlineSession.serverTimer,Date.now()-onlineSession.serverClockOffset);else startPhaseTimer('itemUse',PHASE_LIMITS.itemUse);renderBattleHand();render();toast(message.reason||'カードを確定できませんでした。');return}
-  if(message.type==='combatRoundStart'){onlineApplyAuthoritativeCombatStart(message);return}
+  if(message.type==='itemUseArrivedAck'){if(Number(message.turn)===s.turn)onlineClearItemUseArrival();return}
+  if(message.type==='combatSubmitAccepted'){onlineClearPendingCombatSubmit();onlineSession.activityLabel='サーバー判定待ち';toast(`カード確定：サーバー計算後の意志力${Math.max(0,Number(message.totalCost)||0)}（${message.ready}/${message.total}人）`);return}
+  if(message.type==='combatSubmitRejected'){onlineClearPendingCombatSubmit();if(onlineSession.combatRoundToken||battleAnimating)return;battleSubmissionLocked=false;battleResolutionStarted=false;onlineSession.activityLabel='カード選択中';if(onlineSession.serverTimer)onlineApplyServerTimer(onlineSession.serverTimer,Date.now()-onlineSession.serverClockOffset);else startPhaseTimer('itemUse',PHASE_LIMITS.itemUse);renderBattleHand();render();toast(message.reason||'カードを確定できませんでした。');return}
+  if(message.type==='combatRoundStart'){onlineClearPendingCombatSubmit();onlineApplyAuthoritativeCombatStart(message);return}
   if(message.type==='combatExecuteEntry'){onlineExecuteAuthoritativeCombatEntry(message);return}
   if(message.type==='combatActionView'){if(message.token===onlineSession.combatRoundToken&&message.actorId!==onlineSession.localId){recordSharedCombatAction(message);showSharedCombatAction(message)}return}
   if(message.type==='combatServerStatus'){if(!onlineSession.turnReady&&message.token===onlineSession.combatRoundToken){onlineSession.activityLabel=message.stage==='priority'?'サーバー：最優先魔法処理中':message.stage==='preparation'?'サーバー：準備行動処理中':'サーバー：攻撃処理中';qs('#battleMessage').textContent=`サーバーがカードを処理中（${Math.max(1,Number(message.index)+1)}/${message.total}）`;render()}return}
@@ -7595,6 +7654,7 @@ function beginItemUse(sourceLabel){
   battlePhaseBuffs=emptyBattlePhaseBuffs();
   addLog(`${sourceLabel}を終了し、アイテム使用フェーズへ移行した。`);
   setPanel('combat');render();renderBattleHand();renderInventory();renderItemCard();save();
+  if(onlineSession.started){onlinePublishSnapshot();onlineAnnounceItemUseArrival()}
 }
 function itemUsePhaseLogs(){
   const added=Math.max(0,s.log.length-itemUseLogStartCount);
@@ -9433,7 +9493,7 @@ function submitBattleSelection(fromTimeout=false,allowEmpty=false){
   if(onlineSession.started){
     const actions=onlineBuildCombatDescriptors(fromTimeout||allowEmpty);if(actions===null)return toast('使用するアイテムを選んでください');
     battleSubmissionLocked=true;battleResolutionStarted=false;onlineSession.activityLabel='使用カード確定済み';stopPhaseTimer();renderBattleHand();render();save(false);onlinePublishSnapshot();
-    onlineSendToHost({protocol:ONLINE_PROTOCOL,type:'combatSubmit',turn:s.turn,actions,submittedWill:localAvailableWill(),fromTimeout:fromTimeout===true,at:Date.now()});
+    onlineSendCombatSubmitReliable({protocol:ONLINE_PROTOCOL,type:'combatSubmit',turn:s.turn,actions,submittedWill:localAvailableWill(),fromTimeout:fromTimeout===true,at:Date.now()});
     toast('カードを確定しました。サーバーの判定を待っています。');return;
   }
   battleSubmissionLocked=true;onlineSession.activityLabel='使用カード確定済み';stopPhaseTimer();renderBattleHand();render();save(false);battleResolutionStarted=true;resolveBattle(fromTimeout);
