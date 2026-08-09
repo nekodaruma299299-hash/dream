@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.4 Online Room</title>
+<title>Dream Crafter α7.13.5 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.4・NPC死亡立ち絵統一版";
+const BUILD_LABEL="α7.13.5・オンライン確定消失根本修正版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -6213,6 +6213,7 @@ function onlineCancelCombatRoutesForMember(memberId){
 function onlineResetAuthoritativeCombat(){
   if(onlineSession.combatEntryTimer){clearTimeout(onlineSession.combatEntryTimer);onlineSession.combatEntryTimer=null}
   if(onlineSession.combatTimeoutGraceTimer){clearTimeout(onlineSession.combatTimeoutGraceTimer);onlineSession.combatTimeoutGraceTimer=null}
+  onlineClearPendingCombatSubmit();onlineSession.lastCombatSubmitPayload=null;onlineClearItemUseArrival();
   onlineSession.combatSubmissions?.clear?.();onlineSession.combatRoundToken='';onlineSession.combatRoundPlan=[];onlineSession.combatActionSummaries=[];onlineSession.combatRoundIndex=0;onlineSession.combatRoundActive=false;onlineSession.combatCurrentEntry=null;onlineSession.serverCombatContext=null;onlineSession.serverCombatExecuting=false;onlineSession.serverTimerClosedKey='';
 }
 function onlineJsonItem(item){
@@ -6283,6 +6284,10 @@ function onlineClearPendingCombatSubmit(){
   if(onlineSession.pendingCombatSubmitTimer){clearTimeout(onlineSession.pendingCombatSubmitTimer);onlineSession.pendingCombatSubmitTimer=null}
   onlineSession.pendingCombatSubmit=null;onlineSession.pendingCombatSubmitAttempts=0;
 }
+function onlineAcknowledgeCombatSubmit(){
+  if(onlineSession.pendingCombatSubmitTimer){clearTimeout(onlineSession.pendingCombatSubmitTimer);onlineSession.pendingCombatSubmitTimer=null}
+  onlineSession.pendingCombatSubmit=null;onlineSession.pendingCombatSubmitAttempts=0;
+}
 function onlineClearItemUseArrival(){
   if(onlineSession.itemUseArrivalTimer){clearTimeout(onlineSession.itemUseArrivalTimer);onlineSession.itemUseArrivalTimer=null}
   onlineSession.itemUseArrivalTurn=null;onlineSession.itemUseArrivalAttempts=0;
@@ -6298,7 +6303,7 @@ function onlineAnnounceItemUseArrival(){
   send();
 }
 function onlineSendCombatSubmitReliable(payload){
-  onlineClearPendingCombatSubmit();onlineSession.pendingCombatSubmit=payload;onlineSession.pendingCombatSubmitAttempts=0;
+  onlineClearPendingCombatSubmit();onlineSession.pendingCombatSubmit=payload;onlineSession.lastCombatSubmitPayload=payload;onlineSession.pendingCombatSubmitAttempts=0;
   const send=()=>{
     if(!onlineSession.started||!battleSubmissionLocked||s.phase!=='combat'||onlineSession.combatRoundToken){onlineClearPendingCombatSubmit();return}
     onlineSession.pendingCombatSubmitAttempts++;
@@ -6328,7 +6333,9 @@ function onlineGroupCombatPlanEntries(entries){
   return result;
 }
 function onlineHostMaybeStartCombatRound(){
-  if(!onlineSession.isHost||onlineSession.combatRoundActive)return false;const ids=onlineAliveCombatMemberIds();if(!ids.length||!ids.every(id=>onlineSession.combatSubmissions.has(id)))return false;
+  if(!onlineSession.isHost||onlineSession.combatRoundActive)return false;const ids=onlineAliveCombatMemberIds();if(!ids.length)return false;
+  const missing=ids.filter(id=>!onlineSession.combatSubmissions.has(id));
+  if(missing.length){for(const id of missing){const member=onlineSession.members.get(id);if(member?.battleReady)onlineSendToMember(id,{protocol:ONLINE_PROTOCOL,type:'combatSubmitMissing',turn:s.turn})}return false}
   if(onlineSession.combatTimeoutGraceTimer){clearTimeout(onlineSession.combatTimeoutGraceTimer);onlineSession.combatTimeoutGraceTimer=null}
   onlineClearServerTimerHandle();onlineSession.serverTimer=null;onlineClearDisplayedTimer();onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'serverTimer',timer:null,serverNow:Date.now()});
   const token=`round_${s.turn}_${Date.now().toString(36)}`,plan=[],costs={};
@@ -6467,9 +6474,10 @@ function onlineHandleClientMessage(message){
   if(message.type==='combatFrozenCancel'){const refund=Math.max(0,Math.floor(Number(message.refund)||0));refundLocalWill(refund);s.battleSelection=emptyItemSelection();addLog(`フローズン・イン・アイスにより、このターンの他カードが無効化された。意志力${refund}は消費されなかった。`);render();save(false);onlinePublishSnapshot();return}
   if(message.type==='iceAgeState'){applyIceAgeState(message.turns,message.casterId);return}
   if(message.type==='itemUseArrivedAck'){if(Number(message.turn)===s.turn)onlineClearItemUseArrival();return}
-  if(message.type==='combatSubmitAccepted'){onlineClearPendingCombatSubmit();onlineSession.activityLabel='サーバー判定待ち';toast(`カード確定：サーバー計算後の意志力${Math.max(0,Number(message.totalCost)||0)}（${message.ready}/${message.total}人）`);return}
+  if(message.type==='combatSubmitAccepted'){onlineAcknowledgeCombatSubmit();onlineSession.activityLabel='サーバー判定待ち';toast(`カード確定：サーバー計算後の意志力${Math.max(0,Number(message.totalCost)||0)}（${message.ready}/${message.total}人）`);return}
+  if(message.type==='combatSubmitMissing'){const payload=onlineSession.lastCombatSubmitPayload;if(Number(message.turn)===s.turn&&battleSubmissionLocked&&payload){onlineSendCombatSubmitReliable(payload);toast('確定データを部屋主へ再同期しています…')}return}
   if(message.type==='combatSubmitRejected'){onlineClearPendingCombatSubmit();if(onlineSession.combatRoundToken||battleAnimating)return;battleSubmissionLocked=false;battleResolutionStarted=false;onlineSession.activityLabel='カード選択中';if(onlineSession.serverTimer)onlineApplyServerTimer(onlineSession.serverTimer,Date.now()-onlineSession.serverClockOffset);else startPhaseTimer('itemUse',PHASE_LIMITS.itemUse);renderBattleHand();render();toast(message.reason||'カードを確定できませんでした。');return}
-  if(message.type==='combatRoundStart'){onlineClearPendingCombatSubmit();onlineApplyAuthoritativeCombatStart(message);return}
+  if(message.type==='combatRoundStart'){onlineClearPendingCombatSubmit();onlineSession.lastCombatSubmitPayload=null;onlineApplyAuthoritativeCombatStart(message);return}
   if(message.type==='combatExecuteEntry'){onlineExecuteAuthoritativeCombatEntry(message);return}
   if(message.type==='combatActionView'){if(message.token===onlineSession.combatRoundToken&&message.actorId!==onlineSession.localId){recordSharedCombatAction(message);showSharedCombatAction(message)}return}
   if(message.type==='combatServerStatus'){if(!onlineSession.turnReady&&message.token===onlineSession.combatRoundToken){onlineSession.activityLabel=message.stage==='priority'?'サーバー：最優先魔法処理中':message.stage==='preparation'?'サーバー：準備行動処理中':'サーバー：攻撃処理中';qs('#battleMessage').textContent=`サーバーがカードを処理中（${Math.max(1,Number(message.index)+1)}/${message.total}）`;render()}return}
@@ -7232,7 +7240,7 @@ function setPanel(name){
   }else if(name==='trade'){
     actionSubmissionLocked=false;onlineSession.activityLabel='トレード中';if(phaseTimerKind!=='action')startPhaseTimer('action',PHASE_LIMITS.action);
   }else if(name==='combat'){
-    if(!onlineSession.combatRoundActive){onlineSession.serverCombatContext=null;onlineSession.serverCombatExecuting=false;battleReadyShields=null;if(onlineSession.isHost)onlineSession.combatSubmissions.clear()}
+    if(!onlineSession.combatRoundActive){onlineSession.serverCombatContext=null;onlineSession.serverCombatExecuting=false;battleReadyShields=null;if(onlineSession.isHost)for(const [id,submission] of onlineSession.combatSubmissions)if(Number(submission?.turn)!==s.turn)onlineSession.combatSubmissions.delete(id)}
     battleSubmissionLocked=false;battleResolutionStarted=false;onlineSession.combatPrepReady=false;onlineSession.combatResolved=false;onlineSession.activityLabel='カード選択中';
     if(phaseTimerKind!=='itemUse')startPhaseTimer('itemUse',PHASE_LIMITS.itemUse);requestAnimationFrame(()=>{renderBattleHand();renderInventory();renderItemCard()});
   }else stopPhaseTimer();
