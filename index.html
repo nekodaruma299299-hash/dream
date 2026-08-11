@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.10 Online Room</title>
+<title>Dream Crafter α7.13.12 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.10・チュートリアル木剣固定・交易革保証版";
+const BUILD_LABEL="α7.13.12・2ターン目準備完了誘導版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -8916,7 +8916,8 @@ async function executePlayerBattleAction(action,context={shields:{},shieldItems:
           else{returnFilledMagicScrollToBlank(item);mediumResult='無地のスクロールへ戻った'}
         }else if(ITEMS[item.id].consumable!==false){removeItemUid(item.uid);mediumResult='媒体を失った'}
         const title=`${staffData.name}は魔法に耐えられず破損し、${spellItem.name}は不発になった（${mediumResult}）`;
-        addLog(title);qs('#battleMessage').textContent=title;render();presentBattleAction({actorLabel:'あなた',itemId:staff.id,targetId:target.id,title,extras:[changeBadge(`装填：${mediumName}`,'neutral'),changeBadge(`杖破損 ${chance}%`,'damage'),changeBadge(mediumResult,filledScroll?'buff':'neutral'),changeBadge('魔法不発','neutral'),...actionWillBadges(action)]});await sleep(900);return
+        addLog(title);if(window.__dcRealTutorialActive===true&&typeof window.__dcTutorialMagicStaffBroke==='function')window.__dcTutorialMagicStaffBroke();
+        qs('#battleMessage').textContent=title;render();presentBattleAction({actorLabel:'あなた',itemId:staff.id,targetId:target.id,title,extras:[changeBadge(`装填：${mediumName}`,'neutral'),changeBadge(`杖破損 ${chance}%`,'damage'),changeBadge(mediumResult,filledScroll?'buff':'neutral'),changeBadge('魔法不発','neutral'),...actionWillBadges(action)]});await sleep(900);return
       }
       if(spell.iceAge){const mediumResult=consumeSuccessfulMagicMedium(item);startIceAge(spell.duration||5,iceAgeCasterLocalId());const title=`${spellItem.name}を発動：フィールドを${spell.duration||5}ターン氷河期に固定`;addLog(`${title}。${mediumName}は${mediumResult}。`);qs('#battleMessage').textContent=title;render();presentBattleAction({actorLabel:'あなた',itemId:spellItem.id,targetId:'self',title,extras:[changeBadge('氷河期','buff'),changeBadge(mediumResult,'buff'),...actionWillBadges(action)]});await sleep(900);return}
       if(spell.aoe){const area=executeIceAreaSpell(spell,staffData,'self'),mediumResult=consumeSuccessfulMagicMedium(item),title=`${spellItem.name}：発動者以外へ合計${area.total}氷雪魔法ダメージ`;addLog(`${title}（${area.details.join('、')}）。${mediumName}は${mediumResult}。`);qs('#battleMessage').textContent=title;render();presentBattleAction({actorLabel:'あなた',itemId:spellItem.id,targetId:'self',title,extras:[changeBadge('全体氷雪魔法','damage'),changeBadge(mediumResult,'buff'),...actionWillBadges(action)]});await sleep(900);return}
@@ -10170,7 +10171,7 @@ function renderBattleHand(){
   qs('#battleSelectionSummary').innerHTML=`武器・盾系・防具・アクセサリー：<b>${handNames}</b><br>消費アイテム：<b>${useNames}</b><br>武器強化：<b>${sharpenNames}</b><br>選択中の攻撃力 <b>${damage}</b> ／ 防御力 <b>${defense}</b> ／ 最大合計意志力 <b>${cost}</b><br>自分の装備：<b>${equipmentSummary(targetState('self'))}</b>`;
   const totalWill=qs('#battleTotalWill');if(totalWill){totalWill.classList.toggle('insufficient',cost>localAvailableWill());totalWill.innerHTML=`<span>合計意志力</span><b>${cost}</b>`;}
   qs('#startBattleBtn').disabled=s.phase!=='combat'||!selectionOpen||battleAnimating||battleSubmissionLocked||(!handActions.length&&!uses.length&&!sharpens.length)||s.hp<=0;
-  qs('#startBattleBtn').textContent=battleSubmissionLocked?'ほかのプレイヤーの確定待ち…':'使用カードを確定する';
+  qs('#startBattleBtn').textContent=battleSubmissionLocked?'ほかのプレイヤーの確定待ち…':(window.__dcRealTutorialActive===true&&Number(s.turn)===1&&handActions.some(action=>ITEMS[action?.item?.id]?.shieldType)?'準備完了してカード使用へ':'使用カードを確定する');
 }
 function inventoryMatches(item,filter){
   if(filter==='all')return true;
@@ -10971,12 +10972,27 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     }
   }
   function seedTutorialInventory(){
-    const wanted={wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1,grass:5,currant:2,leather:1};
+    // 交易教材の皮を最初に確保し、ほかの教材に所持枠を使われても欠けないようにする。
+    const wanted={leather:1,wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1,grass:5,currant:2};
     for(const [id,amount] of Object.entries(wanted))addTutorialItem(id,Math.max(0,amount-inventoryCount(id)));
     s.will=Math.max(100,Number(s.will)||0);
     s.maxWill=Math.max(100,Number(s.maxWill)||0);
     s.gems=Math.max(300,Number(s.gems)||0);
   }
+  function ensureTutorialRetryItem(id){
+    if(!ITEMS[id]||inventoryCount(id)>0)return;
+    while(!canAddItemToList(s.items,id,1,s.capacity)&&s.capacity<100)s.capacity++;
+    addTutorialItem(id,1);
+  }
+  window.__dcTutorialMagicStaffBroke=()=>{
+    if(!isActive())return;
+    progress.magicLoaded=false;
+    ensureTutorialRetryItem('magic_staff');
+    ensureTutorialRetryItem('fireball_scroll');
+    addLog('魔法の杖が破損したため、魔法は失敗扱いになった。再挑戦用の魔法の杖とファイアボールスクロールを受け取った。');
+    toast('魔法失敗：再挑戦用の杖とスクロールを受け取りました');
+    scheduleUpdate();
+  };
 
   function snapshot(){
     return {
@@ -11070,15 +11086,15 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       const tab=document.querySelector('.shop-tab.active')?.dataset.shopTab||'buy';
       if(!progress.shopSold&&tab!=='sell')return {title:'最初に売却を覚えよう',body:'上の「アイテムを売る」タブを押してください。不要な所持品を選び、価格と個数を確認してジェムへ交換します。',hint:'必要なクラフト素材まで売らないよう、インベントリの詳細説明も確認してください。'};
       if(tab==='sell')return {title:'【不要品】スグリの実を売ろう',body:'緑色で表示された「スグリの実【不要品・売却練習用】」を1個売ってください。木材・草・武器など後で必要な物はロックされ、チュートリアル中は売れません。',hint:'本編では必要品のロックはありません。レシピや召喚素材を確認してから売却しましょう。'};
-      if(progress.shopSold&&!progress.playerTraded)return {title:'夢見の人影とプレイヤートレード',body:'「プレイヤー取引」を押してください。チュートリアル中だけ、夢見の人影が生存プレイヤーとして一覧に現れます。革を提示すると、人影がジェムを対価として提示します。',hint:'提示内容を確認し、「この内容で交渉成立」まで体験してください。通常ゲームでは実在するオンライン参加者と同じ流れです。'};
+      if(progress.shopSold&&!progress.playerTraded)return {title:'夢見の人影とプレイヤートレード',body:'「プレイヤー取引」を押してください。チュートリアル中だけ、夢見の人影が生存プレイヤーとして一覧に現れます。皮を提示すると、人影がジェムを対価として提示します。',hint:'提示内容を確認し、「この内容で交渉成立」まで体験してください。通常ゲームでは実在するオンライン参加者と同じ流れです。'};
       if(progress.playerTraded)return {title:'プレイヤートレード完了',body:'招待、アイテム提示、相手の対価、最終確定まで体験しました。ショップへ戻り、必要なら購入も試せます。',hint:'本編では相手が承認・対価提示を操作します。不足・満杯・切断時は安全のため交換が中止されます。'};
       return {title:'ショップで買ってみよう',body:'商品を選び、所持ジェムを使って購入してください。',hint:'夢見の庭園では練習向けの商品が並びます。購入・売却とも本編と同じ処理です。'};
     }
 
     if(panelId==='playerTrade'){
       if(!document.querySelector('#playerTradeSession:not([hidden])'))return {title:'夢見の人影を選ぼう',body:'夢見の人影はチュートリアル中だけ、生存プレイヤーとして表示されています。「提案する」を押してください。',hint:'本編ではここにオンライン中の生存プレイヤーが表示され、相手が応じた場合だけ交渉が始まります。'};
-      if(document.querySelector('#tradeOfferItemOpen')&&!document.querySelector('#tradeFinalize:not([disabled])'))return {title:'革を提示しよう',body:'「アイテムを選ぶ」から交換練習用の革を選び、個数1で「提示する」を押してください。夢見の人影が自動で12ジェムを提示します。',hint:'本編では相手側がジェムまたはアイテムを選んで対価を提示します。'};
-      return {title:'交換内容を最終確認',body:'あなたが渡す「革×1」と、夢見の人影が渡す「12ジェム」を確認し、「この内容で交渉成立」を押してください。',hint:'確定直前に双方の所持数・ジェム・空き容量が再確認されます。'};
+      if(document.querySelector('#tradeOfferItemOpen')&&!document.querySelector('#tradeFinalize:not([disabled])'))return {title:'皮を提示しよう',body:'「アイテムを選ぶ」から交換練習用の皮を選び、個数1で「提示する」を押してください。夢見の人影が自動で12ジェムを提示します。',hint:'本編では相手側がジェムまたはアイテムを選んで対価を提示します。'};
+      return {title:'交換内容を最終確認',body:'あなたが渡す「皮×1」と、夢見の人影が渡す「12ジェム」を確認し、「この内容で交渉成立」を押してください。',hint:'確定直前に双方の所持数・ジェム・空き容量が再確認されます。'};
     }
 
     if(panelId==='combat'){
@@ -11086,7 +11102,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       if(progress.summoned&&!progress.npcCommanded)return {title:'ウサギへ命令してみよう',body:'右側の「召喚獣へ指示」を押します。命令するウサギ、渡す片手アイテム、使用対象を順に選んで指示を登録してください。',hint:'召喚獣は自分の意志力を使います。渡したアイテムは同じターンに主人が使えず、召喚獣は片手分だけ行動できます。'};
       if(turn===0)return {title:'1ターン目：木の長剣で攻撃',body:'夢見の人影はこのターン何もしません。\n木の長剣を選び、攻撃を確定してください。',hint:'カード選択・意志力消費・物理ダメージの流れを体験します。'};
       if(turn===1&&!selectedShield())return {title:'2ターン目：盾を構えよう',body:'夢見の人影は石を投げます。\n攻撃を確定する前に、木の板またはシールドを選んで構えてください。',hint:'盾を構える時点の消費意志力は0です。'};
-      if(turn===1)return {title:'石を盾で防ごう',body:'被弾確認が表示されたら「盾を使用する」を選びます。',hint:'ここで初めて盾の shieldWillCost が消費されます。'};
+      if(turn===1)return {title:'準備完了を押そう',body:'盾を構える準備ができました。光っている「準備完了してカード使用へ」を押して、すぐにカード使用ターンへ進んでください。\nその後、石が飛んできた時に「盾を使用する」を選びます。',hint:'盾を選んだだけではターンは進みません。まず準備完了を確定してください。',selectors:['#startBattleBtn']};
       if(turn===2&&!progress.magicLoaded)return {title:'3ターン目：魔法を準備',body:'夢見の人影は銅装備一式を装備します。\n魔法の杖とスクロールを選び、魔法を準備してください。',hint:'銅防具で物理が軽減される相手には、魔法が有効です。'};
       if(turn===2)return {title:'銅防具へ魔法を使おう',body:'装填した杖で夢見の人影を狙い、魔法を確定してください。',hint:'防具と魔法は本編の実際のダメージ処理を使っています。'};
       if(!progress.shieldReadied)return {title:'盾を構えてみよう',body:'木の板かシールドを選び、次の攻撃に備えてください。',hint:'片手盾は片手枠、ラージシールドは両手枠を使います。'};
@@ -11106,7 +11122,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       expand:{title:'インベントリを拡張する',body:'「容量を20枠へ拡張」を押すと、10ジェムを消費して所持枠を増やせます。探索前に空きを作っておくと、見つけたアイテムを取り逃しにくくなります。',hint:'拡張はゲーム中の重要なジェム用途です。ボタンには現在の必要ジェム数が表示されます。',selectors:['#expandBtn']},
       craft:{title:'クラフトの詳しい手順',body:panelId==='craft'?'①上のカテゴリーを選ぶ → ②レシピをタップ → ③完成品・必要素材・必要意志力を確認 → ④「クラフト」を押します。\n\n不足素材は作成できず、成功すると素材と意志力を消費して完成品がインベントリへ入ります。':'行動選択で「クラフト」を押してください。クラフト画面へ移動すると、カテゴリー・レシピ・必要素材・必要意志力・完成品の順に確認できます。',hint:'作り終えたら「行動を完了する」で次へ進みます。レシピをタップすると右側に完成品の詳細も出ます。',selectors:panelId==='craft'?['#craftCategoryTabs','#craftList','#craftBtn']:['#actionPanel [data-action="craft"]']},
       sell:{title:'ショップでアイテムを売却する',body:panelId==='trade'?'上の「アイテムを売る」タブへ切り替え、緑色の「スグリの実【不要品・売却練習用】」を1個売ります。後で使う教材はチュートリアル中だけ売却不可です。':'行動選択の「トレード」からショップへ入り、上部の「アイテムを売る」タブを押します。不要な素材をジェムへ変えられます。',hint:'本編では保護されません。クラフトレシピや召喚素材を確認し、必要な物まで売らないようにしてください。',selectors:panelId==='trade'?['.shop-tab[data-shop-tab="sell"]','[data-shop-sell-one="currant"]']:['#actionPanel [data-action="trade"]']},
-      playerTrade:{title:'プレイヤートレードの流れ',body:panelId==='playerTrade'?'夢見の人影を選び、交換練習用の革を提示します。人影が12ジェムを提示したら、双方の内容を確認して最終確定してください。':panelId==='trade'?'「プレイヤー取引」を押してください。チュートリアル中は夢見の人影が生存プレイヤーとして現れます。提案者が革を提示し、人影の対価を確認して最後に成立させます。':'行動選択で「トレード」へ進み、ショップ画面の「プレイヤー取引」を押します。',hint:'本編ではオンライン中の生存プレイヤーと同じ流れで交換します。変更時は最終確認が解除され、不足・満杯・切断時は成立しません。',selectors:panelId==='playerTrade'?['#playerTradePlayerList .player-trade-player button','#tradeOfferItemOpen','#tradeFinalize']:panelId==='trade'?['#openPlayerTradeBtn']:['#actionPanel [data-action="trade"]']},
+      playerTrade:{title:'プレイヤートレードの流れ',body:panelId==='playerTrade'?'夢見の人影を選び、交換練習用の皮を提示します。人影が12ジェムを提示したら、双方の内容を確認して最終確定してください。':panelId==='trade'?'「プレイヤー取引」を押してください。チュートリアル中は夢見の人影が生存プレイヤーとして現れます。提案者が皮を提示し、人影の対価を確認して最後に成立させます。':'行動選択で「トレード」へ進み、ショップ画面の「プレイヤー取引」を押します。',hint:'本編ではオンライン中の生存プレイヤーと同じ流れで交換します。変更時は最終確認が解除され、不足・満杯・切断時は成立しません。',selectors:panelId==='playerTrade'?['#playerTradePlayerList .player-trade-player button','#tradeOfferItemOpen','#tradeFinalize']:panelId==='trade'?['#openPlayerTradeBtn']:['#actionPanel [data-action="trade"]']},
       summon:{title:'召喚獣を召喚する',body:'クラフト・トレード・休憩などの画面で「召喚」を押すと召喚獣一覧が開きます。ウサギは草5個、アヴァターラは設計時に指定した素材を直接消費して召喚します。\n\nチュートリアルには草5個を用意してあります。',hint:'召喚後は左の「NPC」へ切り替えると、HP・意志力・所属を確認できます。NPCカードをタップすると中央に立ち絵が出ます。',selectors:['#openSummonListBtn','#npcSummonWidget']},
       cards:{title:'カード使用画面の操作',body:panelId==='combat'?'①下のカードをタップ → ②左右どちらの手で使うか確認 → ③必要なら使用対象を選ぶ → ④合計意志力を確認 → ⑤行動を確定します。\n\n片手は左右で各1枚、両手アイテムは両方の枠を使います。':'行動選択で「戦闘」を選ぶとカード使用画面へ進みます。カードを選び、手・対象・消費意志力を確認して行動を確定します。',hint:'防具やアクセサリーもそのターンに使うカードです。選択したカードは結果画面で行動順に処理されます。',selectors:panelId==='combat'?['#battleHand','#battleDock']:['#actionPanel [data-action="battle"]']},
       npcCommand:{title:'召喚獣へ命令する',body:panelId==='combat'?'右側の「召喚獣へ指示」を押して指示モードへ入ります。①命令するNPC → ②NPCへ渡すアイテム → ③使用対象を選び、指示を登録します。NPCは自分の意志力を使い、渡した片手アイテムを対象へ使用します。':'先に召喚獣を呼び、カード使用画面へ進みます。そこで右側の「召喚獣へ指示」を押すと命令できます。',hint:'NPCが使ったアイテムは主人と共有できず、そのターンに主人は使えません。NPCは片手分だけ行動できます。',selectors:panelId==='combat'?['#npcInstructionBtn','#npcCommandBox']:['#openSummonListBtn','#npcSummonWidget']}
@@ -11134,7 +11150,11 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       if(document.querySelector('#tradeFinalize:not([disabled])'))return ['#tradeFinalize'];
       return ['#tradeOfferItemOpen','#tradeOfferSet'];
     }
-    if(panelId==='combat')return progress.summoned&&!progress.npcCommanded?['#npcInstructionBtn','#npcCommandBox']:['#battleHand','#battleDock'];
+    if(panelId==='combat'){
+      const turn=Math.max(0,Math.floor(Number(s?.turn)||0));
+      if(turn===1&&selectedShield()&&!battleSubmissionLocked)return ['#startBattleBtn'];
+      return progress.summoned&&!progress.npcCommanded?['#npcInstructionBtn','#npcCommandBox']:['#battleHand','#battleDock'];
+    }
     return ['.mode-panel.active button'];
   }
   function clearTutorialFocus(){
@@ -11348,7 +11368,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       q('ctProgress').innerHTML='<b>準備中</b>';
 
       s=fresh();
-      // 教材8種類（交易練習用の革を含む）が必ず収まる容量にする。
+      // 教材8種類（交易練習用の皮を含む）が必ず収まる容量にする。
       s.capacity=9;
       s.hp=70;s.maxHp=100;
       s.will=100;s.maxWill=100;
@@ -12001,8 +12021,15 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
     const stage=$('.stage-content');stage?.classList.remove('craft-mode','combat-mode');stage?.classList.add('trade-mode');document.body.classList.remove('craft-ui-active');$('#craftDock')?.classList.remove('show');$('#battleDock')?.classList.remove('show');
     s.phase='trade';onlineSession.activityLabel=tradeState.active?'プレイヤートレード中':'トレード相手選択中';const badge=$('#phaseBadge');if(badge)badge.textContent='プレイヤートレード';if(phaseTimerKind!=='action')startPhaseTimer('action',PHASE_LIMITS.action);if(!wasActive&&isOnline())onlinePublishSnapshot();
   }
+  function ensureTutorialTradeLeather(){
+    if(!isTutorialTrade()||window.__dcTutorialPlayerTradeDone===true||itemCount('leather')>0)return;
+    // 探索後に枠が埋まっていても、交易教材が欠けない最小容量までチュートリアル内だけ広げる。
+    while(!canAddItemToList(s.items,'leather',1,s.capacity)&&s.capacity<100)s.capacity++;
+    if(canAddItemToList(s.items,'leather',1,s.capacity))s.items.push({uid:uid(),id:'leather',turnBonusDamage:0});
+  }
   function openPlayerTradeList(){
     if(!isOnline()&&!isTutorialTrade())return toast('プレイヤートレードはオンラインゲームで利用できます');
+    ensureTutorialTradeLeather();
     if(hasOpenTrade())return renderTradeSession();
     tradeState.completedText='';showPlayerTradePanel();renderPlayerTradeList();save(false);
   }
@@ -12023,7 +12050,7 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
   }
   function sendTradeInvite(player){
     if(!player||tradeState.pendingTargetId)return;
-    if(isTutorialTrade()&&player.id==='tutorial_shadow'){beginTradeSession({id:`tutorial_trade_${Date.now()}`,proposerId:'tutorial_player',targetId:'tutorial_shadow',proposerName:'あなた',targetName:'夢見の人影',status:'active',offer:null,counter:null,version:0,updatedAt:Date.now()});toast('夢見の人影がトレードに応じました');return}
+    if(isTutorialTrade()&&player.id==='tutorial_shadow'){ensureTutorialTradeLeather();beginTradeSession({id:`tutorial_trade_${Date.now()}`,proposerId:'tutorial_player',targetId:'tutorial_shadow',proposerName:'あなた',targetName:'夢見の人影',status:'active',offer:null,counter:null,version:0,updatedAt:Date.now()});toast('夢見の人影がトレードに応じました');return}
     tradeState.pendingTargetId=player.id;tradeState.pendingTargetName=player.name;renderPlayerTradeList();onlineSendToHost(tradeMessage('playerTradeInvite',{targetId:player.id}));
   }
   function enqueueTradeInvite(message){tradeState.inviteQueue.push(message);showNextTradeInvite()}
@@ -12042,7 +12069,7 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
     tradeState.active=null;tradeState.privateMessages=[];tradeState.preparing=false;tradeState.pendingSessionId='';tradeState.pendingTargetId='';tradeState.pendingTargetName='';tradeState.currentInvite=null;tradeState.inviteQueue.length=0;tradeState.completedText=message;const overlay=$('#playerTradeInviteOverlay');overlay?.classList.remove('show');
     if($('#playerTradePanel')?.classList.contains('active'))renderPlayerTradeList();
   }
-  function ownItemStacks(){const counts=new Map();for(const item of s.items)counts.set(item.id,(counts.get(item.id)||0)+1);let stacks=[...counts.entries()].sort((a,b)=>ITEMS[a[0]].name.localeCompare(ITEMS[b[0]].name,'ja')).map(([id,count])=>({id,count,data:ITEMS[id]}));if(isTutorialTrade())stacks=stacks.filter(stack=>stack.id==='leather');return stacks}
+  function ownItemStacks(){ensureTutorialTradeLeather();const counts=new Map();for(const item of s.items)counts.set(item.id,(counts.get(item.id)||0)+1);let stacks=[...counts.entries()].sort((a,b)=>ITEMS[a[0]].name.localeCompare(ITEMS[b[0]].name,'ja')).map(([id,count])=>({id,count,data:ITEMS[id]}));if(isTutorialTrade())stacks=stacks.filter(stack=>stack.id==='leather');return stacks}
   function itemOptions(selected=''){const stacks=ownItemStacks();return `<option value="">アイテムを選択</option>${stacks.map(stack=>`<option value="${stack.id}" ${stack.id===selected?'selected':''}>${safeHtml(stack.data.name)}（${stack.count}個）</option>`).join('')}`}
   function tradePickerButtonContent(itemId){const stack=ownItemStacks().find(entry=>entry.id===itemId),data=stack?.data;return data?`<img src="${data.icon}" alt=""><span>${safeHtml(data.name)}</span><small>所持 ${stack.count}</small>`:'<span aria-hidden="true" style="font-size:24px;text-align:center">🎒</span><span>アイテムを選ぶ</span><small>一覧を開く</small>'}
   function closeTradeItemPicker(){const overlay=$('#tradeItemPickerOverlay');overlay?.classList.remove('show');tradeItemPickerSelect=null}
@@ -12080,9 +12107,9 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
     else{box.innerHTML=`<div class="player-trade-editor"><div style="display:flex;align-items:center;gap:6px;font-weight:900">💎 ジェム</div><input id="tradeCounterGems" type="number" min="1" max="999999" value="${clampInt(tradeState.active?.counter?.amount||1,1,999999)}"><button type="button" class="btn good" id="tradeCounterSet">対価を提示</button></div>`}
     $('#tradeCounterItemOpen')?.addEventListener('click',()=>openTradeItemPicker($('#tradeCounterItem')?.value||'',itemId=>{const input=$('#tradeCounterItem'),button=$('#tradeCounterItemOpen');if(input)input.value=itemId;if(button)button.innerHTML=tradePickerButtonContent(itemId)}));$('#tradeCounterSet')?.addEventListener('click',()=>{if(kind==='item'){const itemId=$('#tradeCounterItem')?.value,count=clampInt($('#tradeCounterCount')?.value,1,99);if(!ITEMS[itemId])return toast('対価にするアイテムを選んでください');if(itemCount(itemId)<count)return toast('所持数が足りません');sendTradeCounter({kind:'item',itemId,count})}else{const amount=clampInt($('#tradeCounterGems')?.value,1,999999);if(s.gems<amount)return toast('所持ジェムが足りません');sendTradeCounter({kind:'gems',amount})}});
   }
-  function sendTradeOffer(offer){if(!tradeState.active||tradeState.preparing)return;if(isTutorialTrade()){if(offer.itemId!=='leather')return toast('練習では「革」を提示してください');tradeState.active={...tradeState.active,offer:{...offer,kind:'item'},counter:{kind:'gems',amount:12},version:(tradeState.active.version||0)+1,updatedAt:Date.now()};tradeState.privateMessages=[{senderId:'tutorial_shadow',senderName:'夢見の人影',text:'その革なら、12ジェムで交換しよう。',at:Date.now()}];renderTradeSession();toast('夢見の人影が12ジェムを提示しました');return}onlineSendToHost(tradeMessage('playerTradeOfferUpdate',{sessionId:tradeState.active.id,offer}))}
+  function sendTradeOffer(offer){if(!tradeState.active||tradeState.preparing)return;if(isTutorialTrade()){if(offer.itemId!=='leather')return toast('練習では「皮」を提示してください');tradeState.active={...tradeState.active,offer:{...offer,kind:'item'},counter:{kind:'gems',amount:12},version:(tradeState.active.version||0)+1,updatedAt:Date.now()};tradeState.privateMessages=[{senderId:'tutorial_shadow',senderName:'夢見の人影',text:'その皮なら、12ジェムで交換しよう。',at:Date.now()}];renderTradeSession();toast('夢見の人影が12ジェムを提示しました');return}onlineSendToHost(tradeMessage('playerTradeOfferUpdate',{sessionId:tradeState.active.id,offer}))}
   function sendTradeCounter(counter){if(!tradeState.active||tradeState.preparing)return;onlineSendToHost(tradeMessage('playerTradeCounterUpdate',{sessionId:tradeState.active.id,counter}))}
-  function finalizePlayerTrade(){if(!tradeState.active||tradeState.preparing)return;if(isTutorialTrade()){const session={...tradeState.active};if(!validTradeItem(session.offer)||!validTradeCounter(session.counter))return toast('革を提示し、相手の対価を確認してください');const committed=applyLocalTradeCommit({session,commitId:`tutorial_commit_${Date.now()}`});if(!committed)return toast('交換条件を満たしていません');window.__dcTutorialPlayerTradeDone=true;clearTradeSession('夢見の人影との練習トレードが成立しました。');renderPlayerTradeList();window.__dcTutorialRefresh?.();toast('夢見の人影とのトレードが成立しました');return}tradeState.preparing=true;renderTradeSession();onlineSendToHost(tradeMessage('playerTradeFinalize',{sessionId:tradeState.active.id,version:tradeState.active.version}))}
+  function finalizePlayerTrade(){if(!tradeState.active||tradeState.preparing)return;if(isTutorialTrade()){const session={...tradeState.active};if(!validTradeItem(session.offer)||!validTradeCounter(session.counter))return toast('皮を提示し、相手の対価を確認してください');window.__dcTutorialPlayerTradeDone=true;const committed=applyLocalTradeCommit({session,commitId:`tutorial_commit_${Date.now()}`});if(!committed){window.__dcTutorialPlayerTradeDone=false;return toast('交換条件を満たしていません')}clearTradeSession('夢見の人影との練習トレードが成立しました。');renderPlayerTradeList();window.__dcTutorialRefresh?.();toast('夢見の人影とのトレードが成立しました');return}tradeState.preparing=true;renderTradeSession();onlineSendToHost(tradeMessage('playerTradeFinalize',{sessionId:tradeState.active.id,version:tradeState.active.version}))}
   function renderPrivateChat(){const list=$('#playerTradeChatList');if(!list)return;list.innerHTML='';if(!tradeState.privateMessages.length){const line=document.createElement('div');line.className='player-trade-chat-line';line.textContent='ここでトレード相手とだけ相談できます。';list.appendChild(line)}for(const message of tradeState.privateMessages){const line=document.createElement('div');line.className=`player-trade-chat-line ${message.senderId===onlineSession.localId?'self':''}`;const name=document.createElement('b');name.textContent=message.senderName;line.append(name,document.createTextNode(message.text));list.appendChild(line)}requestAnimationFrame(()=>{list.scrollTop=list.scrollHeight})}
   function addPrivateTradeMessage(message){if(!tradeState.active||message.sessionId!==tradeState.active.id)return;tradeState.privateMessages.push({senderId:message.senderId,senderName:message.senderName||memberName(message.senderId),text:cleanChatText(message.text),at:message.at||Date.now()});tradeState.privateMessages=tradeState.privateMessages.slice(-120);renderPrivateChat()}
   function sendPrivateTradeChat(text){const value=cleanChatText(text);if(!value||!tradeState.active)return;onlineSendToHost(tradeMessage('playerTradeChat',{sessionId:tradeState.active.id,text:value}))}
