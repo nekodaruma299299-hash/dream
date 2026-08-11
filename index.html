@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.21・木の長剣チュートリアル発光版";
+const BUILD_LABEL="α7.13.22・盾/NPCチュートリアル案内改善版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -10895,6 +10895,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     inventoryInspected:false,
     inventoryExpanded:false,
     summoned:false,
+    npcRosterViewed:false,
     npcCommanded:false,
     rested:false,
     secondPhaseReady:false
@@ -11020,6 +11021,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       enemyHp:Number(s?.enemyHp)||0,gems:Number(s?.gems)||0,
       items:(s?.items||[]).map(item=>item.id),phase:s?.phase,turn:Number(s?.turn)||0,
       capacity:Number(s?.capacity)||0,npcCount:(s?.npcs||[]).filter(npc=>npc&&!npc.enemy&&npc.hp>0).length,
+      npcRosterOpen:q('showNpcsBtn')?.classList.contains('active')===true,
       npcCommandCount:(s?.npcCommands||[]).length,
       playerTradeDone:window.__dcTutorialPlayerTradeDone===true,
       message:String(q('battleMessage')?.textContent||''),
@@ -11047,6 +11049,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     if(after.playerTradeDone)progress.playerTraded=true;
     if(after.capacity>before.capacity)progress.inventoryExpanded=true;
     if(after.npcCount>before.npcCount)progress.summoned=true;
+    if(progress.summoned&&after.npcRosterOpen)progress.npcRosterViewed=true;
     if(after.npcCommandCount>0&&['player','done'].includes(window.__dcTutorialNpcCommandStep))progress.npcCommanded=true;
     if(before.panel==='action'&&after.panel==='explore'&&after.will>before.will)progress.rested=true;
     if(progress.crafted&&progress.explored&&before.panel==='explore'&&after.panel!=='explore')progress.secondPhaseReady=true;
@@ -11055,9 +11058,17 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
 
   function guideFor(panelId){
     if(shieldPromptVisible())return {
-      title:'ここで盾を使います',
-      body:'攻撃を受ける直前です。\n「進む」ならそのまま受け、「盾を使用する」なら表示された盾でガードします。',
-      hint:'shieldWillCost は盾を構えた時ではなく、「盾を使用する」を押した瞬間にだけ消費されます。'
+      title:'ここで木の板を使います',
+      body:'攻撃を受ける直前です。\n光っている「木の板」を確認し、「盾を使用する」を押してガードしてください。',
+      hint:'木の板の意志力は、構えた時ではなく実際に「盾を使用する」を押した瞬間にだけ消費されます。',
+      selectors:['#combatShieldSelect','#combatConfirmDecline']
+    };
+
+    if(progress.summoned&&!progress.npcRosterViewed)return {
+      title:'左上の「NPC」を確認しよう',
+      body:'召喚獣を出すと、左上の「NPC」から自分の召喚獣や、現在場にいる味方・敵NPCを確認できます。\n光っている「NPC」を押してみてください。',
+      hint:'NPC一覧ではHP・意志力・所属を確認でき、NPCカードを押すと立ち絵と詳細も見られます。',
+      selectors:['#showNpcsBtn']
     };
 
     if(panelId==='explore'){
@@ -11158,7 +11169,8 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     return guides[topic]||null;
   }
   function automaticFocusSelectors(panelId){
-    if(shieldPromptVisible())return ['#combatConfirmProceed','#combatConfirmDecline'];
+    if(shieldPromptVisible())return ['#combatShieldSelect','#combatConfirmDecline','#combatConfirmProceed'];
+    if(progress.summoned&&!progress.npcRosterViewed)return ['#showNpcsBtn'];
     if(panelId==='explore'){
       if(!progress.inventoryInspected)return ['#slots .slot','.inventory-panel'];
       if(!progress.inventoryExpanded)return ['#expandBtn'];
@@ -11391,6 +11403,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       Object.keys(progress).forEach(key=>progress[key]=false);
       window.__dcTutorialPlayerTradeDone=false;
       window.__dcTutorialNpcCommandStep='open';
+      try{npcRosterView='players';npcRosterPage=0}catch{}
       tutorialVictoryShown=false;
       q('tutorialVictoryOverlay')?.classList.remove('show');
       q('tutorialVictoryOverlay')?.setAttribute('aria-hidden','true');
