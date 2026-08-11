@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.9 Online Room</title>
+<title>Dream Crafter α7.13.10 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.9・人影トレード安全売却チュートリアル版";
+const BUILD_LABEL="α7.13.10・チュートリアル木剣固定・交易革保証版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -7979,6 +7979,12 @@ function selectUsableRecipe(){
 function craft(recipeId=s.selectedRecipe){
   if(s.phase!=='craft')return;
   const r=RECIPES.find(x=>x.id===recipeId)||null;
+  if(window.__dcRealTutorialActive===true&&r?.id!=='wood_sword'){
+    s.selectedRecipe='wood_sword';
+    craftActiveCategory=craftRecipeCategory(RECIPES.find(x=>x.id==='wood_sword'));
+    renderCraft();renderItemCard();
+    return toast('チュートリアルでは木の長剣だけクラフトできます');
+  }
   if((s.playerStatuses?.armLoss||0)>=2)return toast('両腕を欠損しているためクラフトできません');
   if(!r||!canCraft(r))return toast('選択中のレシピは作成できません。素材・意志力・空き容量を確認してください');
   s.selectedRecipe=r.id;
@@ -9941,9 +9947,12 @@ function renderCraftWillStatus(recipe=null){
 function renderCraft(){
   const list=qs('#craftList'),tabs=qs('#craftCategoryTabs');if(!list||!tabs)return;
   const previousCategory=list.dataset.category;if(previousCategory&&CRAFT_CATEGORY_ORDER.includes(previousCategory))craftCategoryScrollPositions[previousCategory]=list.scrollTop;
-  const allRecipes=[...RECIPES].filter(r=>ITEMS[r.result]&&Object.keys(r.materials||{}).every(id=>ITEMS[id]));
-  const selected=selectUsableRecipe();
+  const tutorialCraft=window.__dcRealTutorialActive===true;
+  const allRecipes=[...RECIPES].filter(r=>ITEMS[r.result]&&Object.keys(r.materials||{}).every(id=>ITEMS[id])&&(!tutorialCraft||r.id==='wood_sword'));
+  if(tutorialCraft)s.selectedRecipe='wood_sword';
+  const selected=tutorialCraft?(RECIPES.find(r=>r.id==='wood_sword')||null):selectUsableRecipe();
   if(!CRAFT_CATEGORY_ORDER.includes(craftActiveCategory))craftActiveCategory=craftRecipeCategory(selected);
+  if(tutorialCraft)craftActiveCategory=craftRecipeCategory(selected);
   const grouped=Object.fromEntries(CRAFT_CATEGORY_ORDER.map(category=>[category,[]]));
   for(const recipe of allRecipes)grouped[craftRecipeCategory(recipe)].push(recipe);
   for(const category of CRAFT_CATEGORY_ORDER)grouped[category].sort((a,b)=>craftRecipeAvailability(b)-craftRecipeAvailability(a)||RECIPES.indexOf(a)-RECIPES.indexOf(b));
@@ -11036,9 +11045,9 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
         hint:'インベントリで木の枝と木材の所持数を確認できます。'
       };
       if(!progress.rested)return {
-        title:'別の行動も試してみよう',
-        body:'探索後の行動選択では、休む・クラフト・トレード・戦闘を本編と同じように選べます。',
-        hint:'後半の探索候補には水晶と魔法スクロールが追加されます。'
+        title:'もう一度探索してみよう',
+        body:'2フェイズ目は、もう一度「探索量」を入力して「夢を探索する」を押してください。探索を重ねると、後半の候補から水晶や魔法スクロールも見つかります。',
+        hint:'光っている探索量と探索ボタンを操作してください。インベントリではなく探索を進めます。'
       };
       return {title:'自由に探索できます',body:'夢見の庭園で、まだ試していない操作を続けてください。',hint:'案内内容は現在の画面と行動に合わせて自動更新されます。'};
     }
@@ -11109,6 +11118,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     if(panelId==='explore'){
       if(!progress.inventoryInspected)return ['#slots .slot','.inventory-panel'];
       if(!progress.inventoryExpanded)return ['#expandBtn'];
+      if(progress.crafted&&!progress.rested)return ['#exploreCost','#exploreBtn'];
       return progress.explored?['.inventory-panel','#slots .slot']:['#exploreCost','#exploreBtn'];
     }
     if(panelId==='action'){
@@ -11338,7 +11348,8 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       q('ctProgress').innerHTML='<b>準備中</b>';
 
       s=fresh();
-      s.capacity=7;
+      // 教材8種類（交易練習用の革を含む）が必ず収まる容量にする。
+      s.capacity=9;
       s.hp=70;s.maxHp=100;
       s.will=100;s.maxWill=100;
       s.gems=300;
