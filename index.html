@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.17 Online Room</title>
+<title>Dream Crafter α7.13.18 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.17・召喚獣命令ステップガイド版";
+const BUILD_LABEL="α7.13.18・チュートリアル勝利演出版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -10810,17 +10810,31 @@ const $=s=>document.querySelector(s), overlay=$('#tutorialOverlay'), scene=$('#t
 @keyframes tutorialWindowGlow{from{box-shadow:0 16px 50px #000c,0 0 13px #61d9ff,0 0 28px #9b6cff88,inset 0 0 16px #5fa5ff20}to{box-shadow:0 16px 50px #000c,0 0 27px #83ecff,0 0 55px #b080ffcc,inset 0 0 26px #5fa5ff38}}
 body.real-tutorial-active .tutorial-focus{outline:4px solid #fff36a!important;outline-offset:4px!important;box-shadow:0 0 0 7px #ff9f1c99,0 0 24px 10px #fff36acc!important;filter:brightness(1.3)!important;animation:tutorialTargetGlow .72s ease-in-out infinite alternate!important}
 @keyframes tutorialTargetGlow{from{outline-color:#fff36a;box-shadow:0 0 0 5px #ff9f1c88,0 0 14px 7px #fff36aaa}to{outline-color:#fff;box-shadow:0 0 0 9px #ff9f1ccc,0 0 30px 14px #fff36aff}}
+.tutorial-victory-overlay{position:fixed;inset:0;z-index:2147483647;display:none;place-items:center;padding:18px;background:radial-gradient(circle at 50% 42%,#fff59a38 0 10%,#c68bff2b 28%,#040711ed 70%);overflow:hidden;backdrop-filter:blur(8px)}
+.tutorial-victory-overlay.show{display:grid;animation:tutorialVictoryFade .45s ease-out both}.tutorial-victory-overlay::before{content:'';position:absolute;width:min(135vw,1100px);aspect-ratio:1;border-radius:50%;background:repeating-conic-gradient(from 0deg,#ffe96a00 0 8deg,#ffe96a24 8deg 12deg);animation:tutorialVictoryRays 18s linear infinite;pointer-events:none}
+.tutorial-victory-card{position:relative;width:min(560px,calc(100vw - 28px));padding:34px 24px 25px;border:3px solid #fff4a3;border-radius:24px;text-align:center;color:#fff;background:linear-gradient(155deg,#28195ef2,#111a3df5 48%,#5a3215f2);box-shadow:0 0 0 7px #ffd95b32,0 0 38px #ffe26ddd,0 25px 90px #000;overflow:hidden;animation:tutorialVictoryCard .72s cubic-bezier(.2,1.3,.35,1) both}
+.tutorial-victory-card::after{content:'';position:absolute;inset:-45%;background:linear-gradient(115deg,transparent 42%,#fff8 49%,transparent 56%);animation:tutorialVictoryShine 2.4s ease-in-out infinite;pointer-events:none}.tutorial-victory-stars{font-size:20px;letter-spacing:13px;color:#fff38b;text-shadow:0 0 14px #ffe36a;animation:tutorialVictoryStars .8s ease-in-out infinite alternate}.tutorial-victory-icon{margin:8px 0 3px;font-size:74px;line-height:1;filter:drop-shadow(0 0 18px #ffe05e);animation:tutorialVictoryTrophy 1s ease-in-out infinite alternate}.tutorial-victory-kicker{font-size:12px;font-weight:1000;letter-spacing:.22em;color:#ffe786}.tutorial-victory-title{margin:5px 0 7px;font-size:clamp(27px,7vw,45px);line-height:1.08;color:#fff8c7;text-shadow:0 2px 0 #8b4a15,0 0 18px #ffe66c}.tutorial-victory-text{margin:0 auto;color:#f1edff;font-size:14px;line-height:1.7}.tutorial-victory-mastered{margin:15px auto 18px;padding:10px 12px;border:1px solid #ffe88488;border-radius:12px;background:#fff2a314;color:#fff8d2;font-size:11px;line-height:1.55}.tutorial-victory-home{position:relative;z-index:1;min-width:min(290px,85%);padding:13px 25px!important;border:2px solid #fff2a0!important;border-radius:999px!important;background:linear-gradient(180deg,#ffdc57,#d87d16)!important;color:#251107!important;font-size:16px!important;font-weight:1000!important;box-shadow:0 0 22px #ffe16499,0 8px 22px #0007!important}.tutorial-victory-home:active{transform:translateY(2px)}
+@keyframes tutorialVictoryFade{from{opacity:0}to{opacity:1}}@keyframes tutorialVictoryCard{from{opacity:0;transform:scale(.72) translateY(35px)}to{opacity:1;transform:scale(1) translateY(0)}}@keyframes tutorialVictoryRays{to{transform:rotate(360deg)}}@keyframes tutorialVictoryShine{0%,45%{transform:translateX(-45%)}75%,100%{transform:translateX(45%)}}@keyframes tutorialVictoryStars{to{transform:scale(1.08);filter:brightness(1.35)}}@keyframes tutorialVictoryTrophy{to{transform:translateY(-7px) rotate(2deg)}}
 .tutorial-sell-practice{border-color:#71ff9b!important;background:linear-gradient(180deg,#173c2b,#10271d)!important}.tutorial-sell-practice .shop-item-name{color:#b9ffca!important;font-weight:1000!important}.tutorial-sell-practice [data-shop-sell-one]{box-shadow:0 0 16px #59ff8aaa!important}
 .tutorial-focus-pointer{position:fixed;z-index:2147483647;display:none;pointer-events:none;padding:6px 10px;border:2px solid #fff;border-radius:999px;background:#f07b18;color:#fff;font-size:11px;font-weight:1000;white-space:nowrap;box-shadow:0 0 18px #fff36a;animation:tutorialPointerBounce .65s ease-in-out infinite alternate}.tutorial-focus-pointer.show{display:block}.tutorial-focus-pointer::before{content:'➜';margin-right:5px;color:#fff36a}
 @keyframes tutorialPointerBounce{from{transform:translateY(0)}to{transform:translateY(-6px)}}
 body.real-tutorial-active #roomStatusBtn{display:none!important}
 body.real-tutorial-active .enemy-name b,body.real-tutorial-active #battleHudTargetName{font-size:0}
 body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battleHudTargetName::after{content:'夢見の人影';font-size:14px}
-@media(max-width:600px){.context-tutorial-window{width:min(292px,calc(100vw - 12px));max-height:30vh;padding:8px 9px}.ct-title{font-size:13px}.ct-body{font-size:10px}.ct-hint{font-size:9px}}
+@media(max-width:600px){.context-tutorial-window{width:min(292px,calc(100vw - 12px));max-height:30vh;padding:8px 9px}.ct-title{font-size:13px}.ct-body{font-size:10px}.ct-hint{font-size:9px}.tutorial-victory-card{padding:26px 14px 20px}.tutorial-victory-icon{font-size:58px}.tutorial-victory-text{font-size:12px}}
 </style>
 <div class="context-tutorial-window" id="contextTutorialWindow" aria-live="polite">
  <div class="ct-head"><div class="ct-head-main"><div class="ct-kicker" id="ctKicker">基礎チュートリアル</div><h2 class="ct-title" id="ctTitle">探索してみよう</h2></div><div class="ct-tools"><button type="button" class="btn" id="ctMinimize">−</button><button type="button" class="btn danger" id="ctExit">×</button></div></div>
  <div class="ct-body" id="ctBody"></div><div class="ct-hint" id="ctHint"></div><div class="ct-progress" id="ctProgress"></div><div class="ct-topic-row"><label for="ctTopic">詳しい説明</label><select id="ctTopic"><option value="">現在の操作を自動案内</option><option value="stage">ステージの出現アイテム</option><option value="inventory">アイテム詳細の見方</option><option value="expand">インベントリ拡張</option><option value="craft">クラフトの詳しい手順</option><option value="sell">ショップで売却</option><option value="playerTrade">プレイヤートレード</option><option value="summon">召喚の方法</option><option value="cards">カードの使い方</option><option value="npcCommand">召喚獣への命令</option></select></div>
+</div>
+<div class="tutorial-victory-overlay" id="tutorialVictoryOverlay" role="dialog" aria-modal="true" aria-labelledby="tutorialVictoryTitle" aria-hidden="true">
+ <div class="tutorial-victory-card">
+  <div class="tutorial-victory-stars">✦ ✦ ✦</div><div class="tutorial-victory-icon">🏆</div><div class="tutorial-victory-kicker">DREAM CRAFTER</div>
+  <h2 class="tutorial-victory-title" id="tutorialVictoryTitle">チュートリアルクリア！</h2>
+  <p class="tutorial-victory-text">夢見の人影に勝利しました。<br>これで冒険に必要な基本操作は習得完了です！</p>
+  <div class="tutorial-victory-mastered">探索・クラフト・トレード・召喚獣への命令・カード使用を体験しました</div>
+  <button type="button" class="btn tutorial-victory-home" id="tutorialVictoryHome">ホームへ戻る</button>
+ </div>
 </div>
 <script>
 // ============================================================================
@@ -10850,6 +10864,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
   let placeRaf=0;
   let resizeRetry=0;
   let manualTopic='';
+  let tutorialVictoryShown=false;
   let focusedElements=[];
   const focusPointer=document.createElement('div');
   focusPointer.className='tutorial-focus-pointer';
@@ -11372,6 +11387,9 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       Object.keys(progress).forEach(key=>progress[key]=false);
       window.__dcTutorialPlayerTradeDone=false;
       window.__dcTutorialNpcCommandStep='open';
+      tutorialVictoryShown=false;
+      q('tutorialVictoryOverlay')?.classList.remove('show');
+      q('tutorialVictoryOverlay')?.setAttribute('aria-hidden','true');
       manualTopic='';
       if(q('ctTopic'))q('ctTopic').value='';
       exploreIndex=0;
@@ -11448,6 +11466,8 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     win.classList.remove('show','minimized');
     win.hidden=true;
     win.setAttribute('aria-hidden','true');
+    q('tutorialVictoryOverlay')?.classList.remove('show');
+    q('tutorialVictoryOverlay')?.setAttribute('aria-hidden','true');
 
     if(savedSettings)Object.assign(currentRoomSettings,savedSettings);
     if(savedState)s=savedState;
@@ -11463,7 +11483,29 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     else toast('チュートリアルを終了しました');
     return false;
   }
-  window.__dcFinishRealTutorialAfterVictory=()=>exit(null,true);
+  function showTutorialVictory(){
+    if(!isActive()||tutorialVictoryShown)return false;
+    tutorialVictoryShown=true;
+    try{stopPhaseTimer(true)}catch{}
+    try{hideCombatPhaseOverlay(true)}catch{}
+    battleAnimating=false;
+    battleSubmissionLocked=false;
+    battleResolutionStarted=false;
+    battleReadyShields=null;
+    battleShieldPaidTokens=new Set();
+    clearTutorialFocus();
+    window.TutorialWindowManager?.hide?.();
+    win.classList.remove('show','minimized');
+    win.hidden=true;
+    win.setAttribute('aria-hidden','true');
+    const overlay=q('tutorialVictoryOverlay');
+    overlay?.classList.add('show');
+    overlay?.setAttribute('aria-hidden','false');
+    try{dreamCrafterOutcomeAudioPlayed=false;playDreamOutcomeSound('victory')}catch{}
+    setTimeout(()=>q('tutorialVictoryHome')?.focus?.(),450);
+    return true;
+  }
+  window.__dcFinishRealTutorialAfterVictory=showTutorialVictory;
 
   // inline onclick と同じ関数を使用し、開始経路を1本に統一する。
   window.openDreamCrafterTutorial=start;
@@ -11471,6 +11513,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
   const openButton=q('onlineTutorialOpen');
   if(openButton)openButton.onclick=start;
   q('ctExit').onclick=exit;
+  q('tutorialVictoryHome').onclick=event=>exit(event,true);
   q('ctMinimize').onclick=()=>{
     minimized=!minimized;
     win.classList.toggle('minimized',minimized);
