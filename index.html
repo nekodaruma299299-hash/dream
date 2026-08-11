@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.20・召喚獣コンパクト指示UI版";
+const BUILD_LABEL="α7.13.21・木の長剣チュートリアル発光版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -10124,14 +10124,14 @@ function renderBattleHand(){
       const loadout=selected
         ?`<div class="magic-staff-loadout"><label>装填<select data-magic-staff-medium="${x.uid}" ${battleAnimating?'disabled':''}>${magicMediumOptions(medium?.uid||'')}</select></label>${bookSelector}<label>対象<select data-magic-staff-target="${x.uid}" ${!medium||battleAnimating?'disabled':''}>${targetOptions(targetValue)}</select></label>${medium?'':`<div class="magic-staff-empty">所持中のスクロールまたは魔法書をここへ装填します。魔法媒体の独立カードは表示されません。</div>`}</div>`
         :`<div class="magic-staff-loadout magic-staff-loadout-locked"><div class="magic-staff-empty">この杖を選択すると、スクロール／魔法書の装填欄が開きます。</div></div>`;
-      return `<div class="item-action-card magic-staff-card ${selected?'selected':''}"><button type="button" class="btn battle-card rarity-frame-${d.rarity} ${selected?'selected':''}" data-battle-card="${x.uid}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">${selected?'使用準備中':'所持品'}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">両手魔法の杖・威力×${damageMultiplier}</span><span class="card-effect magic-staff-effect">${loadedMediumDisplay}</span><span class="card-cost">消費${costPercent}%${medium?`・意志力 ${cost}`:'・魔法媒体未装填'}</span></button>${loadout}</div>`;
+      return `<div class="item-action-card magic-staff-card ${selected?'selected':''}"><button type="button" class="btn battle-card rarity-frame-${d.rarity} ${selected?'selected':''}" data-battle-card="${x.uid}" data-item-id="${x.id}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">${selected?'使用準備中':'所持品'}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">両手魔法の杖・威力×${damageMultiplier}</span><span class="card-effect magic-staff-effect">${loadedMediumDisplay}</span><span class="card-cost">消費${costPercent}%${medium?`・意志力 ${cost}`:'・魔法媒体未装填'}</span></button>${loadout}</div>`;
     }
     const effect=[];if(d.shieldType)effect.push(`構え中に攻撃を受けた時、防御を選択可能<br>盾防御${d.shieldDefense}・防御時意志力${d.shieldWillCost}`);if(itemDamage(x)>0)effect.push(`${itemDamage(x)}${d.damageType==='physical'?'物理':''}ダメージ${d.whip?'（防具未装備1部位につき+12.5%・最大1.5倍）':''}`);if(d.armorPierce)effect.push(`防御力貫通 ${d.armorPierce}`);if(d.armorSlot)effect.push(`${ARMOR_SLOT_LABELS[d.armorSlot]}へこのターン装備・防御力${d.defense}`);else if(d.accessoryType)effect.push(accessoryEffectText(d));else if(d.defense)effect.push(`一時防御力${d.defense}`);if(bleed)effect.push(`出血 ${Math.round(bleed.chance*100)}%・${bleed.phases}フェイズ`);
     const tag=d.shieldType?(d.shieldType==='large'?'両手ラージシールド':'片手盾'):(d.armorSlot?`${ARMOR_SLOT_LABELS[d.armorSlot]}防具`:(d.accessoryType?ACCESSORY_TYPE_LABELS[d.accessoryType]:(d.hand==='twoHanded'?'両手':'片手')));
     const ownedText=d.shieldType?(selected?'盾装備中':'盾系カード'):(equippedAt?`装備中：${equippedAt.label}`:'所持品');
     const slotIndex=d.accessoryType?Math.max(0,Math.floor(Number(sel.accessorySlots[x.uid])||0)):0;
     const targetRow=d.shieldType?`<div class="target-row fixed-target"><span>装備</span><b>${safeHtml(onlinePlayerDisplayName())}／${d.shieldType==='large'?'両手':'片手'}・被弾時に使用盾を選択</b></div>`:(d.armorSlot?`<div class="target-row fixed-target"><span>装備先</span><b>${safeHtml(onlinePlayerDisplayName())}のみ</b></div>`:(d.accessoryType?`<label class="target-row">装備枠<select class="accessory-slot-select" data-accessory-slot="${x.uid}" ${!selected||battleAnimating?'disabled':''}>${accessorySlotOptions(d.accessoryType,slotIndex)}</select></label>`:`<label class="target-row">対象<select class="target-select" data-selection-target="hand" data-selection-key="${x.uid}" ${!selected||battleAnimating?'disabled':''}>${targetOptions(target)}</select></label>`));
-    return `<div class="item-action-card ${selected?'selected':''}"><button type="button" class="btn battle-card rarity-frame-${d.rarity} ${d.defense?'defense-card':''} ${selected?'selected':''}" data-battle-card="${x.uid}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">${ownedText}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">${tag}</span><span class="card-effect">${effect.join('<br>')||'補助アイテム'}</span><span class="card-cost">${d.shieldType?`選択時 意志力 0 ／ 盾使用時 ${d.shieldWillCost}`:`意志力 ${d.willCost||0}`}</span></button>${targetRow}</div>`;
+    return `<div class="item-action-card ${selected?'selected':''}"><button type="button" class="btn battle-card rarity-frame-${d.rarity} ${d.defense?'defense-card':''} ${selected?'selected':''}" data-battle-card="${x.uid}" data-item-id="${x.id}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">${ownedText}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">${tag}</span><span class="card-effect">${effect.join('<br>')||'補助アイテム'}</span><span class="card-cost">${d.shieldType?`選択時 意志力 0 ／ 盾使用時 ${d.shieldWillCost}`:`意志力 ${d.willCost||0}`}</span></button>${targetRow}</div>`;
   }).join('');
   html+=consumableGroups.map(group=>{
     const d=ITEMS[group.id],selectedEntries=selectedUseEntriesForItemId(group.id),selectedCount=selectedEntries.length,selected=selectedCount>0,itemTargetMode=isInventoryTargetUse(d);
@@ -11129,7 +11129,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
         if(step==='player')return {title:'次は自分の行動を選べます',body:'通常モードへ戻りました。必要なら自分の武器や消費アイテムを選び、最後に「使用カードを確定する」を押してください。',hint:'自分の行動→召喚獣の行動、召喚獣の行動→自分の行動の両方に対応しています。',selectors:['#battleHand .item-action-card:not(.npc-command-selected)','#startBattleBtn']};
         return {title:'召喚獣の命令を登録しました',body:'紫枠は召喚獣、通常の選択枠は自分の行動です。「使用カードを確定する」でまとめて実行します。',hint:'NPCは自分の意志力を消費し、片手アイテムを1つだけ使います。',selectors:['#startBattleBtn']};
       }
-      if(turn===0)return {title:'1ターン目：木の長剣で攻撃',body:'夢見の人影はこのターン何もしません。\n木の長剣を選び、攻撃を確定してください。',hint:'カード選択・意志力消費・物理ダメージの流れを体験します。'};
+      if(turn===0)return {title:'1ターン目：木の長剣で攻撃',body:'夢見の人影はこのターン何もしません。\n木の長剣を選び、攻撃を確定してください。',hint:'カード選択・意志力消費・物理ダメージの流れを体験します。',selectors:['#battleHand [data-item-id="wood_sword"]']};
       if(turn===1)return {title:'2フェイズ目：準備完了を押そう',body:'1フェイズ目でカードの選び方は体験済みです。今回はカードを選び直さず、光っている「準備完了してカード使用へ」を押してください。夢見の人影の別の行動を確認します。',hint:'何も選択していなくても準備完了できます。カード一覧を操作する必要はありません。',selectors:['#startBattleBtn']};
       if(turn===2&&!progress.magicLoaded)return {title:'3ターン目：魔法を準備',body:'夢見の人影は銅装備一式を装備します。\n魔法の杖とスクロールを選び、魔法を準備してください。',hint:'銅防具で物理が軽減される相手には、魔法が有効です。',selectors:['#battleHand .magic-staff-card .battle-card']};
       if(turn===2)return {title:'銅防具へ魔法を使おう',body:'装填した杖で夢見の人影を狙い、魔法を確定してください。',hint:'防具と魔法は本編の実際のダメージ処理を使っています。'};
@@ -11183,6 +11183,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     }
     if(panelId==='combat'){
       const turn=Math.max(0,Math.floor(Number(s?.turn)||0));
+      if(turn===0&&!progress.attacked)return ['#battleHand [data-item-id="wood_sword"]'];
       if(turn===1&&!battleSubmissionLocked)return ['#startBattleBtn'];
       if(turn===2&&!progress.magicLoaded)return ['#battleHand .magic-staff-card .battle-card'];
       if(progress.summoned&&!progress.npcCommanded){
