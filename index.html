@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.15 Online Room</title>
+<title>Dream Crafter α7.13.16 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.15・発光完了解除・NPC命令確定修正版";
+const BUILD_LABEL="α7.13.16・空選択準備完了解決版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -9547,7 +9547,7 @@ async function resolveBattle(fromTimeout=false,allowEmpty=false){
   for(const x of handActions){const data=ITEMS[x.item.id];if(data.magicStaff)continue;actions.push({kind:'hand',item:x.item,target:data.shieldType?'self':x.target,accessorySlot:x.accessorySlot,baseCost:data.shieldType?0:(data.willCost||0),roll:Math.random()})};
   for(const x of useCards)actions.push({kind:'use',item:x.item,target:isInventoryTargetUse(ITEMS[x.item.id])?'self':x.target,itemTargetUid:x.itemTargetUid||null,magicStaffUid:magicSpellData(x.item)?selectedStaffForMagic?.uid:null,baseCost:magicSpellData(x.item)?magicActionBaseCost(x.item):battleUseBaseCost(x.item,x.target),roll:Math.random()});
   for(const x of sharpenUses)actions.push({kind:'sharpen',item:x.item,weapon:x.weapon,baseCost:3,roll:Math.random()});
-  if(!actions.length){startPhaseTimer('itemUse',PHASE_LIMITS.itemUse);return selectedStaffForMagic?toast('杖にスクロールまたは魔法書を装填してください'):toast('使用するアイテムを選んでください')}
+  if(!actions.length&&!allowEmpty){startPhaseTimer('itemUse',PHASE_LIMITS.itemUse);return selectedStaffForMagic?toast('杖にスクロールまたは魔法書を装填してください'):toast('使用するアイテムを選んでください')}
   const zeroActions=actions.filter(action=>action.baseCost<=0).sort((a,b)=>a.roll-b.roll),paidActions=actions.filter(action=>action.baseCost>0);
   const originalAccessories=s.accessories,virtualAccessories={rings:[...accessoryArray(targetState('self'),'ring')],bangles:[...accessoryArray(targetState('self'),'bangle')]};
   for(const action of zeroActions){
