@@ -3651,7 +3651,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
     <div class="topbuttons">
       <div class="sound-controls" id="soundControls" title="効果音設定">
         <button type="button" class="btn small sound-toggle" id="soundToggleBtn" aria-pressed="true">🔊 効果音</button>
-        <button type="button" class="btn small sound-reload" id="soundReloadBtn" title="別アプリ使用後などにサウンド出力を復旧" aria-label="サウンド出力を復旧">↻ 音を復旧</button>
+        <button type="button" class="btn small sound-reload" id="soundReloadBtn" title="音が出ない時にサウンドを再読み込み" aria-label="サウンドを再読み込み">↻ 再読込</button>
         <input class="sound-volume" id="soundVolume" type="range" min="0" max="100" step="1" value="65" aria-label="効果音の音量">
         <span class="sound-volume-text" id="soundVolumeText">65%</span>
       </div>
@@ -4031,7 +4031,7 @@ const SFX_GAIN={
   eat:1.22,drink:1.38,wood_real:1.25,cooking_real:.88,forge_uniform:.66,alchemy:.76,
   epic:.52,phantasma:.55,legendary:.5,warning_10s:.7,warning_3s:.78,status_effect:.68
 };
-let soundSettings=loadSoundSettings(),sfxAudioContext=null,sfxBuffers=new Map(),sfxDecodePromises=new Map(),sfxLastPlayed=new Map(),sfxFallbackPlayers=new Set(),sfxRecoveryPromise=null,sfxNeedsRecovery=false;
+let soundSettings=loadSoundSettings(),sfxAudioContext=null,sfxBuffers=new Map(),sfxDecodePromises=new Map(),sfxLastPlayed=new Map();
 function loadSoundSettings(){
   try{const raw=JSON.parse(localStorage.getItem(SOUND_SETTINGS_KEY)||'null'),volume=Number(raw?.volume);return{enabled:raw?.enabled!==false,volume:Number.isFinite(volume)?Math.max(0,Math.min(1,volume)):.65}}catch{return{enabled:true,volume:.65}}
 }
@@ -4042,7 +4042,7 @@ function saveSoundSettings(){try{localStorage.setItem(SOUND_SETTINGS_KEY,JSON.st
 function getSfxContext(){
   if(sfxAudioContext)return sfxAudioContext;
   const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return null;
-  try{sfxAudioContext=new AudioCtx({latencyHint:'interactive'});sfxAudioContext.onstatechange=()=>{if(sfxAudioContext&&sfxAudioContext.state!=='running'&&document.visibilityState==='visible')sfxNeedsRecovery=true};return sfxAudioContext}catch{return null}
+  try{sfxAudioContext=new AudioCtx();return sfxAudioContext}catch{return null}
 }
 function wavDataUriToBuffer(uri){
   const encoded=String(uri||'').split(',')[1]||'',binary=atob(encoded),bytes=new Uint8Array(binary.length);
@@ -4063,35 +4063,25 @@ function primeSfx(){
 function unlockSfx(){
   const ctx=getSfxContext();if(!ctx)return;
   const prepare=()=>{primeSfx();try{const buffer=ctx.createBuffer(1,1,22050),source=ctx.createBufferSource();source.buffer=buffer;source.connect(ctx.destination);source.start(0)}catch{}};
-  if(ctx.state!=='running')ctx.resume().then(prepare).catch(()=>{});else prepare();
+  if(ctx.state==='suspended')ctx.resume().then(prepare).catch(()=>{});else prepare();
 }
-function stopFallbackSfx(){for(const audio of sfxFallbackPlayers){try{audio.pause();audio.removeAttribute('src');audio.load()}catch{}}sfxFallbackPlayers.clear()}
-function setAudioSessionPlayback(){try{if(navigator.audioSession&&'type'in navigator.audioSession)navigator.audioSession.type='playback'}catch{}}
-function wakeSfxContext(ctx){if(!ctx)return Promise.resolve(false);try{const buffer=ctx.createBuffer(1,1,22050),source=ctx.createBufferSource(),gain=ctx.createGain();gain.gain.value=.0001;source.buffer=buffer;source.connect(gain);gain.connect(ctx.destination);source.start(0)}catch{}if(ctx.state==='running')return Promise.resolve(true);try{return Promise.resolve(ctx.resume()).then(()=>ctx.state==='running').catch(()=>false)}catch{return Promise.resolve(false)}}
-async function recoverDreamCrafterSound(forceRebuild=false){
-  if(sfxRecoveryPromise)return sfxRecoveryPromise;
-  const button=document.getElementById('soundReloadBtn');
-  if(button){button.classList.add('reloading');button.textContent='↻ 復旧中';button.setAttribute('aria-busy','true')}
-  soundSettings.enabled=true;if(soundSettings.volume<=0)soundSettings.volume=.65;saveSoundSettings();updateSoundControls();setAudioSessionPlayback();stopFallbackSfx();
-  sfxRecoveryPromise=(async()=>{
-    let ctx=sfxAudioContext,ready=await wakeSfxContext(ctx);
-    if(ready&&forceRebuild){sfxBuffers.clear();sfxDecodePromises.clear();sfxLastPlayed.clear()}
-    if(!ready){
-      const oldContext=ctx;sfxAudioContext=null;sfxBuffers.clear();sfxDecodePromises.clear();sfxLastPlayed.clear();
-      try{if(oldContext&&oldContext.state!=='closed')await Promise.race([oldContext.close(),new Promise(resolve=>setTimeout(resolve,350))])}catch{}
-      ctx=getSfxContext();ready=await wakeSfxContext(ctx);
-    }
-    sfxNeedsRecovery=!ready;primeSfx();
-    if(ready)playSfx('ui_confirm',{cooldown:0,volume:1});else fallbackPlaySfx('ui_confirm',Math.max(.65,soundSettings.volume));
-    if(button){button.classList.remove('reloading');button.textContent=ready?'✓ 音を復旧':'！画面をタップ';button.removeAttribute('aria-busy');setTimeout(()=>{button.textContent='↻ 音を復旧'},1600)}
-    if(typeof toast==='function')toast(ready?'サウンド出力を復旧しました':'もう一度画面をタップして音声を有効にしてください');
-    return ready;
-  })().finally(()=>{sfxRecoveryPromise=null});
-  return sfxRecoveryPromise;
+function reloadDreamCrafterSound(){
+  const button=document.getElementById('soundReloadBtn'),oldContext=sfxAudioContext;
+  if(button){button.classList.add('reloading');button.textContent='↻ 読込中';button.setAttribute('aria-busy','true')}
+  sfxAudioContext=null;sfxBuffers.clear();sfxDecodePromises.clear();sfxLastPlayed.clear();
+  try{if(oldContext&&oldContext.state!=='closed')oldContext.close().catch(()=>{})}catch{}
+  soundSettings.enabled=true;saveSoundSettings();updateSoundControls();
+  const ctx=getSfxContext();
+  const finish=()=>{
+    primeSfx();
+    playSfx('ui_confirm',{cooldown:0,volume:1});
+    if(button){button.classList.remove('reloading');button.textContent='✓ 完了';button.removeAttribute('aria-busy');setTimeout(()=>{button.textContent='↻ 再読込'},1200)}
+  };
+  if(!ctx){finish();return}
+  if(ctx.state==='suspended')ctx.resume().then(finish).catch(finish);else finish();
 }
-function reloadDreamCrafterSound(){return recoverDreamCrafterSound(true)}
 function fallbackPlaySfx(name,volume){
-  try{setAudioSessionPlayback();const audio=new Audio(SFX_DATA[name]);sfxFallbackPlayers.add(audio);audio.preload='auto';audio.volume=Math.max(0,Math.min(1,volume));audio.playsInline=true;const done=()=>sfxFallbackPlayers.delete(audio);audio.onended=done;audio.onerror=done;audio.play().catch(done)}catch{}
+  try{const audio=new Audio(SFX_DATA[name]);audio.preload='auto';audio.volume=Math.max(0,Math.min(1,volume));audio.play().catch(()=>{})}catch{}
 }
 // ============================================================================
 // 34. 演出・アニメーション・効果音
@@ -4107,7 +4097,7 @@ function playSfx(name,options={}){
     if(!buffer){fallbackPlaySfx(name,volume);return}
     try{const source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;gain.gain.value=volume;source.connect(gain);gain.connect(ctx.destination);source.start(0)}catch(error){console.warn('効果音の再生に失敗:',name,error);fallbackPlaySfx(name,volume)}
   });
-  if(ctx.state!=='running')ctx.resume().then(()=>ctx.state==='running'?start():fallbackPlaySfx(name,volume)).catch(()=>fallbackPlaySfx(name,volume));else start();
+  if(ctx.state==='suspended')ctx.resume().then(start).catch(()=>fallbackPlaySfx(name,volume));else start();
   return true;
 }
 function updateSoundControls(){
@@ -4126,14 +4116,6 @@ document.addEventListener('keydown',unlockSfx,{once:true,capture:true});
   if(toggle)toggle.onclick=()=>{soundSettings.enabled=!soundSettings.enabled;saveSoundSettings();updateSoundControls();if(soundSettings.enabled){unlockSfx();playSfx('ui_cursor',{cooldown:0})}};
   if(reload)reload.onclick=reloadDreamCrafterSound;
   if(range){range.oninput=()=>{soundSettings.volume=Math.max(0,Math.min(1,Number(range.value)/100));saveSoundSettings();updateSoundControls()};range.onchange=()=>playSfx('ui_cursor',{cooldown:0})};
-  const markInterrupted=()=>{if(document.visibilityState==='hidden'){sfxNeedsRecovery=true;return}if(sfxAudioContext?.state!=='running')sfxNeedsRecovery=true};
-  const recoverOnGesture=()=>{if(sfxNeedsRecovery&&soundSettings.enabled)recoverDreamCrafterSound(false)};
-  document.addEventListener('visibilitychange',markInterrupted,{passive:true});
-  addEventListener('pagehide',()=>{sfxNeedsRecovery=true},{passive:true});
-  addEventListener('pageshow',markInterrupted,{passive:true});
-  addEventListener('focus',markInterrupted,{passive:true});
-  document.addEventListener('pointerdown',recoverOnGesture,{capture:true,passive:true});
-  document.addEventListener('touchend',recoverOnGesture,{capture:true,passive:true});
   // ---------------------------------------------------------------------------
 // クリック
 // ---------------------------------------------------------------------------
@@ -10142,14 +10124,14 @@ function renderBattleHand(){
       const loadout=selected
         ?`<div class="magic-staff-loadout"><label>装填<select data-magic-staff-medium="${x.uid}" ${battleAnimating?'disabled':''}>${magicMediumOptions(medium?.uid||'')}</select></label>${bookSelector}<label>対象<select data-magic-staff-target="${x.uid}" ${!medium||battleAnimating?'disabled':''}>${targetOptions(targetValue)}</select></label>${medium?'':`<div class="magic-staff-empty">所持中のスクロールまたは魔法書をここへ装填します。魔法媒体の独立カードは表示されません。</div>`}</div>`
         :`<div class="magic-staff-loadout magic-staff-loadout-locked"><div class="magic-staff-empty">この杖を選択すると、スクロール／魔法書の装填欄が開きます。</div></div>`;
-      return `<div class="item-action-card magic-staff-card ${selected?'selected':''}"><button type="button" class="btn battle-card rarity-frame-${d.rarity} ${selected?'selected':''}" data-battle-card="${x.uid}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">${selected?'使用準備中':'所持品'}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">両手魔法の杖・威力×${damageMultiplier}</span><span class="card-effect magic-staff-effect">${loadedMediumDisplay}</span><span class="card-cost">消費${costPercent}%${medium?`・意志力 ${cost}`:'・魔法媒体未装填'}</span></button>${loadout}</div>`;
+      return `<div class="item-action-card magic-staff-card ${selected?'selected':''}"><button type="button" class="btn battle-card rarity-frame-${d.rarity} ${selected?'selected':''}" data-battle-card="${x.uid}" data-item-id="${x.id}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">${selected?'使用準備中':'所持品'}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">両手魔法の杖・威力×${damageMultiplier}</span><span class="card-effect magic-staff-effect">${loadedMediumDisplay}</span><span class="card-cost">消費${costPercent}%${medium?`・意志力 ${cost}`:'・魔法媒体未装填'}</span></button>${loadout}</div>`;
     }
     const effect=[];if(d.shieldType)effect.push(`構え中に攻撃を受けた時、防御を選択可能<br>盾防御${d.shieldDefense}・防御時意志力${d.shieldWillCost}`);if(itemDamage(x)>0)effect.push(`${itemDamage(x)}${d.damageType==='physical'?'物理':''}ダメージ${d.whip?'（防具未装備1部位につき+12.5%・最大1.5倍）':''}`);if(d.armorPierce)effect.push(`防御力貫通 ${d.armorPierce}`);if(d.armorSlot)effect.push(`${ARMOR_SLOT_LABELS[d.armorSlot]}へこのターン装備・防御力${d.defense}`);else if(d.accessoryType)effect.push(accessoryEffectText(d));else if(d.defense)effect.push(`一時防御力${d.defense}`);if(bleed)effect.push(`出血 ${Math.round(bleed.chance*100)}%・${bleed.phases}フェイズ`);
     const tag=d.shieldType?(d.shieldType==='large'?'両手ラージシールド':'片手盾'):(d.armorSlot?`${ARMOR_SLOT_LABELS[d.armorSlot]}防具`:(d.accessoryType?ACCESSORY_TYPE_LABELS[d.accessoryType]:(d.hand==='twoHanded'?'両手':'片手')));
     const ownedText=d.shieldType?(selected?'盾装備中':'盾系カード'):(equippedAt?`装備中：${equippedAt.label}`:'所持品');
     const slotIndex=d.accessoryType?Math.max(0,Math.floor(Number(sel.accessorySlots[x.uid])||0)):0;
     const targetRow=d.shieldType?`<div class="target-row fixed-target"><span>装備</span><b>${safeHtml(onlinePlayerDisplayName())}／${d.shieldType==='large'?'両手':'片手'}・被弾時に使用盾を選択</b></div>`:(d.armorSlot?`<div class="target-row fixed-target"><span>装備先</span><b>${safeHtml(onlinePlayerDisplayName())}のみ</b></div>`:(d.accessoryType?`<label class="target-row">装備枠<select class="accessory-slot-select" data-accessory-slot="${x.uid}" ${!selected||battleAnimating?'disabled':''}>${accessorySlotOptions(d.accessoryType,slotIndex)}</select></label>`:`<label class="target-row">対象<select class="target-select" data-selection-target="hand" data-selection-key="${x.uid}" ${!selected||battleAnimating?'disabled':''}>${targetOptions(target)}</select></label>`));
-    return `<div class="item-action-card ${selected?'selected':''}"><button type="button" class="btn battle-card rarity-frame-${d.rarity} ${d.defense?'defense-card':''} ${selected?'selected':''}" data-battle-card="${x.uid}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">${ownedText}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">${tag}</span><span class="card-effect">${effect.join('<br>')||'補助アイテム'}</span><span class="card-cost">${d.shieldType?`選択時 意志力 0 ／ 盾使用時 ${d.shieldWillCost}`:`意志力 ${d.willCost||0}`}</span></button>${targetRow}</div>`;
+    return `<div class="item-action-card ${selected?'selected':''}"><button type="button" class="btn battle-card rarity-frame-${d.rarity} ${d.defense?'defense-card':''} ${selected?'selected':''}" data-battle-card="${x.uid}" data-item-id="${x.id}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">${ownedText}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">${tag}</span><span class="card-effect">${effect.join('<br>')||'補助アイテム'}</span><span class="card-cost">${d.shieldType?`選択時 意志力 0 ／ 盾使用時 ${d.shieldWillCost}`:`意志力 ${d.willCost||0}`}</span></button>${targetRow}</div>`;
   }).join('');
   html+=consumableGroups.map(group=>{
     const d=ITEMS[group.id],selectedEntries=selectedUseEntriesForItemId(group.id),selectedCount=selectedEntries.length,selected=selectedCount>0,itemTargetMode=isInventoryTargetUse(d);
@@ -10913,7 +10895,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     inventoryInspected:false,
     inventoryExpanded:false,
     summoned:false,
-    npcViewed:false,
+    npcRosterViewed:false,
     npcCommanded:false,
     rested:false,
     secondPhaseReady:false
@@ -11039,6 +11021,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       enemyHp:Number(s?.enemyHp)||0,gems:Number(s?.gems)||0,
       items:(s?.items||[]).map(item=>item.id),phase:s?.phase,turn:Number(s?.turn)||0,
       capacity:Number(s?.capacity)||0,npcCount:(s?.npcs||[]).filter(npc=>npc&&!npc.enemy&&npc.hp>0).length,
+      npcRosterOpen:q('showNpcsBtn')?.classList.contains('active')===true,
       npcCommandCount:(s?.npcCommands||[]).length,
       playerTradeDone:window.__dcTutorialPlayerTradeDone===true,
       message:String(q('battleMessage')?.textContent||''),
@@ -11066,6 +11049,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     if(after.playerTradeDone)progress.playerTraded=true;
     if(after.capacity>before.capacity)progress.inventoryExpanded=true;
     if(after.npcCount>before.npcCount)progress.summoned=true;
+    if(progress.summoned&&after.npcRosterOpen)progress.npcRosterViewed=true;
     if(after.npcCommandCount>0&&['player','done'].includes(window.__dcTutorialNpcCommandStep))progress.npcCommanded=true;
     if(before.panel==='action'&&after.panel==='explore'&&after.will>before.will)progress.rested=true;
     if(progress.crafted&&progress.explored&&before.panel==='explore'&&after.panel!=='explore')progress.secondPhaseReady=true;
@@ -11074,9 +11058,17 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
 
   function guideFor(panelId){
     if(shieldPromptVisible())return {
-      title:'ここで盾を使います',
-      body:'攻撃を受ける直前です。\n「進む」ならそのまま受け、「盾を使用する」なら表示された盾でガードします。',
-      hint:'shieldWillCost は盾を構えた時ではなく、「盾を使用する」を押した瞬間にだけ消費されます。'
+      title:'ここで木の板を使います',
+      body:'攻撃を受ける直前です。\n光っている「木の板」を確認し、「盾を使用する」を押してガードしてください。',
+      hint:'木の板の意志力は、構えた時ではなく実際に「盾を使用する」を押した瞬間にだけ消費されます。',
+      selectors:['#combatShieldSelect','#combatConfirmDecline']
+    };
+
+    if(progress.summoned&&!progress.npcRosterViewed)return {
+      title:'左上の「NPC」を確認しよう',
+      body:'召喚獣を出すと、左上の「NPC」から自分の召喚獣や、現在場にいる味方・敵NPCを確認できます。\n光っている「NPC」を押してみてください。',
+      hint:'NPC一覧ではHP・意志力・所属を確認でき、NPCカードを押すと立ち絵と詳細も見られます。',
+      selectors:['#showNpcsBtn']
     };
 
     if(panelId==='explore'){
@@ -11112,7 +11104,6 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     if(panelId==='action'){
       if(!progress.crafted)return {title:'クラフトへ進もう',body:'「クラフト」を選び、集めた素材から木の長剣を作ります。',hint:'説明を読んだら、実際の行動カードを選んでください。'};
       if(!progress.summoned)return {title:'草5個でウサギを召喚',body:'画面の「召喚」を押し、一覧からウサギを選んでください。召喚素材の草5個は用意してあります。',hint:'召喚後は左の「NPC」でステータスを確認できます。'};
-      if(!progress.npcViewed)return {title:'左上のNPCステータスを見よう',body:'ウサギを召喚すると、左上のプレイヤーステータス欄に「NPC」切替ボタンが使えるようになります。光っている「NPC」を押してください。',hint:'プレイヤー表示が一旦NPC一覧へ切り替わり、召喚獣や敵NPCのHP・意志力・所属を確認できます。NPCのステータスを押すと中央に立ち絵が表示されます。',selectors:['#showNpcsBtn']};
       if(!progress.tradeOpened)return {title:'ショップとトレードを試そう',body:'「トレード」を選ぶと、本物のショップで購入と売却を体験できます。',hint:'細かな価格説明はショップ画面の案内へ移動します。'};
       if(!progress.attacked)return {title:'カード使用を練習しよう',body:'「戦闘」を選び、作った木の長剣をカードとして選択します。手・対象・合計意志力を確認して確定してください。',hint:'1ターン目の夢見の人影は何もせず、カード操作を安全に練習できます。'};
       if(!progress.rested)return {title:'休んでみよう',body:'「休む」を選ぶと、次の探索へ進みながら意志力を回復します。',hint:'休む処理も本編と同じターン進行を使用します。'};
@@ -11149,9 +11140,9 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
         if(step==='player')return {title:'次は自分の行動を選べます',body:'通常モードへ戻りました。必要なら自分の武器や消費アイテムを選び、最後に「使用カードを確定する」を押してください。',hint:'自分の行動→召喚獣の行動、召喚獣の行動→自分の行動の両方に対応しています。',selectors:['#battleHand .item-action-card:not(.npc-command-selected)','#startBattleBtn']};
         return {title:'召喚獣の命令を登録しました',body:'紫枠は召喚獣、通常の選択枠は自分の行動です。「使用カードを確定する」でまとめて実行します。',hint:'NPCは自分の意志力を消費し、片手アイテムを1つだけ使います。',selectors:['#startBattleBtn']};
       }
-      if(turn===0)return {title:'1ターン目：木の長剣で攻撃',body:'夢見の人影はこのターン何もしません。\n木の長剣を選び、攻撃を確定してください。',hint:'カード選択・意志力消費・物理ダメージの流れを体験します。'};
+      if(turn===0)return {title:'1ターン目：木の長剣で攻撃',body:'夢見の人影はこのターン何もしません。\n木の長剣を選び、攻撃を確定してください。',hint:'カード選択・意志力消費・物理ダメージの流れを体験します。',selectors:['#battleHand [data-item-id="wood_sword"]']};
       if(turn===1)return {title:'2フェイズ目：準備完了を押そう',body:'1フェイズ目でカードの選び方は体験済みです。今回はカードを選び直さず、光っている「準備完了してカード使用へ」を押してください。夢見の人影の別の行動を確認します。',hint:'何も選択していなくても準備完了できます。カード一覧を操作する必要はありません。',selectors:['#startBattleBtn']};
-      if(turn===2&&!progress.magicLoaded)return {title:'3ターン目：魔法を準備',body:'夢見の人影は銅装備一式を装備します。\n魔法の杖とスクロールを選び、魔法を準備してください。',hint:'銅防具で物理が軽減される相手には、魔法が有効です。'};
+      if(turn===2&&!progress.magicLoaded)return {title:'3ターン目：魔法を準備',body:'夢見の人影は銅装備一式を装備します。\n魔法の杖とスクロールを選び、魔法を準備してください。',hint:'銅防具で物理が軽減される相手には、魔法が有効です。',selectors:['#battleHand .magic-staff-card .battle-card']};
       if(turn===2)return {title:'銅防具へ魔法を使おう',body:'装填した杖で夢見の人影を狙い、魔法を確定してください。',hint:'防具と魔法は本編の実際のダメージ処理を使っています。'};
       if(!progress.shieldReadied)return {title:'盾を構えてみよう',body:'木の板かシールドを選び、次の攻撃に備えてください。',hint:'片手盾は片手枠、ラージシールドは両手枠を使います。'};
       if(!progress.healed)return {title:'HPを回復しよう',body:'薬草などの消費アイテムで、減ったHPを回復してください。',hint:'最大HPを超えて回復せず、使用した消費アイテムはなくなります。'};
@@ -11171,14 +11162,15 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       craft:{title:'クラフトの詳しい手順',body:panelId==='craft'?'①上のカテゴリーを選ぶ → ②レシピをタップ → ③完成品・必要素材・必要意志力を確認 → ④「クラフト」を押します。\n\n不足素材は作成できず、成功すると素材と意志力を消費して完成品がインベントリへ入ります。':'行動選択で「クラフト」を押してください。クラフト画面へ移動すると、カテゴリー・レシピ・必要素材・必要意志力・完成品の順に確認できます。',hint:'作り終えたら「行動を完了する」で次へ進みます。レシピをタップすると右側に完成品の詳細も出ます。',selectors:panelId==='craft'?['#craftCategoryTabs','#craftList','#craftBtn']:['#actionPanel [data-action="craft"]']},
       sell:{title:'ショップでアイテムを売却する',body:panelId==='trade'?'上の「アイテムを売る」タブへ切り替え、緑色の「スグリの実【不要品・売却練習用】」を1個売ります。後で使う教材はチュートリアル中だけ売却不可です。':'行動選択の「トレード」からショップへ入り、上部の「アイテムを売る」タブを押します。不要な素材をジェムへ変えられます。',hint:'本編では保護されません。クラフトレシピや召喚素材を確認し、必要な物まで売らないようにしてください。',selectors:panelId==='trade'?['.shop-tab[data-shop-tab="sell"]','[data-shop-sell-one="currant"]']:['#actionPanel [data-action="trade"]']},
       playerTrade:{title:'プレイヤートレードの流れ',body:panelId==='playerTrade'?'夢見の人影を選び、交換練習用の皮を提示します。人影が12ジェムを提示したら、双方の内容を確認して最終確定してください。':panelId==='trade'?'「プレイヤー取引」を押してください。チュートリアル中は夢見の人影が生存プレイヤーとして現れます。提案者が皮を提示し、人影の対価を確認して最後に成立させます。':'行動選択で「トレード」へ進み、ショップ画面の「プレイヤー取引」を押します。',hint:'本編ではオンライン中の生存プレイヤーと同じ流れで交換します。変更時は最終確認が解除され、不足・満杯・切断時は成立しません。',selectors:panelId==='playerTrade'?['#playerTradePlayerList .player-trade-player button','#tradeOfferItemOpen','#tradeFinalize']:panelId==='trade'?['#openPlayerTradeBtn']:['#actionPanel [data-action="trade"]']},
-      summon:{title:'召喚獣を召喚して確認する',body:'クラフト・トレード・休憩などの画面で「召喚」を押すと召喚獣一覧が開きます。ウサギは草5個、アヴァターラは設計時に指定した素材を直接消費して召喚します。\n\n召喚後は左上の「NPC」を押してステータス表示を切り替えます。',hint:'NPC一覧ではHP・意志力・所属を確認できます。NPCのステータスを押すと中央に立ち絵が出ます。',selectors:progress.summoned&&!progress.npcViewed?['#showNpcsBtn']:['#openSummonListBtn','#npcSummonWidget']},
+      summon:{title:'召喚獣を召喚する',body:'クラフト・トレード・休憩などの画面で「召喚」を押すと召喚獣一覧が開きます。ウサギは草5個、アヴァターラは設計時に指定した素材を直接消費して召喚します。\n\nチュートリアルには草5個を用意してあります。',hint:'召喚後は左の「NPC」へ切り替えると、HP・意志力・所属を確認できます。NPCカードをタップすると中央に立ち絵が出ます。',selectors:['#openSummonListBtn','#npcSummonWidget']},
       cards:{title:'カード使用画面の操作',body:panelId==='combat'?'①下のカードをタップ → ②左右どちらの手で使うか確認 → ③必要なら使用対象を選ぶ → ④合計意志力を確認 → ⑤行動を確定します。\n\n片手は左右で各1枚、両手アイテムは両方の枠を使います。':'行動選択で「戦闘」を選ぶとカード使用画面へ進みます。カードを選び、手・対象・消費意志力を確認して行動を確定します。',hint:'防具やアクセサリーもそのターンに使うカードです。選択したカードは結果画面で行動順に処理されます。',selectors:panelId==='combat'?['#battleHand','#battleDock']:['#actionPanel [data-action="battle"]']},
       npcCommand:{title:'召喚獣へ命令する',body:panelId==='combat'?'「召喚獣に指示」で紫の指示モードへ切り替え、通常のカード一覧から使わせたいアイテムを直接押します。紫枠になれば召喚獣の行動として登録済みです。もう一度ボタンを押して通常モードへ戻ると、自分の行動も選べます。':'先に召喚獣を呼び、カード使用画面へ進みます。そこで「召喚獣に指示」を押すと命令できます。',hint:'選択順は自由です。NPCが使うアイテムは主人と共有できず、NPC自身の意志力を使います。',selectors:panelId==='combat'?['#npcInstructionBtn','#battleHand .npc-command-selected']:['#openSummonListBtn','#npcSummonWidget']}
     };
     return guides[topic]||null;
   }
   function automaticFocusSelectors(panelId){
-    if(shieldPromptVisible())return ['#combatConfirmProceed','#combatConfirmDecline'];
+    if(shieldPromptVisible())return ['#combatShieldSelect','#combatConfirmDecline','#combatConfirmProceed'];
+    if(progress.summoned&&!progress.npcRosterViewed)return ['#showNpcsBtn'];
     if(panelId==='explore'){
       if(!progress.inventoryInspected)return ['#slots .slot','.inventory-panel'];
       if(!progress.inventoryExpanded)return ['#expandBtn'];
@@ -11188,7 +11180,6 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     if(panelId==='action'){
       if(!progress.crafted)return ['#actionPanel [data-action="craft"]'];
       if(!progress.summoned)return ['#openSummonListBtn','#npcSummonWidget'];
-      if(!progress.npcViewed)return ['#showNpcsBtn'];
       if(!progress.tradeOpened)return ['#actionPanel [data-action="trade"]'];
       return ['#actionPanel .action-grid'];
     }
@@ -11204,7 +11195,9 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     }
     if(panelId==='combat'){
       const turn=Math.max(0,Math.floor(Number(s?.turn)||0));
+      if(turn===0&&!progress.attacked)return ['#battleHand [data-item-id="wood_sword"]'];
       if(turn===1&&!battleSubmissionLocked)return ['#startBattleBtn'];
+      if(turn===2&&!progress.magicLoaded)return ['#battleHand .magic-staff-card .battle-card'];
       if(progress.summoned&&!progress.npcCommanded){
         const step=window.__dcTutorialNpcCommandStep||'open';
         return {open:['#npcInstructionBtn'],item:['#battleHand [data-use-stack="stone_brick"]'],switch:['#battleHand .npc-command-selected','#npcInstructionBtn'],player:['#battleHand .item-action-card:not(.npc-command-selected)','#startBattleBtn'],done:['#startBattleBtn']}[step]||['#npcInstructionBtn'];
@@ -11410,6 +11403,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       Object.keys(progress).forEach(key=>progress[key]=false);
       window.__dcTutorialPlayerTradeDone=false;
       window.__dcTutorialNpcCommandStep='open';
+      try{npcRosterView='players';npcRosterPage=0}catch{}
       tutorialVictoryShown=false;
       q('tutorialVictoryOverlay')?.classList.remove('show');
       q('tutorialVictoryOverlay')?.setAttribute('aria-hidden','true');
@@ -11560,8 +11554,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
   document.addEventListener('click',event=>{
     if(!isActive())return;
     if(event.target.closest('#slots .slot'))progress.inventoryInspected=true;
-    if(event.target.closest('#showNpcsBtn'))progress.npcViewed=true;
-    if(event.target.closest('[data-shop-tab],[data-battle-card],#combatConfirmDecline,#combatConfirmProceed,#combatConfirmEat,#craftBtn,#exploreBtn,#expandBtn,#openSummonListBtn,#summonRabbitFromList,#showNpcsBtn,#npcInstructionBtn,#npcCommandAdd,[data-action],#inventoryPrev,#inventoryNext,[data-filter],#slots .slot')){
+    if(event.target.closest('[data-shop-tab],[data-battle-card],#combatConfirmDecline,#combatConfirmProceed,#combatConfirmEat,#craftBtn,#exploreBtn,#expandBtn,#openSummonListBtn,#summonRabbitFromList,#npcInstructionBtn,#npcCommandAdd,[data-action],#inventoryPrev,#inventoryNext,[data-filter],#slots .slot')){
       scheduleUpdate();
       setTimeout(scheduleUpdate,40);
     }
@@ -12768,9 +12761,9 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
 .npc-summon-widget{right:18px;bottom:18px}.npc-summon-widget .btn{min-width:128px;min-height:68px;padding:12px 22px;border-width:2px;border-radius:14px;font-size:16px;letter-spacing:.08em;box-shadow:0 10px 28px #0009,0 0 20px #71d7a244}
 .npc-summon-overlay{position:fixed;inset:0;z-index:2147483150;display:none;align-items:center;justify-content:center;padding:14px;background:#02050de8;backdrop-filter:blur(6px)}.npc-summon-overlay.show{display:flex}.npc-summon-dialog{width:min(620px,95vw);max-height:90dvh;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px;padding:15px;border:1px solid #668b77;border-radius:16px;background:linear-gradient(145deg,#14291f,#080f12);box-shadow:0 22px 70px #000d}.npc-summon-head h2{margin:0;font-size:20px}.npc-summon-head p{margin:3px 0 0;color:#acd0ba;font-size:9px}.npc-summon-list{min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}.npc-summon-entry{display:grid;grid-template-columns:68px minmax(0,1fr);gap:9px;align-items:center;padding:9px;border:1px solid #527563;border-radius:12px;background:#0c1c16}.npc-summon-entry img{width:68px;height:68px;object-fit:contain;image-rendering:pixelated}.npc-summon-entry h3{margin:0 0 3px;font-size:14px}.npc-summon-entry p{margin:2px 0;color:#b9d2c3;font-size:8px}.npc-summon-entry .btn{width:100%;margin-top:6px}.npc-summon-close{width:100%;min-height:40px}
 .npc-mobile-open{position:absolute;left:5px;top:5px;z-index:42;display:none;min-height:28px;padding:3px 7px;font-size:8px;font-weight:1000}body.layout-phone-landscape .npc-mobile-open{display:block}
-.npc-command-box{flex:0 0 auto;display:none;margin:5px 0;padding:7px;border:1px solid #5a739b;border-radius:10px;background:#0d1729}.npc-command-box.show{display:block}.npc-command-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px}.npc-command-head b{font-size:10px}.npc-command-head span{font-size:8px;color:#aebbd5}.npc-command-row{display:grid;grid-template-columns:minmax(90px,.8fr) minmax(100px,1.1fr) minmax(90px,.9fr) auto;gap:5px}.npc-command-row select{min-width:0;min-height:34px;border:1px solid #4e6188;border-radius:7px;background:#08101e;color:#fff;padding:4px;font-size:8px}.npc-command-row .btn{min-height:34px;padding:4px 7px;font-size:8px}.npc-command-queued{margin-top:5px;color:#a9efc5;font-size:8px;line-height:1.4}.npc-command-mode-hint{display:none;color:#aebbd5;font-size:8px}.npc-command-box:not(.show)+.npc-command-mode-hint{display:block}
-.npc-command-steps{display:grid;gap:8px}.npc-command-step{display:grid;gap:5px;padding:7px;border:1px solid #344a70;border-radius:9px;background:#08111f}.npc-command-step>strong{font-size:9px;color:#d8e4ff}.npc-command-choices{display:flex;gap:6px;overflow-x:auto;padding:2px}.npc-command-choice{flex:0 0 auto;min-width:88px;display:grid;grid-template-columns:30px minmax(0,1fr);gap:5px;align-items:center;padding:5px;border:1px solid #50658e;border-radius:8px;background:#101b30;color:#fff;text-align:left}.npc-command-choice img{width:30px;height:30px;object-fit:contain;image-rendering:pixelated}.npc-command-choice span{display:grid;gap:1px;min-width:0}.npc-command-choice b{font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.npc-command-choice small{font-size:7px;color:#aebbd5}.npc-command-choice.selected{border-color:#79e6a9;background:#173429;box-shadow:0 0 12px #66e7a855}.npc-command-choice.target{grid-template-columns:1fr;min-width:105px;text-align:center}.npc-command-hidden{display:none!important}#npcCommandAdd{width:100%;min-height:42px;font-size:11px!important;font-weight:1000}
-.npc-command-box.direct-mode{border:2px solid #b783ff;background:linear-gradient(135deg,#291747,#10182d);box-shadow:0 0 18px #a968ff66}.npc-command-direct-guide{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;padding:7px;border-radius:9px;background:#c38cff18}.npc-command-direct-icon{font-size:25px}.npc-command-direct-guide b{display:block;color:#e4c9ff;font-size:10px}.npc-command-direct-guide span{display:block;margin-top:2px;color:#c9b9df;font-size:8px;line-height:1.4}.npc-command-current{margin-top:6px;padding:6px 8px;border:1px solid #a873e466;border-radius:8px;background:#0b1020;color:#dbc7f4;font-size:8px;line-height:1.5}
+.npc-command-box{flex:0 0 auto;display:none;align-self:flex-start;margin:4px 0;padding:4px;border:1px solid #5a739b;border-radius:9px;background:#0d1729}.npc-command-box.show{display:block}.npc-command-head,.npc-command-direct-guide,.npc-command-current{display:none!important}.npc-command-row{display:grid;grid-template-columns:minmax(90px,.8fr) minmax(100px,1.1fr) minmax(90px,.9fr) auto;gap:5px}.npc-command-row select{min-width:0;min-height:34px;border:1px solid #4e6188;border-radius:7px;background:#08101e;color:#fff;padding:4px;font-size:8px}.npc-command-row .btn{min-height:34px;padding:4px 7px;font-size:8px}.npc-command-queued{margin-top:5px;color:#a9efc5;font-size:8px;line-height:1.4}.npc-command-mode-hint{display:none;color:#aebbd5;font-size:8px}.npc-command-box:not(.show)+.npc-command-mode-hint{display:block}
+.npc-command-steps{display:grid;gap:8px}.npc-command-step{display:grid;gap:5px;padding:7px;border:1px solid #344a70;border-radius:9px;background:#08111f}.npc-command-step>strong{font-size:9px;color:#d8e4ff}.npc-command-choices{display:flex;gap:5px;overflow-x:auto;padding:1px;max-width:100%}.npc-command-choice{flex:0 0 46px;width:46px;height:46px;min-width:46px;display:grid;place-items:center;padding:4px;border:1px solid #50658e;border-radius:9px;background:#101b30;color:#fff}.npc-command-choice img{width:36px;height:36px;object-fit:contain;image-rendering:pixelated}.npc-command-choice span{display:none!important}.npc-command-choice.selected{border:2px solid #b783ff;background:#2a1842;box-shadow:0 0 12px #a968ff88}.npc-command-choice.target{min-width:46px;text-align:center}.npc-command-hidden{display:none!important}#npcCommandAdd{width:100%;min-height:42px;font-size:11px!important;font-weight:1000}
+.npc-command-box.direct-mode{border:2px solid #b783ff;background:linear-gradient(135deg,#291747,#10182d);box-shadow:0 0 12px #a968ff55}
 #combatPanel .item-action-card.npc-command-selected{border:2px solid #b96dff!important;border-radius:12px!important;background:#6f2db533!important;box-shadow:0 0 0 3px #c27cff55,0 0 22px #a84dffbb!important}#combatPanel .battle-card.npc-command-selected,#combatPanel .battle-use-card.npc-command-selected{border-color:#d5a4ff!important;background:linear-gradient(180deg,#5b2788,#28183f)!important;box-shadow:inset 0 0 15px #d597ff55,0 0 16px #a84dff!important}#combatPanel .npc-command-selected .card-count{border-color:#e2bdff!important;background:#702e9f!important;color:#fff!important}body.npc-instruction-active #battleHand{outline:2px solid #b978ff;outline-offset:3px;box-shadow:0 0 22px #a94fff55 inset}body.npc-instruction-active #battleHand .item-action-card:not(.npc-command-selected){cursor:crosshair}.npc-instruction-button.active{border-color:#deb2ff!important;background:linear-gradient(180deg,#7a39ac,#482064)!important;box-shadow:0 0 18px #b765ff!important}
 .npc-action-overlay{position:fixed;inset:0;z-index:2147483050;display:none;align-items:center;justify-content:center;pointer-events:none;background:#02050d8f}.npc-action-overlay.show{display:flex}.npc-action-card{width:min(560px,92vw);display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;align-items:center;padding:18px;border:1px solid #8b79ba;border-radius:18px;background:linear-gradient(135deg,#2e244c,#10182c);box-shadow:0 22px 80px #000d}.npc-action-card.enemy{border-color:#b75869;background:linear-gradient(135deg,#4a1d28,#140c13)}.npc-action-card img{width:150px;height:150px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 10px 14px #000c)}.npc-action-card h2{margin:0 0 5px;font-size:24px}.npc-action-card p{margin:0;color:#d5def1;line-height:1.5;font-size:13px}
 @media(max-width:620px){.npc-grid{grid-template-columns:1fr}.npc-card{grid-template-columns:62px minmax(0,1fr)}.npc-card img{width:62px;height:62px}.npc-command-row{grid-template-columns:1fr 1fr}.npc-command-row .btn{grid-column:1/-1}.npc-action-card{grid-template-columns:88px minmax(0,1fr);padding:12px}.npc-action-card img{width:88px;height:88px}.npc-action-card h2{font-size:17px}.npc-action-card p{font-size:10px}}
@@ -12828,8 +12821,8 @@ window.npcReservedItemUids=npcReservedItemUids;
 function clearPlayerSelectionUid(uid){const sel=s.battleSelection;if(!sel||!uid)return;if(Array.isArray(sel.hands))sel.hands=sel.hands.filter(x=>x!==uid);if(sel.handTargets)delete sel.handTargets[uid];if(sel.accessorySlots)delete sel.accessorySlots[uid];if(Array.isArray(sel.uses))sel.uses=sel.uses.filter(x=>x?.uid!==uid);if(Array.isArray(sel.sharpens))sel.sharpens=sel.sharpens.filter(x=>x?.uid!==uid&&x?.weaponUid!==uid)}
 function usableNpcItems(){const seen=new Set(),reserved=npcReservedItemUids(),out=[];for(const item of s.items){const d=ITEMS[item.id];if(seen.has(item.id)||reserved.has(item.uid)||!d||d.hand==='twoHanded'||d.accessoryType||d.armorSlot||d.shieldType||d.magicStaff)continue;if(d.useEffect||Number(d.damage)>0){seen.add(item.id);out.push({item,d})}}return out}
 function npcTargets(){return activeTargets().filter(t=>t&&t.hp>0).map(t=>({id:t.id,label:t.id==='self'?npcOwnerName():t.label}))}
-function installNpcCommandBox(){if(q('#npcCommandBox'))return;const box=document.createElement('div');box.id='npcCommandBox';box.className='npc-command-box direct-mode';box.innerHTML='<div class="npc-command-head"><b>紫の召喚獣指示モード</b><span>カード一覧から直接選択</span></div><div class="npc-command-direct-guide"><div class="npc-command-direct-icon">🐾</div><div><b>行動させる召喚獣を選択</b><span>この下で召喚獣を選び、通常のカード一覧から使わせたいアイテムを押してください。</span></div></div><div class="npc-command-choices" id="npcCommandNpcChoices"></div><div class="npc-command-current" id="npcCommandQueued"></div>';q('#battleSelectionSummary')?.before(box)}
-function renderNpcCommandBox(){const box=q('#npcCommandBox');if(!box)return;const npcs=localNpcs().filter(n=>!n.enemy&&n.hp>0),active=s.phase==='combat'&&npcs.length>0&&npcInstructionMode;box.classList.toggle('show',active);document.body.classList.toggle('npc-instruction-active',active);const button=q('#npcInstructionBtn');if(button){button.classList.toggle('active',active);button.textContent=active?'通常モードへ戻る':'召喚獣に指示';button.disabled=s.phase!=='combat'||!npcs.length}if(!npcs.length||!active)return;if(!npcs.some(n=>n.id===npcCommandDraft.npcId))npcCommandDraft.npcId=npcs.find(n=>!(s.npcCommands||[]).some(c=>c.npcId===n.id))?.id||npcs[0]?.id||'';q('#npcCommandNpcChoices').innerHTML=npcs.map(n=>{const command=(s.npcCommands||[]).find(c=>c.npcId===n.id);return`<button type="button" class="npc-command-choice ${n.id===npcCommandDraft.npcId?'selected':''}" data-npc-command-npc="${n.id}"><img src="${npcIcon(n)}" alt=""><span><b>${safeHtml(n.name)}</b><small>${command?`${ITEMS[command.itemId]?.name||'行動'}を選択済み`:`意志 ${n.will}/${n.maxWill}`}</small></span></button>`}).join('');box.querySelectorAll('[data-npc-command-npc]').forEach(el=>el.onclick=()=>{npcCommandDraft.npcId=el.dataset.npcCommandNpc;window.__dcTutorialNpcCommandStep='item';render();window.__dcTutorialRefresh?.()});q('#npcCommandQueued').textContent=(s.npcCommands||[]).length?`紫枠＝召喚獣の行動：${s.npcCommands.map(c=>`${c.npcName}「${ITEMS[c.itemId]?.name||'アイテム'}」→${targetLabel(c.targetId)}`).join(' ／ ')}。ボタンで通常モードへ戻ると、自分の行動も選べます。`:'召喚獣を選んだら、下のカード一覧から使わせたいアイテムを1つ押してください。'}
+function installNpcCommandBox(){if(q('#npcCommandBox'))return;const box=document.createElement('div');box.id='npcCommandBox';box.className='npc-command-box direct-mode';box.innerHTML='<div class="npc-command-choices" id="npcCommandNpcChoices"></div>';q('#battleSelectionSummary')?.before(box)}
+function renderNpcCommandBox(){const box=q('#npcCommandBox');if(!box)return;const npcs=localNpcs().filter(n=>!n.enemy&&n.hp>0),active=s.phase==='combat'&&npcs.length>0&&npcInstructionMode;box.classList.toggle('show',active);document.body.classList.toggle('npc-instruction-active',active);const button=q('#npcInstructionBtn');if(button){button.classList.toggle('active',active);button.textContent=active?'通常モードへ戻る':'召喚獣に指示';button.disabled=s.phase!=='combat'||!npcs.length}if(!npcs.length||!active)return;if(!npcs.some(n=>n.id===npcCommandDraft.npcId))npcCommandDraft.npcId=npcs.find(n=>!(s.npcCommands||[]).some(c=>c.npcId===n.id))?.id||npcs[0]?.id||'';q('#npcCommandNpcChoices').innerHTML=npcs.map(n=>`<button type="button" class="npc-command-choice ${n.id===npcCommandDraft.npcId?'selected':''}" data-npc-command-npc="${n.id}" title="${safeHtml(n.name)}" aria-label="${safeHtml(n.name)}"><img src="${npcIcon(n)}" alt=""></button>`).join('');box.querySelectorAll('[data-npc-command-npc]').forEach(el=>el.onclick=()=>{npcCommandDraft.npcId=el.dataset.npcCommandNpc;window.__dcTutorialNpcCommandStep='item';render();window.__dcTutorialRefresh?.()})}
 function queueNpcCommand(){ensureNpcState();const npc=s.npcs.find(n=>n.id===npcCommandDraft.npcId),itemId=npcCommandDraft.itemId,targetId=npcCommandDraft.targetId,d=ITEMS[itemId];if(!npc||!d||!targetId)return toast('召喚獣・アイテム・対象を順番に選んでください');if(d.hand==='twoHanded')return toast('NPCは片手で使えるアイテムだけ使用できます');const cost=Math.max(0,Number(d.willCost)||0);if(npc.will<cost)return toast(`${npc.name}の意志力が足りません`);const reserved=npcReservedItemUids(npc.id),item=s.items.find(x=>x.id===itemId&&!reserved.has(x.uid));if(!item)return toast('ほかのNPCへ渡していないアイテムがありません');s.npcCommands=s.npcCommands.filter(c=>c.npcId!==npc.id);clearPlayerSelectionUid(item.uid);s.npcCommands.push({npcId:npc.id,npcName:npc.name,itemId,itemUid:item.uid,targetId,cost});window.__dcTutorialNpcCommandStep='done';toast(`${npc.name}へ${d.name}を渡して指示しました。次に準備完了を押してください`);render();save(false);window.__dcTutorialRefresh?.()}
 function directNpcCommand(itemOrId,exactUid=''){ensureNpcState();if(!npcInstructionMode||s.phase!=='combat')return false;const npc=s.npcs.find(n=>n.id===npcCommandDraft.npcId&&n.hp>0&&!n.enemy)||localNpcs().find(n=>n.hp>0&&!n.enemy);if(!npc)return toast('指示できる召喚獣がいません'),true;const item=exactUid?getItemByUid(exactUid):s.items.find(x=>x.id===itemOrId&&!npcReservedItemUids(npc.id).has(x.uid)),d=item&&ITEMS[item.id];if(!item||!d)return toast('召喚獣へ渡せるアイテムがありません'),true;if(d.hand==='twoHanded'||d.accessoryType||d.armorSlot||d.shieldType||d.magicStaff||(!d.useEffect&&!(Number(d.damage)>0)))return toast('NPCは片手で使える武器・投擲・消費アイテムだけ選べます'),true;const cost=Math.max(0,Number(d.willCost)||0);if(npc.will<cost)return toast(`${npc.name}の意志力が足りません`),true;const existing=(s.npcCommands||[]).find(c=>c.npcId===npc.id);if(existing?.itemUid===item.uid){s.npcCommands=s.npcCommands.filter(c=>c.npcId!==npc.id);window.__dcTutorialNpcCommandStep='item';toast(`${npc.name}の行動を取り消しました`);render();save(false);window.__dcTutorialRefresh?.();return true}const target=defaultTargetForItem(d);s.npcCommands=s.npcCommands.filter(c=>c.npcId!==npc.id);clearPlayerSelectionUid(item.uid);s.npcCommands.push({npcId:npc.id,npcName:npc.name,itemId:item.id,itemUid:item.uid,targetId:target,cost});window.__dcTutorialNpcCommandStep='switch';toast(`${npc.name}の行動を紫枠で登録しました。ボタンを押して通常モードへ戻り、自分の行動も選べます`);render();save(false);window.__dcTutorialRefresh?.();return true}
 window.dcNpcInstructionActive=()=>npcInstructionMode;
@@ -12927,7 +12920,7 @@ installNpcButton();installSummonWidget();installNpcMobileButton();installNpcComm
 (()=>{'use strict';
 const STORAGE='dreamCrafter.customAvatar.v1',DEFAULT_AVATAR='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"><rect width="192" height="192" rx="30" fill="#101a31"/><circle cx="96" cy="91" r="56" fill="#7fdce8"/><path d="M54 67 42 19l43 37m53 11 12-48-43 37" fill="#7fdce8" stroke="#c9fbff" stroke-width="7"/><circle cx="76" cy="88" r="7" fill="#142037"/><circle cx="116" cy="88" r="7" fill="#142037"/><path d="m82 116 14 8 14-8" fill="none" stroke="#142037" stroke-width="7" stroke-linecap="round"/></svg>'),DEFAULT_DEATH='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"><rect width="192" height="192" rx="30" fill="#0c111d"/><ellipse cx="96" cy="126" rx="65" ry="34" fill="#566378"/><path d="M45 111 24 74l47 25m76 12 21-37-47 25" fill="#566378" stroke="#8995a8" stroke-width="7"/><path d="m69 116 14 14m0-14-14 14m40-14 14 14m0-14-14 14" stroke="#1b2230" stroke-width="7" stroke-linecap="round"/></svg>');
 const $=id=>document.getElementById(id),esc=v=>typeof safeHtml==='function'?safeHtml(String(v??'')):String(v??'');let avatar=null,draft=null;
-const rarityKeys=['common','uncommon','rare','epic','fantasy','legendary'],avatarPower={common:1,uncommon:3,rare:10,epic:30,fantasy:100,legendary:300},AVATAR_STAT_CONVERSION=1,AVATAR_STAT_CAP=600;
+const rarityKeys=['common','uncommon','rare','epic','fantasy','legendary'],avatarPower={common:.25,uncommon:1,rare:3,epic:10,fantasy:50,legendary:200},AVATAR_STAT_CONVERSION=5,AVATAR_STAT_CAP=200;
 function load(){try{avatar=JSON.parse(localStorage.getItem(STORAGE)||'null')}catch{avatar=null}if(avatar){normalize(avatar);try{localStorage.setItem(STORAGE,JSON.stringify(avatar))}catch{}}registerAvatar();return avatar}
 function normalize(a){a.id=String(a.id||`avatar_${globalThis.crypto?.randomUUID?.()||`${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`}`).slice(0,96);a.name=String(a.name||'アヴァターラ').slice(0,28);a.description=String(a.description||'').slice(0,240);a.image=String(a.image||DEFAULT_AVATAR);a.deathImage=String(a.deathImage||DEFAULT_DEATH);a.materials=a.materials&&typeof a.materials==='object'?a.materials:{};const split=Number(a.lifePercent);a.lifePercent=Math.max(0,Math.min(100,Math.round(Number.isFinite(split)?split:50)));return a}
 function entries(a=draft){return Object.entries(a?.materials||{}).map(([id,qty])=>({id,qty:Math.max(1,Math.min(20,Math.floor(Number(qty)||1))),item:ITEMS[id],profile:ITEM_MATERIAL_PROFILES_V1[id]})).filter(x=>x.item&&x.profile)}
@@ -12937,7 +12930,7 @@ function registerAvatar(){for(let i=RECIPES.length-1;i>=0;i--)if(RECIPES[i]?.cus
 window.dcAvatarGetDesign=()=>{if(!avatar)return null;return{...avatar,...calculate(avatar)}};
 window.dcRenderAvatarSummon=list=>{const d=window.dcAvatarGetDesign?.();if(!d)return;const materials=Object.entries(d.materials||{}).map(([id,count])=>({id,count:Math.max(0,Math.floor(Number(count)||0)),have:typeof itemCount==='function'?itemCount(id):0})).filter(m=>m.count>0&&ITEMS[m.id]),ready=materials.length>0&&materials.every(m=>m.have>=m.count),entry=document.createElement('article');entry.className='npc-summon-entry';entry.innerHTML=`<img src="${d.image}" alt=""><div><h3>${esc(d.name)} <small>アヴァターラ</small></h3><p>必要素材：${materials.length?materials.map(m=>`${esc(ITEMS[m.id].name)} ×${m.count}（所持${m.have}）`).join('／'):'未設定'}</p><p>HP ${d.maxHp}／意志力 ${d.maxWill}／召喚者の指示に従う</p><button type="button" class="btn good" ${ready?'':'disabled'}>${ready?'素材を消費して召喚する':'召喚素材が足りません'}</button></div>`;entry.querySelector('button').onclick=()=>{if(window.dcSummonCustomAvatar?.(d))document.getElementById('npcSummonOverlay')?.classList.remove('show')};list.appendChild(entry)};
 function resize(file,size){return new Promise((resolve,reject)=>{if(!file||!/^image\/(png|jpeg|webp)$/i.test(file.type||''))return reject(new Error('PNG / JPEG / WebPを選択してください'));if(file.size>4*1024*1024)return reject(new Error('画像は4MB以下にしてください'));const r=new FileReader();r.onerror=()=>reject(new Error('画像を読み込めませんでした'));r.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error('画像を開けませんでした'));img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');x.imageSmoothingEnabled=false;const scale=Math.min(size/img.width,size/img.height),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));x.drawImage(img,(size-w)>>1,(size-h)>>1,w,h);resolve(c.toDataURL('image/png'))};img.src=r.result};r.readAsDataURL(file)})}
-function ensureView(){if($('onlineAvatarEditView'))return;const section=document.createElement('section');section.className='online-view';section.id='onlineAvatarEditView';section.innerHTML=`<h2>アヴァターラを作る</h2><p>作成できるアヴァターラは1人1体です。ここで指定した素材を召喚時に直接消費し、素材の質・数量・適性から最大HPと最大意志力が決まります。素材1個の基礎値はコモン1、アンコモン3、レア10、エピック30、ファンタズマ100、レジェンダリー300です。</p><div class="avatar-builder"><div class="dream-box"><h3>1. 名前とテクスチャ</h3><div class="avatar-image-grid"><label class="avatar-image-field"><span>通常テクスチャ（192×192へ調整）</span><img id="avatarImagePreview" class="avatar-image-preview"><input id="avatarImageInput" type="file" accept="image/png,image/jpeg,image/webp"></label><label class="avatar-image-field"><span>死亡テクスチャ（任意）</span><img id="avatarDeathPreview" class="avatar-image-preview"><input id="avatarDeathInput" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" class="btn small" id="avatarDeathDefault">デフォルトに戻す</button></label></div><div class="avatar-fields" style="margin-top:10px"><label>アヴァターラ名<input id="avatarName" maxlength="28"></label><label>説明<textarea id="avatarDesc" maxlength="240"></textarea></label></div></div><div class="dream-box"><h3>性能プレビュー</h3><div id="avatarPreview"></div><p class="dream-box-note">生命は回復・防御適性、意志は意志・魔法適性から計算します。素材の基礎値を生命／意志へ配分します。</p></div><div class="dream-box"><h3>2. 召喚時に消費する素材</h3><div class="avatar-material-add"><select id="avatarMaterialSelect"></select><input id="avatarMaterialQty" type="number" min="1" max="20" value="1"><button type="button" class="btn primary" id="avatarMaterialAdd">追加</button></div><div class="dream-material-list" id="avatarMaterialList"></div></div><div class="dream-box"><h3>3. 生命／意志の配分</h3><div class="avatar-life-slider"><b>意志</b><input id="avatarLifePercent" type="range" min="0" max="100" value="50"><b>生命</b></div><p id="avatarSplitText" class="dream-box-note"></p></div></div><div class="dream-error" id="avatarError"></div><div class="dream-footer-actions"><button type="button" class="btn" id="avatarCancel">一覧へ戻る</button><button type="button" class="btn primary" id="avatarSave">アヴァターラを保存</button></div>`;document.querySelector('#onlineShell')?.appendChild(section);bindView()}
+function ensureView(){if($('onlineAvatarEditView'))return;const section=document.createElement('section');section.className='online-view';section.id='onlineAvatarEditView';section.innerHTML=`<h2>アヴァターラを作る</h2><p>作成できるアヴァターラは1人1体です。ここで指定した素材を召喚時に直接消費し、素材の質・数量・適性から最大HPと最大意志力が決まります。</p><div class="avatar-builder"><div class="dream-box"><h3>1. 名前とテクスチャ</h3><div class="avatar-image-grid"><label class="avatar-image-field"><span>通常テクスチャ（192×192へ調整）</span><img id="avatarImagePreview" class="avatar-image-preview"><input id="avatarImageInput" type="file" accept="image/png,image/jpeg,image/webp"></label><label class="avatar-image-field"><span>死亡テクスチャ（任意）</span><img id="avatarDeathPreview" class="avatar-image-preview"><input id="avatarDeathInput" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" class="btn small" id="avatarDeathDefault">デフォルトに戻す</button></label></div><div class="avatar-fields" style="margin-top:10px"><label>アヴァターラ名<input id="avatarName" maxlength="28"></label><label>説明<textarea id="avatarDesc" maxlength="240"></textarea></label></div></div><div class="dream-box"><h3>性能プレビュー</h3><div id="avatarPreview"></div><p class="dream-box-note">生命は回復・防御適性、意志は意志・魔法適性から計算します。</p></div><div class="dream-box"><h3>2. 召喚時に消費する素材</h3><div class="avatar-material-add"><select id="avatarMaterialSelect"></select><input id="avatarMaterialQty" type="number" min="1" max="20" value="1"><button type="button" class="btn primary" id="avatarMaterialAdd">追加</button></div><div class="dream-material-list" id="avatarMaterialList"></div></div><div class="dream-box"><h3>3. 生命／意志の配分</h3><div class="avatar-life-slider"><b>意志</b><input id="avatarLifePercent" type="range" min="0" max="100" value="50"><b>生命</b></div><p id="avatarSplitText" class="dream-box-note"></p></div></div><div class="dream-error" id="avatarError"></div><div class="dream-footer-actions"><button type="button" class="btn" id="avatarCancel">一覧へ戻る</button><button type="button" class="btn primary" id="avatarSave">アヴァターラを保存</button></div>`;document.querySelector('#onlineShell')?.appendChild(section);bindView()}
 function open(){ensureView();const view=$('onlineAvatarEditView'),windowBox=document.querySelector('#onlineShell .online-window');if(view&&windowBox&&view.parentElement!==windowBox)windowBox.appendChild(view);draft=normalize(avatar?JSON.parse(JSON.stringify(avatar)):{name:'アヴァターラ',description:'',image:DEFAULT_AVATAR,deathImage:DEFAULT_DEATH,materials:{},lifePercent:50});$('avatarName').value=draft.name;$('avatarDesc').value=draft.description;$('avatarImagePreview').src=draft.image;$('avatarDeathPreview').src=draft.deathImage;$('avatarLifePercent').value=draft.lifePercent;render();onlineSetView('avatarEdit')}
 function render(){const calc=calculate();$('avatarSplitText').textContent=`生命 ${draft.lifePercent}% ／ 意志 ${100-draft.lifePercent}%`;$('avatarMaterialList').innerHTML=calc.entries.length?calc.entries.map(e=>`<div class="dream-material-row" data-id="${e.id}"><img src="${e.item.icon}"><div><b>${esc(e.item.name)}</b><small>${esc(RARITY[e.item.rarity]||e.item.rarity)}・制作${Number(e.profile.pointBudget).toFixed(2)}pt</small></div><input type="number" min="1" max="20" value="${e.qty}"><button type="button" class="btn small danger">×</button></div>`).join(''):'<div class="dream-empty" style="padding:14px">素材を追加してください。</div>';$('avatarMaterialList').querySelectorAll('[data-id]').forEach(row=>{const id=row.dataset.id;row.querySelector('input').onchange=e=>{draft.materials[id]=Math.max(1,Math.min(20,Math.floor(Number(e.target.value)||1)));render()};row.querySelector('button').onclick=()=>{delete draft.materials[id];render()}});$('avatarPreview').innerHTML=`<div class="avatar-preview-card"><img src="${draft.image}"><div><h3>${esc(draft.name||'アヴァターラ')}</h3><div class="dream-rarity-${calc.rarity}">${esc(RARITY[calc.rarity]||calc.rarity)}</div><div class="avatar-stat-big"><b>最大HP ${calc.maxHp}</b><b>最大意志力 ${calc.maxWill}</b></div><small>有効制作 ${calc.budget.toFixed(2)}pt<br>生命適性 ${Math.round(calc.lifeAffinity*100)}%／意志適性 ${Math.round(calc.willAffinity*100)}%<br>召喚時に上記素材を直接消費</small></div></div>`}
 function bindView(){const ids=Object.keys(ITEM_MATERIAL_PROFILES_V1).filter(id=>ITEMS[id]).sort((a,b)=>(RARITY_RANK[ITEMS[a].rarity]??0)-(RARITY_RANK[ITEMS[b].rarity]??0)||(ITEMS[a].baseValue||0)-(ITEMS[b].baseValue||0));$('avatarMaterialSelect').innerHTML=ids.map(id=>`<option value="${id}">[${esc(RARITY[ITEMS[id].rarity]||ITEMS[id].rarity)}] ${esc(ITEMS[id].name)}</option>`).join('');$('avatarMaterialAdd').onclick=()=>{const id=$('avatarMaterialSelect').value,qty=Math.max(1,Math.min(20,Math.floor(Number($('avatarMaterialQty').value)||1)));draft.materials[id]=Math.min(20,(draft.materials[id]||0)+qty);render()};$('avatarLifePercent').oninput=e=>{draft.lifePercent=Math.round(Number(e.target.value)||0);render()};$('avatarName').oninput=e=>{draft.name=e.target.value.slice(0,28);render()};$('avatarDesc').oninput=e=>draft.description=e.target.value.slice(0,240);$('avatarImageInput').onchange=async e=>{try{draft.image=await resize(e.target.files?.[0],192);$('avatarImagePreview').src=draft.image;render()}catch(error){$('avatarError').textContent=error.message}};$('avatarDeathInput').onchange=async e=>{try{draft.deathImage=await resize(e.target.files?.[0],192);$('avatarDeathPreview').src=draft.deathImage}catch(error){$('avatarError').textContent=error.message}};$('avatarDeathDefault').onclick=()=>{draft.deathImage=DEFAULT_DEATH;$('avatarDeathPreview').src=DEFAULT_DEATH};$('avatarCancel').onclick=()=>onlineSetView('dream');$('avatarSave').onclick=()=>{const calc=calculate(),errors=[];if(!draft.name.trim())errors.push('名前を入力してください。');if(!calc.entries.length)errors.push('素材を1種類以上追加してください。');if(calc.budget<=0)errors.push('制作ポイントがありません。');if(errors.length){$('avatarError').textContent=errors.join(' ');return}avatar=normalize(JSON.parse(JSON.stringify(draft)));localStorage.setItem(STORAGE,JSON.stringify(avatar));registerAvatar();$('avatarError').className='dream-error dream-success';$('avatarError').textContent='アヴァターラを保存しました。召喚画面から素材を直接消費して召喚できます。';setTimeout(()=>onlineSetView('dream'),500)}}
