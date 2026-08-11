@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.8 Online Room</title>
+<title>Dream Crafter α7.13.9 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.8・発光ガイド完全チュートリアル版";
+const BUILD_LABEL="α7.13.9・人影トレード安全売却チュートリアル版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -10262,8 +10262,11 @@ function buyShopItem(itemId){
  * 注意:
  *   買取不可条件、売却価格、所持品削除方法を変更しない。
  */
+const TUTORIAL_PROTECTED_SELL_IDS=new Set(['wood','wood_sword','wooden_board','leather_jacket','medicinal_herbs','magic_staff','fireball_scroll','grass','leather']);
+function tutorialSellBlocked(itemId){return window.__dcRealTutorialActive===true&&TUTORIAL_PROTECTED_SELL_IDS.has(String(itemId||''))}
 function sellShopItem(itemId,requested=1){
   if(s.phase!=='trade'||!ITEMS[itemId])return;
+  if(tutorialSellBlocked(itemId))return toast('これは後の練習で必要です。チュートリアル中は売却できません');
   const owned=s.items.filter(item=>item.id===itemId),amount=Math.max(1,Math.min(owned.length,Math.floor(Number(requested)||1)));
   if(!owned.length)return toast('そのアイテムは所持していません');
   const price=shopSellPrice(itemId),data=ITEMS[itemId];
@@ -10281,7 +10284,7 @@ function shopItemSummary(itemId){const d=ITEMS[itemId];if(!d)return'詳細なし
 // ---------------------------------------------------------------------------
 // ショップ：選択商品の詳細表示
 // ---------------------------------------------------------------------------
-function renderShopDetail(itemId){const box=qs('#shopDetail'),d=ITEMS[itemId];if(!box)return;if(!d){box.className='shop-detail empty';box.textContent='アイテムをタップすると、ここに詳細が表示されます。';return}box.className=`shop-detail rarity-frame-${d.rarity}`;const price=shopTab==='buy'?`購入 ${shopBuyPrice(itemId)}ジェム`:(canShopBuyItem(itemId)?`買取 1個 ${shopSellPrice(itemId)}ジェム`:'買取不可');box.innerHTML=`<div class="shop-detail-hero"><img src="${d.icon}" alt="${safeHtml(d.name)}"><div><div class="shop-detail-name">${safeHtml(d.name)}</div><div class="shop-detail-tags"><span class="rarity-${d.rarity}">${d.rarityLabel||RARITY[d.rarity]}</span><span>${safeHtml(d.type)}</span></div></div></div><div class="shop-detail-price">${price}</div><div class="shop-detail-desc">${safeHtml(shopItemEffectText(itemId))}</div>`}
+function renderShopDetail(itemId){const box=qs('#shopDetail'),d=ITEMS[itemId];if(!box)return;if(!d){box.className='shop-detail empty';box.textContent='アイテムをタップすると、ここに詳細が表示されます。';return}box.className=`shop-detail rarity-frame-${d.rarity}`;const price=shopTab==='buy'?`購入 ${shopBuyPrice(itemId)}ジェム`:(tutorialSellBlocked(itemId)?'後の練習で必要・売却不可':canShopBuyItem(itemId)?`買取 1個 ${shopSellPrice(itemId)}ジェム`:'買取不可');box.innerHTML=`<div class="shop-detail-hero"><img src="${d.icon}" alt="${safeHtml(d.name)}"><div><div class="shop-detail-name">${safeHtml(d.name)}</div><div class="shop-detail-tags"><span class="rarity-${d.rarity}">${d.rarityLabel||RARITY[d.rarity]}</span><span>${safeHtml(d.type)}</span></div></div></div><div class="shop-detail-price">${price}</div><div class="shop-detail-desc">${safeHtml(shopItemEffectText(itemId))}</div>`}
 // ============================================================================
 // 27. トレード
 // ============================================================================
@@ -10325,10 +10328,10 @@ function renderTrade(){
     const counts=new Map();for(const item of s.items)counts.set(item.id,(counts.get(item.id)||0)+1);
     const ids=[...counts.keys()].sort((a,b)=>(RARITY_RANK[ITEMS[b].rarity]??0)-(RARITY_RANK[ITEMS[a].rarity]??0)||ITEMS[a].name.localeCompare(ITEMS[b].name,'ja'));
     list.innerHTML=ids.length?ids.map(id=>{
-      const d=ITEMS[id],count=counts.get(id)||0,price=shopSellPrice(id),sellable=canShopBuyItem(id);
-      const priceView=sellable?`<img src="${GEM_ICON}" alt="">1個 ${price}`:'ゴミは買取不可';
-      const actions=sellable?`<div class="shop-item-actions ${count>1?'two':''}"><button type="button" class="btn good" data-shop-sell-one="${id}">1個売る</button>${count>1?`<button type="button" class="btn danger" data-shop-sell-all="${id}">全部売る</button>`:''}</div>`:`<div class="shop-item-actions"><button type="button" class="btn" disabled>買取不可</button></div>`;
-      return `<article class="shop-item rarity-frame-${d.rarity} ${shopSelectedItemId===id?'selected':''}" data-shop-select="${id}"><img class="shop-item-image" src="${d.icon}" alt="${safeHtml(d.name)}"><div class="shop-item-info"><span class="shop-item-name" title="${safeHtml(d.name)}">${safeHtml(d.name)} ×${count}</span><div class="shop-item-meta"><span class="rarity-${d.rarity}">${d.rarityLabel||RARITY[d.rarity]}</span><span title="${safeHtml(d.type)}">${safeHtml(d.type)}</span></div><div class="shop-item-price">${priceView}</div></div>${actions}</article>`;
+      const d=ITEMS[id],count=counts.get(id)||0,price=shopSellPrice(id),protectedItem=tutorialSellBlocked(id),practiceItem=window.__dcRealTutorialActive===true&&id==='currant',sellable=canShopBuyItem(id)&&!protectedItem;
+      const priceView=protectedItem?'🔒 後の練習で必要・売却不可':sellable?`<img src="${GEM_ICON}" alt="">1個 ${price}`:'ゴミは買取不可';
+      const actions=sellable?`<div class="shop-item-actions ${count>1?'two':''}"><button type="button" class="btn good" data-shop-sell-one="${id}">1個売る</button>${count>1?`<button type="button" class="btn danger" data-shop-sell-all="${id}">全部売る</button>`:''}</div>`:`<div class="shop-item-actions"><button type="button" class="btn" disabled>${protectedItem?'必要品':'買取不可'}</button></div>`;
+      return `<article class="shop-item rarity-frame-${d.rarity} ${shopSelectedItemId===id?'selected':''} ${practiceItem?'tutorial-sell-practice':''}" data-shop-select="${id}"><img class="shop-item-image" src="${d.icon}" alt="${safeHtml(d.name)}"><div class="shop-item-info"><span class="shop-item-name" title="${safeHtml(d.name)}">${safeHtml(d.name)} ×${count}${practiceItem?'　【不要品・売却練習用】':''}</span><div class="shop-item-meta"><span class="rarity-${d.rarity}">${d.rarityLabel||RARITY[d.rarity]}</span><span title="${safeHtml(d.type)}">${safeHtml(d.type)}</span></div><div class="shop-item-price">${priceView}</div></div>${actions}</article>`;
     }).join(''):'<div class="shop-empty">売却できるアイテムを所持していません。<br>ショップでは素材・武器・防具・アクセサリーを問わず売却できます。</div>';
   }
   const visibleIds=shopTab==='buy'?shopStockIds():[...new Set(s.items.map(x=>x.id))];if(shopSelectedItemId&&!visibleIds.includes(shopSelectedItemId)){shopSelectedItemId=null;shopPreviewItemId=null}list.querySelectorAll('[data-shop-select]').forEach(card=>card.onclick=e=>{if(e.target.closest('button'))return;shopSelectedItemId=card.dataset.shopSelect;shopPreviewItemId=shopSelectedItemId;craftPreviewItemId=null;s.selectedUid=null;renderTrade();renderItemCard()});
@@ -10796,6 +10799,7 @@ const $=s=>document.querySelector(s), overlay=$('#tutorialOverlay'), scene=$('#t
 @keyframes tutorialWindowGlow{from{box-shadow:0 16px 50px #000c,0 0 13px #61d9ff,0 0 28px #9b6cff88,inset 0 0 16px #5fa5ff20}to{box-shadow:0 16px 50px #000c,0 0 27px #83ecff,0 0 55px #b080ffcc,inset 0 0 26px #5fa5ff38}}
 body.real-tutorial-active .tutorial-focus{outline:4px solid #fff36a!important;outline-offset:4px!important;box-shadow:0 0 0 7px #ff9f1c99,0 0 24px 10px #fff36acc!important;filter:brightness(1.3)!important;animation:tutorialTargetGlow .72s ease-in-out infinite alternate!important}
 @keyframes tutorialTargetGlow{from{outline-color:#fff36a;box-shadow:0 0 0 5px #ff9f1c88,0 0 14px 7px #fff36aaa}to{outline-color:#fff;box-shadow:0 0 0 9px #ff9f1ccc,0 0 30px 14px #fff36aff}}
+.tutorial-sell-practice{border-color:#71ff9b!important;background:linear-gradient(180deg,#173c2b,#10271d)!important}.tutorial-sell-practice .shop-item-name{color:#b9ffca!important;font-weight:1000!important}.tutorial-sell-practice [data-shop-sell-one]{box-shadow:0 0 16px #59ff8aaa!important}
 .tutorial-focus-pointer{position:fixed;z-index:2147483647;display:none;pointer-events:none;padding:6px 10px;border:2px solid #fff;border-radius:999px;background:#f07b18;color:#fff;font-size:11px;font-weight:1000;white-space:nowrap;box-shadow:0 0 18px #fff36a;animation:tutorialPointerBounce .65s ease-in-out infinite alternate}.tutorial-focus-pointer.show{display:block}.tutorial-focus-pointer::before{content:'➜';margin-right:5px;color:#fff36a}
 @keyframes tutorialPointerBounce{from{transform:translateY(0)}to{transform:translateY(-6px)}}
 body.real-tutorial-active #roomStatusBtn{display:none!important}
@@ -10858,6 +10862,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     tradeOpened:false,
     shopBought:false,
     shopSold:false,
+    playerTraded:false,
     inventoryInspected:false,
     inventoryExpanded:false,
     summoned:false,
@@ -10957,7 +10962,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     }
   }
   function seedTutorialInventory(){
-    const wanted={wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1,grass:5};
+    const wanted={wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1,grass:5,currant:2,leather:1};
     for(const [id,amount] of Object.entries(wanted))addTutorialItem(id,Math.max(0,amount-inventoryCount(id)));
     s.will=Math.max(100,Number(s.will)||0);
     s.maxWill=Math.max(100,Number(s.maxWill)||0);
@@ -10971,6 +10976,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       items:(s?.items||[]).map(item=>item.id),phase:s?.phase,turn:Number(s?.turn)||0,
       capacity:Number(s?.capacity)||0,npcCount:(s?.npcs||[]).filter(npc=>npc&&!npc.enemy&&npc.hp>0).length,
       npcCommandCount:(s?.npcCommands||[]).length,
+      playerTradeDone:window.__dcTutorialPlayerTradeDone===true,
       message:String(q('battleMessage')?.textContent||''),
       shieldPrompt:shieldPromptVisible(),enemyCopper:enemyHasCopperSet()
     };
@@ -10993,6 +10999,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     if(after.panel==='trade')progress.tradeOpened=true;
     if(before.panel==='trade'&&after.gems<before.gems)progress.shopBought=true;
     if(before.panel==='trade'&&after.gems>before.gems)progress.shopSold=true;
+    if(after.playerTradeDone)progress.playerTraded=true;
     if(after.capacity>before.capacity)progress.inventoryExpanded=true;
     if(after.npcCount>before.npcCount)progress.summoned=true;
     if(after.npcCommandCount>before.npcCommandCount)progress.npcCommanded=true;
@@ -11053,9 +11060,16 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     if(panelId==='trade'){
       const tab=document.querySelector('.shop-tab.active')?.dataset.shopTab||'buy';
       if(!progress.shopSold&&tab!=='sell')return {title:'最初に売却を覚えよう',body:'上の「アイテムを売る」タブを押してください。不要な所持品を選び、価格と個数を確認してジェムへ交換します。',hint:'必要なクラフト素材まで売らないよう、インベントリの詳細説明も確認してください。'};
-      if(tab==='sell')return {title:'不要な物を売ってみよう',body:'売りたい所持品を選び、売却価格と個数を確認してジェムへ交換してください。',hint:'購入画面と売却画面はタブで切り替えられます。'};
-      if(progress.shopSold)return {title:'プレイヤートレードも確認',body:'「プレイヤー取引」では、生存中の相手を招待し、提案者がアイテム、相手がジェムまたはアイテムを提示します。最後に内容を再確認して交換します。',hint:'チュートリアルは一人用なので説明のみです。本編のオンラインゲームで利用できます。'};
+      if(tab==='sell')return {title:'【不要品】スグリの実を売ろう',body:'緑色で表示された「スグリの実【不要品・売却練習用】」を1個売ってください。木材・草・武器など後で必要な物はロックされ、チュートリアル中は売れません。',hint:'本編では必要品のロックはありません。レシピや召喚素材を確認してから売却しましょう。'};
+      if(progress.shopSold&&!progress.playerTraded)return {title:'夢見の人影とプレイヤートレード',body:'「プレイヤー取引」を押してください。チュートリアル中だけ、夢見の人影が生存プレイヤーとして一覧に現れます。革を提示すると、人影がジェムを対価として提示します。',hint:'提示内容を確認し、「この内容で交渉成立」まで体験してください。通常ゲームでは実在するオンライン参加者と同じ流れです。'};
+      if(progress.playerTraded)return {title:'プレイヤートレード完了',body:'招待、アイテム提示、相手の対価、最終確定まで体験しました。ショップへ戻り、必要なら購入も試せます。',hint:'本編では相手が承認・対価提示を操作します。不足・満杯・切断時は安全のため交換が中止されます。'};
       return {title:'ショップで買ってみよう',body:'商品を選び、所持ジェムを使って購入してください。',hint:'夢見の庭園では練習向けの商品が並びます。購入・売却とも本編と同じ処理です。'};
+    }
+
+    if(panelId==='playerTrade'){
+      if(!document.querySelector('#playerTradeSession:not([hidden])'))return {title:'夢見の人影を選ぼう',body:'夢見の人影はチュートリアル中だけ、生存プレイヤーとして表示されています。「提案する」を押してください。',hint:'本編ではここにオンライン中の生存プレイヤーが表示され、相手が応じた場合だけ交渉が始まります。'};
+      if(document.querySelector('#tradeOfferItemOpen')&&!document.querySelector('#tradeFinalize:not([disabled])'))return {title:'革を提示しよう',body:'「アイテムを選ぶ」から交換練習用の革を選び、個数1で「提示する」を押してください。夢見の人影が自動で12ジェムを提示します。',hint:'本編では相手側がジェムまたはアイテムを選んで対価を提示します。'};
+      return {title:'交換内容を最終確認',body:'あなたが渡す「革×1」と、夢見の人影が渡す「12ジェム」を確認し、「この内容で交渉成立」を押してください。',hint:'確定直前に双方の所持数・ジェム・空き容量が再確認されます。'};
     }
 
     if(panelId==='combat'){
@@ -11082,8 +11096,8 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       inventory:{title:'アイテムをタップして詳細を見る',body:'インベントリのアイテムを1回タップすると、右側の「アイテム詳細」に拡大画像・説明・威力・防御・消費意志力・特殊効果などが表示されます。\n\nまずは光っている所持アイテムをタップしてください。',hint:'同じアイテムが複数ある場合はスタック表示されます。上の分類ボタンで素材や武器だけに絞れます。',selectors:['#slots .slot','.inventory-panel']},
       expand:{title:'インベントリを拡張する',body:'「容量を20枠へ拡張」を押すと、10ジェムを消費して所持枠を増やせます。探索前に空きを作っておくと、見つけたアイテムを取り逃しにくくなります。',hint:'拡張はゲーム中の重要なジェム用途です。ボタンには現在の必要ジェム数が表示されます。',selectors:['#expandBtn']},
       craft:{title:'クラフトの詳しい手順',body:panelId==='craft'?'①上のカテゴリーを選ぶ → ②レシピをタップ → ③完成品・必要素材・必要意志力を確認 → ④「クラフト」を押します。\n\n不足素材は作成できず、成功すると素材と意志力を消費して完成品がインベントリへ入ります。':'行動選択で「クラフト」を押してください。クラフト画面へ移動すると、カテゴリー・レシピ・必要素材・必要意志力・完成品の順に確認できます。',hint:'作り終えたら「行動を完了する」で次へ進みます。レシピをタップすると右側に完成品の詳細も出ます。',selectors:panelId==='craft'?['#craftCategoryTabs','#craftList','#craftBtn']:['#actionPanel [data-action="craft"]']},
-      sell:{title:'ショップでアイテムを売却する',body:panelId==='trade'?'上の「アイテムを売る」タブへ切り替え、売りたい所持品を選びます。売却価格と個数を確認して確定すると、アイテムを失う代わりにジェムを受け取ります。':'行動選択の「トレード」からショップへ入り、上部の「アイテムを売る」タブを押します。不要な素材をジェムへ変えられます。',hint:'1ジェム未満の品など、買い取れないアイテムもあります。必要なクラフト素材まで売らないよう詳細を確認してください。',selectors:panelId==='trade'?['.shop-tab[data-shop-tab="sell"]','#shopList']:['#actionPanel [data-action="trade"]']},
-      playerTrade:{title:'プレイヤートレードの流れ',body:panelId==='trade'?'「プレイヤー取引」を押して生存中の相手を選びます。相手が招待を承認したら、提案者が渡すアイテムを提示し、相手側がジェムまたは交換アイテムを提示します。最後に提案者が内容を確定すると交換されます。':'行動選択で「トレード」へ進み、ショップ画面の「プレイヤー取引」を押します。オンライン中の生存プレイヤー同士でのみ利用できます。',hint:'提案内容を変更すると最終確認は解除されます。交換直前に所持数・ジェム・空き容量が再確認され、不足や切断時は成立しません。',selectors:panelId==='trade'?['#openPlayerTradeBtn']:['#actionPanel [data-action="trade"]']},
+      sell:{title:'ショップでアイテムを売却する',body:panelId==='trade'?'上の「アイテムを売る」タブへ切り替え、緑色の「スグリの実【不要品・売却練習用】」を1個売ります。後で使う教材はチュートリアル中だけ売却不可です。':'行動選択の「トレード」からショップへ入り、上部の「アイテムを売る」タブを押します。不要な素材をジェムへ変えられます。',hint:'本編では保護されません。クラフトレシピや召喚素材を確認し、必要な物まで売らないようにしてください。',selectors:panelId==='trade'?['.shop-tab[data-shop-tab="sell"]','[data-shop-sell-one="currant"]']:['#actionPanel [data-action="trade"]']},
+      playerTrade:{title:'プレイヤートレードの流れ',body:panelId==='playerTrade'?'夢見の人影を選び、交換練習用の革を提示します。人影が12ジェムを提示したら、双方の内容を確認して最終確定してください。':panelId==='trade'?'「プレイヤー取引」を押してください。チュートリアル中は夢見の人影が生存プレイヤーとして現れます。提案者が革を提示し、人影の対価を確認して最後に成立させます。':'行動選択で「トレード」へ進み、ショップ画面の「プレイヤー取引」を押します。',hint:'本編ではオンライン中の生存プレイヤーと同じ流れで交換します。変更時は最終確認が解除され、不足・満杯・切断時は成立しません。',selectors:panelId==='playerTrade'?['#playerTradePlayerList .player-trade-player button','#tradeOfferItemOpen','#tradeFinalize']:panelId==='trade'?['#openPlayerTradeBtn']:['#actionPanel [data-action="trade"]']},
       summon:{title:'召喚獣を召喚する',body:'クラフト・トレード・休憩などの画面で「召喚」を押すと召喚獣一覧が開きます。ウサギは草5個、アヴァターラは設計時に指定した素材を直接消費して召喚します。\n\nチュートリアルには草5個を用意してあります。',hint:'召喚後は左の「NPC」へ切り替えると、HP・意志力・所属を確認できます。NPCカードをタップすると中央に立ち絵が出ます。',selectors:['#openSummonListBtn','#npcSummonWidget']},
       cards:{title:'カード使用画面の操作',body:panelId==='combat'?'①下のカードをタップ → ②左右どちらの手で使うか確認 → ③必要なら使用対象を選ぶ → ④合計意志力を確認 → ⑤行動を確定します。\n\n片手は左右で各1枚、両手アイテムは両方の枠を使います。':'行動選択で「戦闘」を選ぶとカード使用画面へ進みます。カードを選び、手・対象・消費意志力を確認して行動を確定します。',hint:'防具やアクセサリーもそのターンに使うカードです。選択したカードは結果画面で行動順に処理されます。',selectors:panelId==='combat'?['#battleHand','#battleDock']:['#actionPanel [data-action="battle"]']},
       npcCommand:{title:'召喚獣へ命令する',body:panelId==='combat'?'右側の「召喚獣へ指示」を押して指示モードへ入ります。①命令するNPC → ②NPCへ渡すアイテム → ③使用対象を選び、指示を登録します。NPCは自分の意志力を使い、渡した片手アイテムを対象へ使用します。':'先に召喚獣を呼び、カード使用画面へ進みます。そこで右側の「召喚獣へ指示」を押すと命令できます。',hint:'NPCが使ったアイテムは主人と共有できず、そのターンに主人は使えません。NPCは片手分だけ行動できます。',selectors:panelId==='combat'?['#npcInstructionBtn','#npcCommandBox']:['#openSummonListBtn','#npcSummonWidget']}
@@ -11104,7 +11118,12 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       return ['#actionPanel .action-grid'];
     }
     if(panelId==='craft')return progress.crafted?['#finishCraftBtn','#craftBackToAction']:['#craftCategoryTabs','#craftList','#craftBtn'];
-    if(panelId==='trade')return progress.shopSold?['#openPlayerTradeBtn']:['.shop-tab[data-shop-tab="sell"]','#shopList'];
+    if(panelId==='trade')return progress.shopSold?['#openPlayerTradeBtn']:['.shop-tab[data-shop-tab="sell"]','[data-shop-sell-one="currant"]'];
+    if(panelId==='playerTrade'){
+      if(document.querySelector('#playerTradePlayerList:not([hidden])'))return ['#playerTradePlayerList .player-trade-player button'];
+      if(document.querySelector('#tradeFinalize:not([disabled])'))return ['#tradeFinalize'];
+      return ['#tradeOfferItemOpen','#tradeOfferSet'];
+    }
     if(panelId==='combat')return progress.summoned&&!progress.npcCommanded?['#npcInstructionBtn','#npcCommandBox']:['#battleHand','#battleDock'];
     return ['.mode-panel.active button'];
   }
@@ -11301,6 +11320,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       try{onlineDisconnect()}catch{}
 
       Object.keys(progress).forEach(key=>progress[key]=false);
+      window.__dcTutorialPlayerTradeDone=false;
       manualTopic='';
       if(q('ctTopic'))q('ctTopic').value='';
       exploreIndex=0;
@@ -11869,6 +11889,8 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
   const nowLabel=at=>new Date(at||Date.now()).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
   const localName=()=>typeof onlinePlayerDisplayName==='function'?onlinePlayerDisplayName():'あなた';
   const isOnline=()=>Boolean(onlineSession?.started&&onlineSession?.peer&&onlineSession?.localId);
+  const isTutorialTrade=()=>window.__dcRealTutorialActive===true;
+  const localTradeActorId=()=>isTutorialTrade()?'tutorial_player':onlineSession.localId;
   const memberName=id=>onlineRosterPayload().find(member=>member.id===id)?.name||'プレイヤー';
   const tradeMessage=(type,extra={})=>({protocol:ONLINE_PROTOCOL,type,...extra});
 
@@ -11969,7 +11991,7 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
     s.phase='trade';onlineSession.activityLabel=tradeState.active?'プレイヤートレード中':'トレード相手選択中';const badge=$('#phaseBadge');if(badge)badge.textContent='プレイヤートレード';if(phaseTimerKind!=='action')startPhaseTimer('action',PHASE_LIMITS.action);if(!wasActive&&isOnline())onlinePublishSnapshot();
   }
   function openPlayerTradeList(){
-    if(!isOnline())return toast('プレイヤートレードはオンラインゲームで利用できます');
+    if(!isOnline()&&!isTutorialTrade())return toast('プレイヤートレードはオンラインゲームで利用できます');
     if(hasOpenTrade())return renderTradeSession();
     tradeState.completedText='';showPlayerTradePanel();renderPlayerTradeList();save(false);
   }
@@ -11978,7 +12000,7 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
     if(hasOpenTrade()||tradeState.pendingSessionId)cancelActiveTrade('ショップへ戻ったため交渉を終了しました。');
     tradeState.active=null;tradeState.privateMessages=[];s.phase='trade';setPanel('trade');renderTrade();render();save(false);if(isOnline())onlinePublishSnapshot();
   }
-  function eligibleTradePlayers(){return isOnline()?onlineRosterPayload().filter(member=>member.id!==onlineSession.localId&&member.connected!==false&&!member.spectator&&Number(member.hp)>0):[]}
+  function eligibleTradePlayers(){if(isTutorialTrade())return[{id:'tutorial_shadow',name:'夢見の人影',hp:Math.max(1,Number(s.enemyHp)||30),maxHp:30,activityLabel:'トレード練習相手'}];return isOnline()?onlineRosterPayload().filter(member=>member.id!==onlineSession.localId&&member.connected!==false&&!member.spectator&&Number(member.hp)>0):[]}
   function renderPlayerTradeList(){
     showPlayerTradePanel();const list=$('#playerTradePlayerList'),session=$('#playerTradeSession'),status=$('#playerTradeStatus'),subtitle=$('#playerTradeSubtitle');if(!list)return;
     session.hidden=true;list.hidden=false;subtitle.textContent='生存中のプレイヤーを選んでください。';
@@ -11989,7 +12011,9 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
     for(const player of players){const card=document.createElement('article');card.className='player-trade-player';const info=document.createElement('div');const name=document.createElement('b');name.textContent=player.name;const small=document.createElement('small');small.textContent=`HP ${Math.floor(player.hp)}/${Math.floor(player.maxHp)}・${player.activityLabel||'待機中'}`;info.append(name,small);const button=document.createElement('button');button.type='button';button.className='btn primary';button.textContent=tradeState.pendingTargetId===player.id?'返答待ち':'提案する';button.disabled=Boolean(tradeState.pendingTargetId);button.onclick=()=>sendTradeInvite(player);card.append(info,button);list.appendChild(card)}
   }
   function sendTradeInvite(player){
-    if(!player||tradeState.pendingTargetId)return;tradeState.pendingTargetId=player.id;tradeState.pendingTargetName=player.name;renderPlayerTradeList();onlineSendToHost(tradeMessage('playerTradeInvite',{targetId:player.id}));
+    if(!player||tradeState.pendingTargetId)return;
+    if(isTutorialTrade()&&player.id==='tutorial_shadow'){beginTradeSession({id:`tutorial_trade_${Date.now()}`,proposerId:'tutorial_player',targetId:'tutorial_shadow',proposerName:'あなた',targetName:'夢見の人影',status:'active',offer:null,counter:null,version:0,updatedAt:Date.now()});toast('夢見の人影がトレードに応じました');return}
+    tradeState.pendingTargetId=player.id;tradeState.pendingTargetName=player.name;renderPlayerTradeList();onlineSendToHost(tradeMessage('playerTradeInvite',{targetId:player.id}));
   }
   function enqueueTradeInvite(message){tradeState.inviteQueue.push(message);showNextTradeInvite()}
   function showNextTradeInvite(){
@@ -12007,7 +12031,7 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
     tradeState.active=null;tradeState.privateMessages=[];tradeState.preparing=false;tradeState.pendingSessionId='';tradeState.pendingTargetId='';tradeState.pendingTargetName='';tradeState.currentInvite=null;tradeState.inviteQueue.length=0;tradeState.completedText=message;const overlay=$('#playerTradeInviteOverlay');overlay?.classList.remove('show');
     if($('#playerTradePanel')?.classList.contains('active'))renderPlayerTradeList();
   }
-  function ownItemStacks(){const counts=new Map();for(const item of s.items)counts.set(item.id,(counts.get(item.id)||0)+1);return [...counts.entries()].sort((a,b)=>ITEMS[a[0]].name.localeCompare(ITEMS[b[0]].name,'ja')).map(([id,count])=>({id,count,data:ITEMS[id]}))}
+  function ownItemStacks(){const counts=new Map();for(const item of s.items)counts.set(item.id,(counts.get(item.id)||0)+1);let stacks=[...counts.entries()].sort((a,b)=>ITEMS[a[0]].name.localeCompare(ITEMS[b[0]].name,'ja')).map(([id,count])=>({id,count,data:ITEMS[id]}));if(isTutorialTrade())stacks=stacks.filter(stack=>stack.id==='leather');return stacks}
   function itemOptions(selected=''){const stacks=ownItemStacks();return `<option value="">アイテムを選択</option>${stacks.map(stack=>`<option value="${stack.id}" ${stack.id===selected?'selected':''}>${safeHtml(stack.data.name)}（${stack.count}個）</option>`).join('')}`}
   function tradePickerButtonContent(itemId){const stack=ownItemStacks().find(entry=>entry.id===itemId),data=stack?.data;return data?`<img src="${data.icon}" alt=""><span>${safeHtml(data.name)}</span><small>所持 ${stack.count}</small>`:'<span aria-hidden="true" style="font-size:24px;text-align:center">🎒</span><span>アイテムを選ぶ</span><small>一覧を開く</small>'}
   function closeTradeItemPicker(){const overlay=$('#tradeItemPickerOverlay');overlay?.classList.remove('show');tradeItemPickerSelect=null}
@@ -12024,7 +12048,7 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
   }
   function renderTradeSession(){
     const session=tradeState.active;if(!session)return renderPlayerTradeList();showPlayerTradePanel();const list=$('#playerTradePlayerList'),area=$('#playerTradeSession'),deal=$('#playerTradeDeal'),status=$('#playerTradeStatus'),subtitle=$('#playerTradeSubtitle');list.hidden=true;area.hidden=false;
-    const proposer=onlineSession.localId===session.proposerId,partner=proposer?session.targetName:session.proposerName;subtitle.textContent=`${partner}さんとの非公開交渉`;status.textContent=tradeState.preparing?'双方の所持品を確認しています。内容を変更せずお待ちください。':proposer?'あなたが提示し、相手の対価を確認して最後に成立させます。':'提案されたアイテムを確認し、ジェムまたはアイテムで対価を提示してください。';
+    const proposer=localTradeActorId()===session.proposerId,partner=proposer?session.targetName:session.proposerName;subtitle.textContent=`${partner}さんとの非公開交渉`;status.textContent=tradeState.preparing?'双方の所持品を確認しています。内容を変更せずお待ちください。':proposer?'あなたが提示し、相手の対価を確認して最後に成立させます。':'提案されたアイテムを確認し、ジェムまたはアイテムで対価を提示してください。';
     const ownLabel=proposer?'あなたが渡すもの':'あなたが渡す対価',otherLabel=proposer?'相手が渡す対価':'提案者が渡すもの';const own=proposer?session.offer:session.counter,theirs=proposer?session.counter:session.offer;
     const proposerItemId=session.offer?.itemId||'',proposerEditor=proposer?`<div class="player-trade-editor"><input id="tradeOfferItem" type="hidden" value="${safeHtml(proposerItemId)}"><button type="button" class="btn trade-item-picker-button" id="tradeOfferItemOpen">${tradePickerButtonContent(proposerItemId)}</button><input id="tradeOfferCount" type="number" min="1" max="99" value="${clampInt(session.offer?.count||1,1,99)}" aria-label="個数"><button type="button" class="btn good" id="tradeOfferSet">提示する</button></div>`:'';
     const counterEditor=!proposer?(session.offer?`<div class="player-trade-counter-tabs"><button type="button" class="player-trade-counter-kind ${session.counter?.kind!=='item'?'active':''}" data-counter-kind="gems">ジェム</button><button type="button" class="player-trade-counter-kind ${session.counter?.kind==='item'?'active':''}" data-counter-kind="item">アイテム</button></div><div id="tradeCounterEditor"></div>`:'<div class="player-trade-lock">提案者がアイテムを提示するまでお待ちください。</div>'):'';
@@ -12045,9 +12069,9 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
     else{box.innerHTML=`<div class="player-trade-editor"><div style="display:flex;align-items:center;gap:6px;font-weight:900">💎 ジェム</div><input id="tradeCounterGems" type="number" min="1" max="999999" value="${clampInt(tradeState.active?.counter?.amount||1,1,999999)}"><button type="button" class="btn good" id="tradeCounterSet">対価を提示</button></div>`}
     $('#tradeCounterItemOpen')?.addEventListener('click',()=>openTradeItemPicker($('#tradeCounterItem')?.value||'',itemId=>{const input=$('#tradeCounterItem'),button=$('#tradeCounterItemOpen');if(input)input.value=itemId;if(button)button.innerHTML=tradePickerButtonContent(itemId)}));$('#tradeCounterSet')?.addEventListener('click',()=>{if(kind==='item'){const itemId=$('#tradeCounterItem')?.value,count=clampInt($('#tradeCounterCount')?.value,1,99);if(!ITEMS[itemId])return toast('対価にするアイテムを選んでください');if(itemCount(itemId)<count)return toast('所持数が足りません');sendTradeCounter({kind:'item',itemId,count})}else{const amount=clampInt($('#tradeCounterGems')?.value,1,999999);if(s.gems<amount)return toast('所持ジェムが足りません');sendTradeCounter({kind:'gems',amount})}});
   }
-  function sendTradeOffer(offer){if(!tradeState.active||tradeState.preparing)return;onlineSendToHost(tradeMessage('playerTradeOfferUpdate',{sessionId:tradeState.active.id,offer}))}
+  function sendTradeOffer(offer){if(!tradeState.active||tradeState.preparing)return;if(isTutorialTrade()){if(offer.itemId!=='leather')return toast('練習では「革」を提示してください');tradeState.active={...tradeState.active,offer:{...offer,kind:'item'},counter:{kind:'gems',amount:12},version:(tradeState.active.version||0)+1,updatedAt:Date.now()};tradeState.privateMessages=[{senderId:'tutorial_shadow',senderName:'夢見の人影',text:'その革なら、12ジェムで交換しよう。',at:Date.now()}];renderTradeSession();toast('夢見の人影が12ジェムを提示しました');return}onlineSendToHost(tradeMessage('playerTradeOfferUpdate',{sessionId:tradeState.active.id,offer}))}
   function sendTradeCounter(counter){if(!tradeState.active||tradeState.preparing)return;onlineSendToHost(tradeMessage('playerTradeCounterUpdate',{sessionId:tradeState.active.id,counter}))}
-  function finalizePlayerTrade(){if(!tradeState.active||tradeState.preparing)return;tradeState.preparing=true;renderTradeSession();onlineSendToHost(tradeMessage('playerTradeFinalize',{sessionId:tradeState.active.id,version:tradeState.active.version}))}
+  function finalizePlayerTrade(){if(!tradeState.active||tradeState.preparing)return;if(isTutorialTrade()){const session={...tradeState.active};if(!validTradeItem(session.offer)||!validTradeCounter(session.counter))return toast('革を提示し、相手の対価を確認してください');const committed=applyLocalTradeCommit({session,commitId:`tutorial_commit_${Date.now()}`});if(!committed)return toast('交換条件を満たしていません');window.__dcTutorialPlayerTradeDone=true;clearTradeSession('夢見の人影との練習トレードが成立しました。');renderPlayerTradeList();window.__dcTutorialRefresh?.();toast('夢見の人影とのトレードが成立しました');return}tradeState.preparing=true;renderTradeSession();onlineSendToHost(tradeMessage('playerTradeFinalize',{sessionId:tradeState.active.id,version:tradeState.active.version}))}
   function renderPrivateChat(){const list=$('#playerTradeChatList');if(!list)return;list.innerHTML='';if(!tradeState.privateMessages.length){const line=document.createElement('div');line.className='player-trade-chat-line';line.textContent='ここでトレード相手とだけ相談できます。';list.appendChild(line)}for(const message of tradeState.privateMessages){const line=document.createElement('div');line.className=`player-trade-chat-line ${message.senderId===onlineSession.localId?'self':''}`;const name=document.createElement('b');name.textContent=message.senderName;line.append(name,document.createTextNode(message.text));list.appendChild(line)}requestAnimationFrame(()=>{list.scrollTop=list.scrollHeight})}
   function addPrivateTradeMessage(message){if(!tradeState.active||message.sessionId!==tradeState.active.id)return;tradeState.privateMessages.push({senderId:message.senderId,senderName:message.senderName||memberName(message.senderId),text:cleanChatText(message.text),at:message.at||Date.now()});tradeState.privateMessages=tradeState.privateMessages.slice(-120);renderPrivateChat()}
   function sendPrivateTradeChat(text){const value=cleanChatText(text);if(!value||!tradeState.active)return;onlineSendToHost(tradeMessage('playerTradeChat',{sessionId:tradeState.active.id,text:value}))}
@@ -12055,8 +12079,8 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
   /* ------------------------------------------------------------------------
      プレイヤートレード：所持確認と交換
   ------------------------------------------------------------------------ */
-  function outgoingForLocal(session){return onlineSession.localId===session.proposerId?{kind:'item',...session.offer}:session.counter}
-  function incomingForLocal(session){return onlineSession.localId===session.proposerId?session.counter:{kind:'item',...session.offer}}
+  function outgoingForLocal(session){return localTradeActorId()===session.proposerId?{kind:'item',...session.offer}:session.counter}
+  function incomingForLocal(session){return localTradeActorId()===session.proposerId?session.counter:{kind:'item',...session.offer}}
   function tradeDraftFits(session){
     const outgoing=outgoingForLocal(session),incoming=incomingForLocal(session),draft=s.items.map(item=>({...item}));
     if(outgoing?.kind==='item')for(let i=0;i<clampInt(outgoing.count,1,99);i++){const index=draft.findIndex(item=>item.id===outgoing.itemId);if(index<0)return false;draft.splice(index,1)}
@@ -12076,7 +12100,7 @@ body.layout-phone-landscape .trade-item-picker-dialog{width:calc(100vw - 12px);h
       if(outgoing.kind==='gems')s.gems-=clampInt(outgoing.amount,1,999999);else for(let i=0;i<clampInt(outgoing.count,1,99);i++)if(!removeOneById(outgoing.itemId))throw new Error('outgoing item missing');
       if(incoming.kind==='gems')s.gems+=clampInt(incoming.amount,1,999999);else if(!addItems(incoming.itemId,clampInt(incoming.count,1,99)))throw new Error('incoming item add failed');
     }catch(error){s.items=beforeItems;s.gems=beforeGems;return false}
-    tradeState.processedCommits.add(message.commitId);syncPassiveGemstoneMaxWill();const partner=onlineSession.localId===session.proposerId?session.targetName:session.proposerName;addLog(`${partner}さんとのプレイヤートレードが成立した。${describeTradeSide(outgoing)}を渡し、${describeTradeSide(incoming)}を受け取った。`);playSfx('ui_confirm');render();save(false);onlinePublishSnapshot();tradeState.completedText=`${partner}さんとのトレードが成立しました。`;return true;
+    tradeState.processedCommits.add(message.commitId);syncPassiveGemstoneMaxWill();const partner=localTradeActorId()===session.proposerId?session.targetName:session.proposerName;addLog(`${partner}さんとのプレイヤートレードが成立した。${describeTradeSide(outgoing)}を渡し、${describeTradeSide(incoming)}を受け取った。`);playSfx('ui_confirm');render();save(false);if(isOnline())onlinePublishSnapshot();tradeState.completedText=`${partner}さんとのトレードが成立しました。`;return true;
   }
   function describeTradeSide(side){if(!side)return'なし';return side.kind==='gems'?`${clampInt(side.amount,0,999999)}ジェム`:`${ITEMS[side.itemId]?.name||'アイテム'}×${clampInt(side.count,1,99)}`}
 
