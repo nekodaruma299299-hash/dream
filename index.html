@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.7 Online Room</title>
+<title>Dream Crafter α7.13.8 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.7・アヴァターラ素材直接召喚版";
+const BUILD_LABEL="α7.13.8・発光ガイド完全チュートリアル版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -10789,9 +10789,15 @@ const $=s=>document.querySelector(s), overlay=$('#tutorialOverlay'), scene=$('#t
 <style id="realTutorialStyle">
 /* α7.4.5: 本編操作連動チュートリアル */
 #tutorialOverlay,.tutorial-overlay{display:none!important}
-.context-tutorial-window{position:fixed;z-index:2147483646;width:min(330px,calc(100vw - 18px));max-height:min(220px,40vh);overflow:auto;display:none;padding:11px 12px;border:1px solid #8fc6ff9e;border-radius:13px;background:#0a101df5;box-shadow:0 16px 50px #000c,0 0 24px #5fa5ff2e;color:#eef7ff;backdrop-filter:blur(8px);isolation:isolate}
+.context-tutorial-window{position:fixed;z-index:2147483646;width:min(360px,calc(100vw - 18px));max-height:min(290px,48vh);overflow:auto;display:none;padding:11px 12px;border:2px solid #9de8ff;border-radius:13px;background:#08101ff8;box-shadow:0 16px 50px #000c,0 0 18px #61d9ff,0 0 42px #9b6cffaa,inset 0 0 20px #5fa5ff24;color:#eef7ff;backdrop-filter:blur(8px);isolation:isolate;animation:tutorialWindowGlow 1.55s ease-in-out infinite alternate}
 .context-tutorial-window.show{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}.context-tutorial-window.minimized{width:auto;max-width:210px;padding:7px 9px}.context-tutorial-window.minimized .ct-body,.context-tutorial-window.minimized .ct-hint,.context-tutorial-window.minimized .ct-progress{display:none}
 .ct-head{display:flex;align-items:flex-start;gap:7px}.ct-head-main{min-width:0;flex:1}.ct-kicker{font-size:9px;color:#8fc7ff;font-weight:900}.ct-title{margin:2px 0 0;font-size:15px;line-height:1.25}.ct-tools{display:flex;gap:4px}.ct-tools button{min-width:29px;padding:4px 6px;font-size:11px}.ct-body{margin-top:7px;font-size:11px;line-height:1.52;color:#dce9f6;white-space:pre-line}.ct-hint{margin-top:7px;padding:6px 8px;border-radius:8px;background:#5da0ff1c;font-size:10px;line-height:1.42;color:#cee8ff}.ct-progress{margin-top:7px;font-size:9px;color:#9eb4c9}.ct-progress b{color:#c8e6ff}
+.ct-topic-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center;margin-top:8px;padding-top:7px;border-top:1px solid #7fcfff55}.ct-topic-row label{font-size:9px;font-weight:900;color:#aee9ff}.ct-topic-row select{min-width:0;height:30px;padding:3px 7px;border:1px solid #70cfff;border-radius:8px;background:#101c33;color:#fff;font-size:10px;font-weight:800}
+@keyframes tutorialWindowGlow{from{box-shadow:0 16px 50px #000c,0 0 13px #61d9ff,0 0 28px #9b6cff88,inset 0 0 16px #5fa5ff20}to{box-shadow:0 16px 50px #000c,0 0 27px #83ecff,0 0 55px #b080ffcc,inset 0 0 26px #5fa5ff38}}
+body.real-tutorial-active .tutorial-focus{outline:4px solid #fff36a!important;outline-offset:4px!important;box-shadow:0 0 0 7px #ff9f1c99,0 0 24px 10px #fff36acc!important;filter:brightness(1.3)!important;animation:tutorialTargetGlow .72s ease-in-out infinite alternate!important}
+@keyframes tutorialTargetGlow{from{outline-color:#fff36a;box-shadow:0 0 0 5px #ff9f1c88,0 0 14px 7px #fff36aaa}to{outline-color:#fff;box-shadow:0 0 0 9px #ff9f1ccc,0 0 30px 14px #fff36aff}}
+.tutorial-focus-pointer{position:fixed;z-index:2147483647;display:none;pointer-events:none;padding:6px 10px;border:2px solid #fff;border-radius:999px;background:#f07b18;color:#fff;font-size:11px;font-weight:1000;white-space:nowrap;box-shadow:0 0 18px #fff36a;animation:tutorialPointerBounce .65s ease-in-out infinite alternate}.tutorial-focus-pointer.show{display:block}.tutorial-focus-pointer::before{content:'➜';margin-right:5px;color:#fff36a}
+@keyframes tutorialPointerBounce{from{transform:translateY(0)}to{transform:translateY(-6px)}}
 body.real-tutorial-active #roomStatusBtn{display:none!important}
 body.real-tutorial-active .enemy-name b,body.real-tutorial-active #battleHudTargetName{font-size:0}
 body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battleHudTargetName::after{content:'夢見の人影';font-size:14px}
@@ -10799,7 +10805,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
 </style>
 <div class="context-tutorial-window" id="contextTutorialWindow" aria-live="polite">
  <div class="ct-head"><div class="ct-head-main"><div class="ct-kicker" id="ctKicker">基礎チュートリアル</div><h2 class="ct-title" id="ctTitle">探索してみよう</h2></div><div class="ct-tools"><button type="button" class="btn" id="ctMinimize">−</button><button type="button" class="btn danger" id="ctExit">×</button></div></div>
- <div class="ct-body" id="ctBody"></div><div class="ct-hint" id="ctHint"></div><div class="ct-progress" id="ctProgress"></div>
+ <div class="ct-body" id="ctBody"></div><div class="ct-hint" id="ctHint"></div><div class="ct-progress" id="ctProgress"></div><div class="ct-topic-row"><label for="ctTopic">詳しい説明</label><select id="ctTopic"><option value="">現在の操作を自動案内</option><option value="stage">ステージの出現アイテム</option><option value="inventory">アイテム詳細の見方</option><option value="expand">インベントリ拡張</option><option value="craft">クラフトの詳しい手順</option><option value="sell">ショップで売却</option><option value="playerTrade">プレイヤートレード</option><option value="summon">召喚の方法</option><option value="cards">カードの使い方</option><option value="npcCommand">召喚獣への命令</option></select></div>
 </div>
 <script>
 // ============================================================================
@@ -10828,6 +10834,12 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
   let updateRaf=0;
   let placeRaf=0;
   let resizeRetry=0;
+  let manualTopic='';
+  let focusedElements=[];
+  const focusPointer=document.createElement('div');
+  focusPointer.className='tutorial-focus-pointer';
+  focusPointer.textContent='ここを操作';
+  document.body.appendChild(focusPointer);
   const lastPlacement=new Map();
 
   const tutorialEnemyName='夢見の人影';
@@ -10846,6 +10858,10 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     tradeOpened:false,
     shopBought:false,
     shopSold:false,
+    inventoryInspected:false,
+    inventoryExpanded:false,
+    summoned:false,
+    npcCommanded:false,
     rested:false
   };
 
@@ -10941,7 +10957,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     }
   }
   function seedTutorialInventory(){
-    const wanted={wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1};
+    const wanted={wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1,grass:5};
     for(const [id,amount] of Object.entries(wanted))addTutorialItem(id,Math.max(0,amount-inventoryCount(id)));
     s.will=Math.max(100,Number(s.will)||0);
     s.maxWill=Math.max(100,Number(s.maxWill)||0);
@@ -10953,6 +10969,8 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       panel:currentPanel(),hp:Number(s?.hp)||0,will:Number(s?.will)||0,
       enemyHp:Number(s?.enemyHp)||0,gems:Number(s?.gems)||0,
       items:(s?.items||[]).map(item=>item.id),phase:s?.phase,turn:Number(s?.turn)||0,
+      capacity:Number(s?.capacity)||0,npcCount:(s?.npcs||[]).filter(npc=>npc&&!npc.enemy&&npc.hp>0).length,
+      npcCommandCount:(s?.npcCommands||[]).length,
       message:String(q('battleMessage')?.textContent||''),
       shieldPrompt:shieldPromptVisible(),enemyCopper:enemyHasCopperSet()
     };
@@ -10975,6 +10993,9 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     if(after.panel==='trade')progress.tradeOpened=true;
     if(before.panel==='trade'&&after.gems<before.gems)progress.shopBought=true;
     if(before.panel==='trade'&&after.gems>before.gems)progress.shopSold=true;
+    if(after.capacity>before.capacity)progress.inventoryExpanded=true;
+    if(after.npcCount>before.npcCount)progress.summoned=true;
+    if(after.npcCommandCount>before.npcCommandCount)progress.npcCommanded=true;
     if(before.panel==='action'&&after.panel==='explore'&&after.will>before.will)progress.rested=true;
     refreshTutorialField();
   }
@@ -10987,6 +11008,16 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     };
 
     if(panelId==='explore'){
+      if(!progress.inventoryInspected)return {
+        title:'まずアイテム詳細を確認',
+        body:'下のインベントリにあるアイテムをタップしてください。右側の「アイテム詳細」に画像・説明・性能・消費意志力が表示されます。',
+        hint:'武器・防具・素材など、分からないアイテムはまずタップして詳細を確認します。'
+      };
+      if(!progress.inventoryExpanded)return {
+        title:'インベントリを拡張しよう',
+        body:'探索で所持枠が埋まる前に「容量を20枠へ拡張」を押してください。今回は練習用ジェムを用意しています。',
+        hint:'10ジェムを消費しますが、探索でアイテムを取り逃しにくくなる重要な強化です。'
+      };
       if(!progress.explored)return {
         title:'夢見の庭園を探索しよう',
         body:'まず探索して、木の枝と木材を集めます。\nこの専用フィールドでは最初に木の枝・木材・石・薬草だけが見つかります。',
@@ -11007,8 +11038,9 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
 
     if(panelId==='action'){
       if(!progress.crafted)return {title:'クラフトへ進もう',body:'「クラフト」を選び、集めた素材から木の長剣を作ります。',hint:'説明を読んだら、実際の行動カードを選んでください。'};
-      if(!progress.attacked)return {title:'戦ってみよう',body:'「戦闘」を選び、作った木の長剣を夢見の人影へ使います。',hint:'1ターン目の夢見の人影は何もせず、木の長剣の攻撃を受けます。'};
+      if(!progress.summoned)return {title:'草5個でウサギを召喚',body:'画面の「召喚」を押し、一覧からウサギを選んでください。召喚素材の草5個は用意してあります。',hint:'召喚後は左の「NPC」でステータスを確認できます。'};
       if(!progress.tradeOpened)return {title:'ショップとトレードを試そう',body:'「トレード」を選ぶと、本物のショップで購入と売却を体験できます。',hint:'細かな価格説明はショップ画面の案内へ移動します。'};
+      if(!progress.attacked)return {title:'カード使用を練習しよう',body:'「戦闘」を選び、作った木の長剣をカードとして選択します。手・対象・合計意志力を確認して確定してください。',hint:'1ターン目の夢見の人影は何もせず、カード操作を安全に練習できます。'};
       if(!progress.rested)return {title:'休んでみよう',body:'「休む」を選ぶと、次の探索へ進みながら意志力を回復します。',hint:'休む処理も本編と同じターン進行を使用します。'};
       return {title:'次の行動を選ぼう',body:'まだ試していないクラフト・トレード・休む・戦闘を自由に選べます。',hint:'チュートリアル専用ボタンはありません。'};
     }
@@ -11020,12 +11052,15 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
 
     if(panelId==='trade'){
       const tab=document.querySelector('.shop-tab.active')?.dataset.shopTab||'buy';
-      if(tab==='sell')return {title:'不要な物を売ってみよう',body:'所持品を選び、実際の売却処理でジェムへ交換してください。',hint:'購入画面と売却画面はタブで切り替えられます。'};
+      if(!progress.shopSold&&tab!=='sell')return {title:'最初に売却を覚えよう',body:'上の「アイテムを売る」タブを押してください。不要な所持品を選び、価格と個数を確認してジェムへ交換します。',hint:'必要なクラフト素材まで売らないよう、インベントリの詳細説明も確認してください。'};
+      if(tab==='sell')return {title:'不要な物を売ってみよう',body:'売りたい所持品を選び、売却価格と個数を確認してジェムへ交換してください。',hint:'購入画面と売却画面はタブで切り替えられます。'};
+      if(progress.shopSold)return {title:'プレイヤートレードも確認',body:'「プレイヤー取引」では、生存中の相手を招待し、提案者がアイテム、相手がジェムまたはアイテムを提示します。最後に内容を再確認して交換します。',hint:'チュートリアルは一人用なので説明のみです。本編のオンラインゲームで利用できます。'};
       return {title:'ショップで買ってみよう',body:'商品を選び、所持ジェムを使って購入してください。',hint:'夢見の庭園では練習向けの商品が並びます。購入・売却とも本編と同じ処理です。'};
     }
 
     if(panelId==='combat'){
       const turn=Math.max(0,Math.floor(Number(s?.turn)||0));
+      if(progress.summoned&&!progress.npcCommanded)return {title:'ウサギへ命令してみよう',body:'右側の「召喚獣へ指示」を押します。命令するウサギ、渡す片手アイテム、使用対象を順に選んで指示を登録してください。',hint:'召喚獣は自分の意志力を使います。渡したアイテムは同じターンに主人が使えず、召喚獣は片手分だけ行動できます。'};
       if(turn===0)return {title:'1ターン目：木の長剣で攻撃',body:'夢見の人影はこのターン何もしません。\n木の長剣を選び、攻撃を確定してください。',hint:'カード選択・意志力消費・物理ダメージの流れを体験します。'};
       if(turn===1&&!selectedShield())return {title:'2ターン目：盾を構えよう',body:'夢見の人影は石を投げます。\n攻撃を確定する前に、木の板またはシールドを選んで構えてください。',hint:'盾を構える時点の消費意志力は0です。'};
       if(turn===1)return {title:'石を盾で防ごう',body:'被弾確認が表示されたら「盾を使用する」を選びます。',hint:'ここで初めて盾の shieldWillCost が消費されます。'};
@@ -11039,6 +11074,60 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
 
     if(panelId==='waiting')return {title:'行動を処理しています',body:'選択した行動を、本編の順番と演出で解決しています。',hint:'次の操作が可能になる前に案内が自動更新されます。'};
     return {title:'本物の画面を操作してください',body:'専用の「次へ」ボタンはありません。現在表示されているゲーム画面を操作します。',hint:'探索・クラフト・戦闘・ショップ・トレード・休む・盾・防具・魔法はすべて本編処理です。'};
+  }
+
+  function manualGuide(topic,panelId){
+    const guides={
+      stage:{title:'ステージの出現アイテム',body:'右上の「今回」に現在のステージが表示されます。探索画面ではステージ名と説明を確認でき、時間帯・地形によって見つかるアイテムが変わります。\n\n夢見の庭園では木の枝・木材・石・薬草が基本候補です。進行すると水晶と魔法スクロールも候補に加わります。',hint:'探索道具を選ぶと、その道具に対応した追加アイテムも抽選されます。',selectors:['#currentFieldText','#explorePanel .stage-title','#explorePanel .stage-text']},
+      inventory:{title:'アイテムをタップして詳細を見る',body:'インベントリのアイテムを1回タップすると、右側の「アイテム詳細」に拡大画像・説明・威力・防御・消費意志力・特殊効果などが表示されます。\n\nまずは光っている所持アイテムをタップしてください。',hint:'同じアイテムが複数ある場合はスタック表示されます。上の分類ボタンで素材や武器だけに絞れます。',selectors:['#slots .slot','.inventory-panel']},
+      expand:{title:'インベントリを拡張する',body:'「容量を20枠へ拡張」を押すと、10ジェムを消費して所持枠を増やせます。探索前に空きを作っておくと、見つけたアイテムを取り逃しにくくなります。',hint:'拡張はゲーム中の重要なジェム用途です。ボタンには現在の必要ジェム数が表示されます。',selectors:['#expandBtn']},
+      craft:{title:'クラフトの詳しい手順',body:panelId==='craft'?'①上のカテゴリーを選ぶ → ②レシピをタップ → ③完成品・必要素材・必要意志力を確認 → ④「クラフト」を押します。\n\n不足素材は作成できず、成功すると素材と意志力を消費して完成品がインベントリへ入ります。':'行動選択で「クラフト」を押してください。クラフト画面へ移動すると、カテゴリー・レシピ・必要素材・必要意志力・完成品の順に確認できます。',hint:'作り終えたら「行動を完了する」で次へ進みます。レシピをタップすると右側に完成品の詳細も出ます。',selectors:panelId==='craft'?['#craftCategoryTabs','#craftList','#craftBtn']:['#actionPanel [data-action="craft"]']},
+      sell:{title:'ショップでアイテムを売却する',body:panelId==='trade'?'上の「アイテムを売る」タブへ切り替え、売りたい所持品を選びます。売却価格と個数を確認して確定すると、アイテムを失う代わりにジェムを受け取ります。':'行動選択の「トレード」からショップへ入り、上部の「アイテムを売る」タブを押します。不要な素材をジェムへ変えられます。',hint:'1ジェム未満の品など、買い取れないアイテムもあります。必要なクラフト素材まで売らないよう詳細を確認してください。',selectors:panelId==='trade'?['.shop-tab[data-shop-tab="sell"]','#shopList']:['#actionPanel [data-action="trade"]']},
+      playerTrade:{title:'プレイヤートレードの流れ',body:panelId==='trade'?'「プレイヤー取引」を押して生存中の相手を選びます。相手が招待を承認したら、提案者が渡すアイテムを提示し、相手側がジェムまたは交換アイテムを提示します。最後に提案者が内容を確定すると交換されます。':'行動選択で「トレード」へ進み、ショップ画面の「プレイヤー取引」を押します。オンライン中の生存プレイヤー同士でのみ利用できます。',hint:'提案内容を変更すると最終確認は解除されます。交換直前に所持数・ジェム・空き容量が再確認され、不足や切断時は成立しません。',selectors:panelId==='trade'?['#openPlayerTradeBtn']:['#actionPanel [data-action="trade"]']},
+      summon:{title:'召喚獣を召喚する',body:'クラフト・トレード・休憩などの画面で「召喚」を押すと召喚獣一覧が開きます。ウサギは草5個、アヴァターラは設計時に指定した素材を直接消費して召喚します。\n\nチュートリアルには草5個を用意してあります。',hint:'召喚後は左の「NPC」へ切り替えると、HP・意志力・所属を確認できます。NPCカードをタップすると中央に立ち絵が出ます。',selectors:['#openSummonListBtn','#npcSummonWidget']},
+      cards:{title:'カード使用画面の操作',body:panelId==='combat'?'①下のカードをタップ → ②左右どちらの手で使うか確認 → ③必要なら使用対象を選ぶ → ④合計意志力を確認 → ⑤行動を確定します。\n\n片手は左右で各1枚、両手アイテムは両方の枠を使います。':'行動選択で「戦闘」を選ぶとカード使用画面へ進みます。カードを選び、手・対象・消費意志力を確認して行動を確定します。',hint:'防具やアクセサリーもそのターンに使うカードです。選択したカードは結果画面で行動順に処理されます。',selectors:panelId==='combat'?['#battleHand','#battleDock']:['#actionPanel [data-action="battle"]']},
+      npcCommand:{title:'召喚獣へ命令する',body:panelId==='combat'?'右側の「召喚獣へ指示」を押して指示モードへ入ります。①命令するNPC → ②NPCへ渡すアイテム → ③使用対象を選び、指示を登録します。NPCは自分の意志力を使い、渡した片手アイテムを対象へ使用します。':'先に召喚獣を呼び、カード使用画面へ進みます。そこで右側の「召喚獣へ指示」を押すと命令できます。',hint:'NPCが使ったアイテムは主人と共有できず、そのターンに主人は使えません。NPCは片手分だけ行動できます。',selectors:panelId==='combat'?['#npcInstructionBtn','#npcCommandBox']:['#openSummonListBtn','#npcSummonWidget']}
+    };
+    return guides[topic]||null;
+  }
+  function automaticFocusSelectors(panelId){
+    if(shieldPromptVisible())return ['#combatConfirmProceed','#combatConfirmDecline'];
+    if(panelId==='explore'){
+      if(!progress.inventoryInspected)return ['#slots .slot','.inventory-panel'];
+      if(!progress.inventoryExpanded)return ['#expandBtn'];
+      return progress.explored?['.inventory-panel','#slots .slot']:['#exploreCost','#exploreBtn'];
+    }
+    if(panelId==='action'){
+      if(!progress.crafted)return ['#actionPanel [data-action="craft"]'];
+      if(!progress.summoned)return ['#openSummonListBtn','#npcSummonWidget'];
+      if(!progress.tradeOpened)return ['#actionPanel [data-action="trade"]'];
+      return ['#actionPanel .action-grid'];
+    }
+    if(panelId==='craft')return progress.crafted?['#finishCraftBtn','#craftBackToAction']:['#craftCategoryTabs','#craftList','#craftBtn'];
+    if(panelId==='trade')return progress.shopSold?['#openPlayerTradeBtn']:['.shop-tab[data-shop-tab="sell"]','#shopList'];
+    if(panelId==='combat')return progress.summoned&&!progress.npcCommanded?['#npcInstructionBtn','#npcCommandBox']:['#battleHand','#battleDock'];
+    return ['.mode-panel.active button'];
+  }
+  function clearTutorialFocus(){
+    for(const element of focusedElements)element?.classList?.remove('tutorial-focus');
+    focusedElements=[];
+    focusPointer.classList.remove('show');
+  }
+  function applyTutorialFocus(selectors){
+    clearTutorialFocus();
+    for(const selector of selectors||[]){
+      const element=[...document.querySelectorAll(selector)].find(isVisible);
+      if(element&&element!==win&&!focusedElements.includes(element)){element.classList.add('tutorial-focus');focusedElements.push(element)}
+    }
+    const primary=focusedElements[0];
+    if(!primary)return;
+    const rect=primary.getBoundingClientRect(),viewport=viewportRect();
+    if(!viewport)return;
+    focusPointer.classList.add('show');
+    const left=clamp(rect.left,viewport.left+6,viewport.right-112);
+    const above=rect.top-38>=viewport.top+4;
+    focusPointer.style.left=`${Math.round(left)}px`;
+    focusPointer.style.top=`${Math.round(above?rect.top-38:Math.min(viewport.bottom-32,rect.bottom+7))}px`;
   }
 
   // ---------------------------------------------------------------------------
@@ -11161,7 +11250,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     updateProgress(lastSnapshot,current);
     lastSnapshot=current;
     const panelId=current.panel;
-    const guide=guideFor(panelId);
+    const guide=manualGuide(manualTopic,panelId)||guideFor(panelId);
     q('ctTitle').textContent=guide.title;
     q('ctBody').textContent=guide.body;
     q('ctHint').textContent=guide.hint;
@@ -11175,6 +11264,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       q('ctMinimize').textContent='−';
     }
     window.TutorialWindowManager?.sync?.();
+    applyTutorialFocus(guide.selectors||automaticFocusSelectors(panelId));
     schedulePlacement();
   }
   function scheduleUpdate(){
@@ -11211,6 +11301,8 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       try{onlineDisconnect()}catch{}
 
       Object.keys(progress).forEach(key=>progress[key]=false);
+      manualTopic='';
+      if(q('ctTopic'))q('ctTopic').value='';
       exploreIndex=0;
       lastSnapshot=null;
       lastPanel='';
@@ -11226,7 +11318,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       q('ctProgress').innerHTML='<b>準備中</b>';
 
       s=fresh();
-      s.capacity=30;
+      s.capacity=7;
       s.hp=70;s.maxHp=100;
       s.will=100;s.maxWill=100;
       s.gems=300;
@@ -11279,6 +11371,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     window.__dcRealTutorialActive=false;
     ENEMY_NAME=normalEnemyName;
     document.body.classList.remove('real-tutorial-active');
+    clearTutorialFocus();
     window.TutorialWindowManager?.hide?.();
     win.classList.remove('show','minimized');
     win.hidden=true;
@@ -11312,6 +11405,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     q('ctMinimize').textContent=minimized?'＋':'−';
     requestAnimationFrame(schedulePlacement);
   };
+  q('ctTopic').onchange=event=>{manualTopic=String(event.target.value||'');minimized=false;win.classList.remove('minimized');q('ctMinimize').textContent='−';scheduleUpdate();requestAnimationFrame(schedulePlacement)};
 
   const originalRender=render;
   render=function(){
@@ -11326,7 +11420,8 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
 
   document.addEventListener('click',event=>{
     if(!isActive())return;
-    if(event.target.closest('[data-shop-tab],[data-battle-card],#combatConfirmDecline,#combatConfirmProceed,#combatConfirmEat,#craftBtn,#exploreBtn,[data-action],#inventoryPrev,#inventoryNext,[data-filter]')){
+    if(event.target.closest('#slots .slot'))progress.inventoryInspected=true;
+    if(event.target.closest('[data-shop-tab],[data-battle-card],#combatConfirmDecline,#combatConfirmProceed,#combatConfirmEat,#craftBtn,#exploreBtn,#expandBtn,#openSummonListBtn,#summonRabbitFromList,#npcInstructionBtn,#npcCommandAdd,[data-action],#inventoryPrev,#inventoryNext,[data-filter],#slots .slot')){
       scheduleUpdate();
       setTimeout(scheduleUpdate,40);
     }
