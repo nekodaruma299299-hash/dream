@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.13 Online Room</title>
+<title>Dream Crafter α7.13.14 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.13・第2フェイズ準備完了・取引自動終了版";
+const BUILD_LABEL="α7.13.14・画面別チュートリアル発光修正版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -11146,7 +11146,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       if(!progress.tradeOpened)return ['#actionPanel [data-action="trade"]'];
       return ['#actionPanel .action-grid'];
     }
-    if(panelId==='craft')return progress.crafted?['#finishCraftBtn','#craftBackToAction']:['#craftCategoryTabs','#craftList','#craftBtn'];
+    if(panelId==='craft')return progress.crafted?['#skipCraftBtn']:['#craftCategoryTabs','#craftList','#craftBtn'];
     if(panelId==='trade')return progress.shopSold?['#openPlayerTradeBtn']:['.shop-tab[data-shop-tab="sell"]','[data-shop-sell-one="currant"]'];
     if(panelId==='playerTrade'){
       if(document.querySelector('#playerTradePlayerList:not([hidden])'))return ['#playerTradePlayerList .player-trade-player button'];
@@ -11161,6 +11161,8 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     return ['.mode-panel.active button'];
   }
   function clearTutorialFocus(){
+    // 再描画で要素が差し替わった場合も含め、前の画面で付けた発光をすべて戻す。
+    document.querySelectorAll('.tutorial-focus').forEach(element=>element.classList.remove('tutorial-focus'));
     for(const element of focusedElements)element?.classList?.remove('tutorial-focus');
     focusedElements=[];
     focusPointer.classList.remove('show');
