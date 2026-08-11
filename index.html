@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.13.14 Online Room</title>
+<title>Dream Crafter α7.13.15 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -4001,7 +4001,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.13.14・画面別チュートリアル発光修正版";
+const BUILD_LABEL="α7.13.15・発光完了解除・NPC命令確定修正版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -11146,7 +11146,10 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       if(!progress.tradeOpened)return ['#actionPanel [data-action="trade"]'];
       return ['#actionPanel .action-grid'];
     }
-    if(panelId==='craft')return progress.crafted?['#skipCraftBtn']:['#craftCategoryTabs','#craftList','#craftBtn'];
+    if(panelId==='craft'){
+      if(s.phase!=='craft'||actionSubmissionLocked)return [];
+      return progress.crafted?['#skipCraftBtn']:['#craftCategoryTabs','#craftList','#craftBtn'];
+    }
     if(panelId==='trade')return progress.shopSold?['#openPlayerTradeBtn']:['.shop-tab[data-shop-tab="sell"]','[data-shop-sell-one="currant"]'];
     if(panelId==='playerTrade'){
       if(document.querySelector('#playerTradePlayerList:not([hidden])'))return ['#playerTradePlayerList .player-trade-player button'];
@@ -12748,7 +12751,7 @@ const npcTargetStateV2=targetState;targetState=function(id){const local=npcTarge
 const npcActiveTargetsV2=activeTargets;activeTargets=function(){const base=npcActiveTargetsV2(),ids=new Set(base.map(t=>t.id));for(const npc of allNpcs()){if(npc.collected||ids.has(npc.id))continue;const target=targetState(npc.id);if(target){base.push(target);ids.add(npc.id)}}return base};
 const oldExplore=explore;explore=function(){const before=exploreSubmissionLocked,phase=s.phase;const result=oldExplore();if(!before&&phase==='explore'&&exploreSubmissionLocked)maybeSpawnEnemyNpc();return result};
 const oldCompleteTurnRecovery=completeTurnRecovery;completeTurnRecovery=function(...args){const result=oldCompleteTurnRecovery(...args);ensureNpcState();for(const npc of s.npcs){if(npc.hp<=0)continue;if(npc.enemy)enemyNpcAttack(npc,false);else npc.will=Math.min(npc.maxWill,npc.will+Math.max(1,Math.floor(npc.maxWill*.1)))}save(false);return result};
-const oldSubmitBattleSelection=submitBattleSelection;submitBattleSelection=async function(...args){if(s.phase==='combat'&&!battleAnimating&&(s.npcCommands||[]).length){battleAnimating=true;render();try{await executeNpcCommands()}finally{battleAnimating=false;render()}}return oldSubmitBattleSelection(...args)};
+const oldSubmitBattleSelection=submitBattleSelection;submitBattleSelection=async function(...args){const hadNpcCommands=s.phase==='combat'&&!battleAnimating&&(s.npcCommands||[]).length>0;if(hadNpcCommands){battleAnimating=true;render();try{await executeNpcCommands()}finally{battleAnimating=false;render()}args[1]=true}return oldSubmitBattleSelection(...args)};
 const oldRender=render;render=function(){oldRender();ensureNpcState();if(s.phase!=='combat')npcInstructionMode=false;installNpcButton();installSummonWidget();installNpcMobileButton();installNpcCommandBox();installNpcInstructionButton();renderNpcRosterCards();const count=q('#npcTitleCount');if(count)count.textContent=`NPC ${allNpcs().filter(n=>n.hp>0).length}`;const widget=q('#npcSummonWidget');if(widget)widget.classList.toggle('show',['action','craft','trade','waiting'].includes(s.phase));renderNpcCommandBox()};
 const oldHost=onlineHandleHostMessage;onlineHandleHostMessage=function(senderId,message){if(message?.protocol===ONLINE_PROTOCOL&&message.type==='npcActionView'){const member=onlineSession.members.get(senderId);if(!member)return;const payload={...message,actorId:`npc:${senderId}:${message.npc?.id||''}`,npc:{...cleanNpc(message.npc),ownerName:member.name},title:String(message.title||'NPCの行動').slice(0,120),text:String(message.text||'').slice(0,200)};onlineBroadcast(payload,senderId);if(senderId!==onlineSession.localId){showNpcAction(payload.npc,payload.title,payload.text);recordSharedCombatAction({actorId:payload.actorId,actorLabel:payload.npc.name,itemId:null,targetLabel:'対象',title:payload.text,changes:[changeBadge('NPC行動','neutral')]})}return}return oldHost(senderId,message)};
 const oldClient=onlineHandleClientMessage;onlineHandleClientMessage=function(message){if(message?.protocol===ONLINE_PROTOCOL&&message.type==='npcActionView'){if(message.actorId&&!message.actorId.includes(onlineSession.localId)){showNpcAction(cleanNpc(message.npc),message.title,message.text);recordSharedCombatAction({actorId:message.actorId,actorLabel:message.npc?.name||'NPC',itemId:null,targetLabel:'対象',title:message.text,changes:[changeBadge('NPC行動','neutral')]})}return}return oldClient(message)};
