@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.17.3 Online Room</title>
+<title>Dream Crafter α7.17.5 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -3999,7 +3999,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.17.3・NPC既存カード経路統合版";
+const BUILD_LABEL="α7.17.5・NPC実行関数共有修正版";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -6396,7 +6396,7 @@ async function onlineExecuteAuthoritativeCombatEntry(message){
     const localEntry=localEntries.length>1?{...localEntries[0],entries:localEntries,groupCount:localEntries.length}:localEntries[0];
     const ctx=onlineSession.serverCombatContext||(onlineSession.serverCombatContext={shields:{},shieldItems:{},readyShields:{self:[],enemy:[]}});battleReadyShields=ctx.readyShields;
     const originalRandom=Math.random;Math.random=onlineSeededRandom(entry.seed);
-    try{await executeBattleEntryWithPhase(localEntry,a=>a.kind==='npc'?executeSingleNpcCommand({npcId:a.npcId,npcName:a.npcName,itemId:a.item.id,itemUid:a.item.uid,targetId:a.target,cost:a.npcCost}):executePlayerBattleAction(a,ctx))}finally{Math.random=originalRandom}
+    try{await executeBattleEntryWithPhase(localEntry,a=>a.kind==='npc'?window.dcExecuteSingleNpcCommand({npcId:a.npcId,npcName:a.npcName,itemId:a.item.id,itemUid:a.item.uid,targetId:a.target,cost:a.npcCost}):executePlayerBattleAction(a,ctx))}finally{Math.random=originalRandom}
   }catch(error){ok=false;errorText=error?.message||String(error);console.error('サーバー指示カードの処理に失敗しました',error);addLog(`カード処理に失敗：${errorText}`)}
   finally{onlineSession.serverCombatExecuting=false;onlinePublishSnapshot();onlineSendToHost({protocol:ONLINE_PROTOCOL,type:'combatEntryDone',token:message.token,entryId:entry.entryId,turn:s.turn,ok,error:errorText})}
 }
@@ -6470,7 +6470,7 @@ function onlineHandleHostMessage(senderId,message){
   if(message.type==='combatEntryDone'){onlineHostReceiveCombatEntryDone(senderId,message);return}
   if(message.type==='combatActionView'){
     const currentEntry=onlineSession.combatCurrentEntry;if(!onlineSession.combatRoundActive||message.token!==onlineSession.combatRoundToken||onlineCombatControllerId(currentEntry)!==senderId)return;
-    const member=onlineSession.members.get(senderId),npc=currentEntry?.actorKind==='npc'?(member?.npcs||[]).find(entry=>entry.id===currentEntry.npcId):null,payload={protocol:ONLINE_PROTOCOL,type:'combatActionView',token:message.token,turn:s.turn,actorId:currentEntry?.actorId||senderId,controllerId:senderId,actorKind:currentEntry?.actorKind||'player',actorLabel:currentEntry?.actorLabel||member?.name||'プレイヤー',actorIcon:npc?npcIcon(npc):'',itemId:ITEMS[message.itemId]?message.itemId:null,targetLabel:String(message.targetLabel||'対象なし').slice(0,40),title:String(message.title||'行動を実行しました').slice(0,180),count:Math.max(1,Math.min(99,Math.floor(Number(message.count)||1))),changes:(Array.isArray(message.changes)?message.changes:[]).slice(0,10).map(change=>({text:String(change?.text||'').slice(0,60),tone:['damage','heal','will','buff','debuff','neutral'].includes(change?.tone)?change.tone:'neutral'}))};
+    const member=onlineSession.members.get(senderId),npc=currentEntry?.actorKind==='npc'?(member?.npcs||[]).find(entry=>entry.id===currentEntry.npcId):null,payload={protocol:ONLINE_PROTOCOL,type:'combatActionView',token:message.token,turn:s.turn,actorId:currentEntry?.actorId||senderId,controllerId:senderId,actorKind:currentEntry?.actorKind||'player',actorLabel:currentEntry?.actorLabel||member?.name||'プレイヤー',actorIcon:npc?(window.dcNpcIcon?.(npc)||''):'',itemId:ITEMS[message.itemId]?message.itemId:null,targetLabel:String(message.targetLabel||'対象なし').slice(0,40),title:String(message.title||'行動を実行しました').slice(0,180),count:Math.max(1,Math.min(99,Math.floor(Number(message.count)||1))),changes:(Array.isArray(message.changes)?message.changes:[]).slice(0,10).map(change=>({text:String(change?.text||'').slice(0,60),tone:['damage','heal','will','buff','debuff','neutral'].includes(change?.tone)?change.tone:'neutral'}))};
     if(senderId!==onlineSession.localId){recordSharedCombatAction(payload);showSharedCombatAction(payload)}onlineBroadcast(payload,senderId);return
   }
   if(message.type==='combatConfirmRequest'){onlineForwardCombatConfirmation(senderId,message);return}
@@ -9416,7 +9416,7 @@ async function showCombatActionPhase(entry){
   await onlineWaitForIncomingCombatIdle();
   const info=combatEntryInfo(entry),overlay=qs('#combatPhaseOverlay');if(!overlay||!info.data||!info.actor||!info.target)return true;
   const actorLabel=info.actorId==='self'?onlinePlayerDisplayName():info.actor.label,targetLabel=info.itemTargetData?`${info.itemTargetData.name}（所持アイテム）`:(info.targetId==='self'?onlinePlayerDisplayName():info.target.label),verb=combatActionVerb(info),magicPresentation=combatMagicPresentation(info),displayName=magicPresentation?.name||combatEntryDisplayName(info),displayIcon=magicPresentation?.icon||info.data.icon,displayType=`${magicPresentation?.type||info.data.type||'使用アイテム'}${info.count>1?`・${info.count}個同時使用`:''}`;
-  const npcActorBox=qs('#combatFlowNpcActor'),npcActorImage=qs('#combatFlowNpcActorImage'),npcActorName=qs('#combatFlowNpcActorName');if(npcActorBox){npcActorBox.hidden=!info.npcAction;if(info.npcAction){npcActorImage.src=npcIcon(info.actor?.npc||{});npcActorImage.alt=actorLabel;npcActorName.textContent=actorLabel}}
+  const npcActorBox=qs('#combatFlowNpcActor'),npcActorImage=qs('#combatFlowNpcActorImage'),npcActorName=qs('#combatFlowNpcActorName');if(npcActorBox){npcActorBox.hidden=!info.npcAction;if(info.npcAction){npcActorImage.src=window.dcNpcIcon?.(info.actor?.npc||{})||'';npcActorImage.alt=actorLabel;npcActorName.textContent=actorLabel}}
   qs('#combatFlowActor').textContent=actorLabel;qs('#combatFlowImage').src=displayIcon;qs('#combatFlowImage').alt=displayName;qs('#combatFlowItem').textContent=displayName;qs('#combatFlowItemType').textContent=displayType;qs('#combatFlowAction').textContent=verb;qs('#combatFlowTarget').textContent=targetLabel;
   overlay.className='combat-phase-overlay show performance';overlay.dataset.targetId=info.targetId;void overlay.offsetWidth;overlay.classList.add('running');
   await sleep(2400);
@@ -9569,7 +9569,8 @@ async function resolveBattle(fromTimeout=false,allowEmpty=false){
   for(const x of handActions){const data=ITEMS[x.item.id];if(data.magicStaff)continue;actions.push({kind:'hand',item:x.item,target:data.shieldType?'self':x.target,accessorySlot:x.accessorySlot,baseCost:data.shieldType?0:(data.willCost||0),roll:Math.random()})};
   for(const x of useCards)actions.push({kind:'use',item:x.item,target:isInventoryTargetUse(ITEMS[x.item.id])?'self':x.target,itemTargetUid:x.itemTargetUid||null,magicStaffUid:magicSpellData(x.item)?selectedStaffForMagic?.uid:null,baseCost:magicSpellData(x.item)?magicActionBaseCost(x.item):battleUseBaseCost(x.item,x.target),roll:Math.random()});
   for(const x of sharpenUses)actions.push({kind:'sharpen',item:x.item,weapon:x.weapon,baseCost:3,roll:Math.random()});
-  if(!actions.length&&!allowEmpty){startPhaseTimer('itemUse',PHASE_LIMITS.itemUse);return selectedStaffForMagic?toast('杖にスクロールまたは魔法書を装填してください'):toast('使用するアイテムを選んでください')}
+  /* 主人がカードを選ばずNPCだけへ命令した場合も、有効な戦闘行動として続行する。 */
+  if(!actions.length&&!queuedNpcCommands.length&&!allowEmpty){startPhaseTimer('itemUse',PHASE_LIMITS.itemUse);return selectedStaffForMagic?toast('杖にスクロールまたは魔法書を装填してください'):toast('使用するアイテムを選んでください')}
   const zeroActions=actions.filter(action=>action.baseCost<=0).sort((a,b)=>a.roll-b.roll),paidActions=actions.filter(action=>action.baseCost>0);
   const originalAccessories=s.accessories,virtualAccessories={rings:[...accessoryArray(targetState('self'),'ring')],bangles:[...accessoryArray(targetState('self'),'bangle')]};
   for(const action of zeroActions){
@@ -9622,7 +9623,7 @@ async function resolveBattle(fromTimeout=false,allowEmpty=false){
 
   const preparationStage=groupBattleStageEntries(orderedBattleStage(actions,enemyActions,false)),damageStage=groupBattleStageEntries(orderedBattleStage(actions,enemyActions,true));
   const npcPreparation=queuedNpcCommands.filter(command=>!battleActionDealsDirectDamage({kind:'use',item:getItemByUid(command.itemUid),target:command.targetId},false)),npcDamage=queuedNpcCommands.filter(command=>!npcPreparation.includes(command));s.npcCommands=[];
-  for(const command of npcPreparation)await executeSingleNpcCommand(command);
+  for(const command of npcPreparation)await window.dcExecuteSingleNpcCommand(command);
   if(preparationStage.length){qs('#battleMessage').textContent='準備行動を処理中：防具・食品・回復・強化を先に解決します';render();await sleep(350)}
   for(const entry of preparationStage){
     const actorId=entry.actor==='self'?'self':'enemy';if(battlePhaseBuffs.cancelledActors[actorId]){const target=targetState(actorId),refund=battleEntryMembers(entry).reduce((n,e)=>n+Math.max(0,Number(e.action?.cost)||0),0);if(target)refundTargetWill(target,refund);addLog(`${target?.label||actorId}のカードは凍結により無効化され、意志力${refund}を消費しなかった。`);continue}
@@ -9637,7 +9638,7 @@ async function resolveBattle(fromTimeout=false,allowEmpty=false){
     await onlineWaitForCombatBarrier('combatPrepReady','防具・準備行動の完了待ち');
   }
   if(damageStage.length&&s.hp>0&&(!isDoppelgangerEnabled()||s.enemyHp>0)){qs('#battleMessage').textContent='全員の準備行動が完了。ダメージ行動を開始します';render();await sleep(450)}
-  for(const command of npcDamage)await executeSingleNpcCommand(command);
+  for(const command of npcDamage)await window.dcExecuteSingleNpcCommand(command);
   for(const entry of damageStage){
     const actorId=entry.actor==='self'?'self':'enemy';if(battlePhaseBuffs.cancelledActors[actorId]){const target=targetState(actorId),refund=battleEntryMembers(entry).reduce((n,e)=>n+Math.max(0,Number(e.action?.cost)||0),0);if(target)refundTargetWill(target,refund);addLog(`${target?.label||actorId}の攻撃カードは凍結により無効化され、意志力${refund}を消費しなかった。`);continue}
     if(s.hp<=0||(isDoppelgangerEnabled()&&s.enemyHp<=0))break;
@@ -12840,6 +12841,7 @@ function npcNetworkPayload(value){const npc=cleanNpc(value),out={...npc};if(npc.
 function ensureNpcState(){if(!Array.isArray(s.npcs))s.npcs=[];if(!Array.isArray(s.npcCommands))s.npcCommands=[];return s.npcs}
 function cleanNpc(n){const type=n.type==='enemy'?'enemy':n.type==='avatar'?'avatar':'rabbit',ownerId=String(n.ownerId||''),avatarDesignId=String(n.avatarDesignId||''),def=type==='avatar'?avatarDefinition(ownerId,avatarDesignId):null,maxHp=Math.max(1,Number(n.maxHp)||Number(def?.maxHp)||10),hp=Math.max(-Math.ceil(maxHp/2),Math.min(maxHp,Number(n.hp)||0)),fallbackIcon=String(n.icon||def?.image||BEAST_ICON);return{id:String(n.id||uid()),type,avatarDesignId,name:String(n.name||def?.name||(type==='avatar'?'アヴァターラ':'ウサギ')).slice(0,28),icon:type==='rabbit'?RABBIT_ICON:String(def?.image||n.icon||BEAST_ICON),deathIcon:type==='rabbit'?RABBIT_DEATH_ICON:String(def?.deathImage||n.deathIcon||fallbackIcon),hp,maxHp,will:Math.max(0,Number(n.will)||0),maxWill:Math.max(1,Number(n.maxWill)||Number(def?.maxWill)||10),armor:Math.max(0,Number(n.armor)||0),statuses:cleanStatuses(n.statuses),equipment:n.equipment&&typeof n.equipment==='object'?n.equipment:emptyEquipment(),accessories:n.accessories&&typeof n.accessories==='object'?n.accessories:emptyAccessories(),ownerId,ownerName:String(n.ownerName||''),enemy:n.enemy===true,commanded:n.commanded!==false,avatar:type==='avatar'||n.avatar===true,description:String(n.description||def?.description||'').slice(0,240),passive:String(n.passive||def?.passive||'').slice(0,40),passiveTurnHp:Math.max(0,Number(n.passiveTurnHp)||0),passiveTurnWill:Math.max(0,Number(n.passiveTurnWill)||0),summonMaterials:Array.isArray(n.summonMaterials)?n.summonMaterials.map(x=>({id:String(x.id||''),count:Math.max(0,Math.floor(Number(x.count)||0))})).filter(x=>ITEMS[x.id]&&x.count):type==='rabbit'?[{id:'grass',count:5}]:[],collected:n.collected===true}}
 function npcIcon(npc){return npc.hp<=0?(npc.deathIcon||npc.icon):npc.icon}
+window.dcNpcIcon=npc=>npcIcon(npc);
 function localNpcs(){return ensureNpcState().map(cleanNpc)}
 function allNpcs(){const out=localNpcs().filter(n=>!n.collected).map(n=>({...n,local:true}));for(const member of (typeof onlineRosterPayload==='function'?onlineRosterPayload():[])){if(member.id===onlineSession.localId)continue;for(const raw of member.npcs||[]){const npc=cleanNpc(raw);if(!npc.collected)out.push({...npc,local:false})}}return out}
 function npcOwnerName(){return typeof onlinePlayerDisplayName==='function'?onlinePlayerDisplayName():'あなた'}
@@ -12914,6 +12916,8 @@ function refreshNpcDeathVisuals(){const list=allNpcs();document.querySelectorAll
 let npcExecutingActor=null;const npcEffectApplyBattleUse=applyBattleUse;applyBattleUse=function(item,targetId,context={}){if(context.actorId==='npc'&&npcExecutingActor)context={...context,actorId:npcExecutingActor.id,logActorLabel:`NPC「${npcExecutingActor.name}」`};return npcEffectApplyBattleUse(item,targetId,context)};
 const npcFullPatchApply=applyOwnedNpcPatch;applyOwnedNpcPatch=function(npcId,patch={}){const result=npcFullPatchApply(npcId,patch),npc=ensureNpcState().find(entry=>entry.id===npcId);if(!npc)return result;for(const key of ['will','maxWill','maxHp','armor'])if(Number.isFinite(Number(patch[key])))npc[key]=Math.max(key.startsWith('max')?1:0,Number(patch[key]));if(patch.statuses)npc.statuses=cleanStatuses(patch.statuses);save(false);render();return true};
 const npcActorTargetExecute=executeSingleNpcCommand;executeSingleNpcCommand=async function(command={}){const targetId=command.targetId==='self'?command.npcId:command.targetId,npc=s.npcs.find(entry=>entry.id===command.npcId),target=targetState(targetId);npcExecutingActor=npc||null;try{const result=await npcActorTargetExecute({...command,targetId});if(result&&onlineSession.started&&target){if(target.kind==='player'&&target.id!=='self'){for(const key of ['hp','maxHp','will','maxWill','armor'])onlineSendTargetPatch(target.id,{kind:'field',key,value:target[key]});for(const [key,value] of Object.entries(target.statuses||{}))onlineSendTargetPatch(target.id,{kind:'status',key,value})}else if(target.kind==='npc'&&target.remote)sendNpcStatePatch(target,{hp:target.hp,maxHp:target.maxHp,will:target.will,maxWill:target.maxWill,armor:target.armor,statuses:target.statuses})}return result}finally{npcExecutingActor=null}};
+/* NPC内部の実行関数を、既存の戦闘行動表から呼べる唯一の共有入口として公開する。 */
+window.dcExecuteSingleNpcCommand=command=>executeSingleNpcCommand(command);
 /* NPC命令を主人の通常行動として二重送信せず、NPC自身を行動者にする。 */
 const npcActorPresentBattleAction=presentBattleAction;presentBattleAction=function(options={}){const label=String(options.actorLabel||'');if(!label.startsWith('NPC：'))return npcActorPresentBattleAction(options);const name=label.slice(4)||'NPC',npc=allNpcs().find(entry=>entry.name===name);return npcActorPresentBattleAction({...options,actorLabel:name,actorKind:'npc',actorIcon:npc?npcIcon(npc):'',shareOnline:true})};
 const npcDeathShowAction=showNpcAction;showNpcAction=function(npc,title,text,broadcast=false,itemId=null){if(itemId)return;return npcDeathShowAction({...npc,icon:npcIcon(npc)},title,text,broadcast,itemId)};
