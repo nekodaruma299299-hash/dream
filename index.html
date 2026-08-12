@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.15.6 Online Room</title>
+<title>Dream Crafter α7.16.0 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -3996,7 +3996,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.15.6・NPC行動＆意志力ダメージ修正版";
+const BUILD_LABEL="α7.16.0・NPC独立行動者システム";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -6340,6 +6340,7 @@ function onlineGroupCombatPlanEntries(entries){
   }
   return result;
 }
+function onlineCombatControllerId(entry){return String(entry?.controllerId||entry?.actorId||'')}
 function onlineHostMaybeStartCombatRound(){
   if(!onlineSession.isHost||onlineSession.combatRoundActive)return false;const ids=onlineAliveCombatMemberIds();if(!ids.length)return false;
   const missing=ids.filter(id=>!onlineSession.combatSubmissions.has(id));
@@ -6347,11 +6348,11 @@ function onlineHostMaybeStartCombatRound(){
   if(onlineSession.combatTimeoutGraceTimer){clearTimeout(onlineSession.combatTimeoutGraceTimer);onlineSession.combatTimeoutGraceTimer=null}
   onlineClearServerTimerHandle();onlineSession.serverTimer=null;onlineClearDisplayedTimer();onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'serverTimer',timer:null,serverNow:Date.now()});
   const token=`round_${s.turn}_${Date.now().toString(36)}`,plan=[],costs={};
-  for(const id of ids){const sub=onlineSession.combatSubmissions.get(id);costs[id]=sub.totalCost;for(const action of sub.actions){plan.push({entryId:`${token}_${plan.length}`,actorId:id,stage:isFrozenInIceAction(action)?'priority':(battleActionDealsDirectDamage(action,false)?'damage':'preparation'),cost:Math.max(0,Number(action.cost)||0),roll:Number(action.roll)||0,seed:Math.floor(Math.random()*0x7fffffff),action})}}
+  for(const id of ids){const sub=onlineSession.combatSubmissions.get(id),member=onlineSession.members.get(id);costs[id]=sub.totalCost;for(const action of sub.actions){const npcActor=action.kind==='npc',actorId=npcActor?`npc:${id}:${action.npcId}`:id;plan.push({entryId:`${token}_${plan.length}`,controllerId:id,actorId,actorKind:npcActor?'npc':'player',actorLabel:npcActor?action.npcName:(member?.name||'プレイヤー'),npcId:npcActor?action.npcId:'',stage:isFrozenInIceAction(action)?'priority':(battleActionDealsDirectDamage(action,false)?'damage':'preparation'),cost:Math.max(0,Number(action.cost)||0),roll:Number(action.roll)||0,seed:Math.floor(Math.random()*0x7fffffff),action})}}
   const stageRank={priority:0,preparation:1,damage:2};plan.sort((a,b)=>(stageRank[a.stage]??9)-(stageRank[b.stage]??9)||a.cost-b.cost||a.roll-b.roll);
   const groupedPlan=onlineGroupCombatPlanEntries(plan);
   onlineSession.combatRoundToken=token;onlineSession.combatRoundPlan=groupedPlan;onlineSession.combatRoundIndex=0;onlineSession.combatRoundActive=true;onlineSession.combatCurrentEntry=null;
-  const actionSummaries=groupedPlan.map(entry=>({actorId:entry.actorId,itemId:entry.action?.item?.id||null,targetId:entry.action?.kind==='sharpen'?entry.actorId:(entry.action?.target||entry.actorId),kind:entry.action?.kind||'use',count:Array.isArray(entry.entries)?entry.entries.length:1}));
+  const actionSummaries=groupedPlan.map(entry=>({actorId:entry.actorId,controllerId:onlineCombatControllerId(entry),actorKind:entry.actorKind||'player',actorLabel:entry.actorLabel||'プレイヤー',npcId:entry.npcId||'',itemId:entry.action?.item?.id||null,targetId:entry.action?.kind==='sharpen'?entry.actorId:(entry.action?.target||entry.actorId),kind:entry.action?.kind||'use',count:Array.isArray(entry.entries)?entry.entries.length:1}));
   const start={protocol:ONLINE_PROTOCOL,type:'combatRoundStart',token,turn:s.turn,costs,totalEntries:groupedPlan.length,actionSummaries,serverNow:Date.now()};onlineHandleClientMessage(start);onlineBroadcast(start);
   setTimeout(()=>onlineHostDispatchNextCombatEntry(),180);return true;
 }
@@ -6360,13 +6361,13 @@ function onlineHostDispatchNextCombatEntry(){
   if(onlineSession.combatEntryTimer){clearTimeout(onlineSession.combatEntryTimer);onlineSession.combatEntryTimer=null}
   const entry=onlineSession.combatRoundPlan[onlineSession.combatRoundIndex];
   if(!entry){onlineHostFinishCombatRound();return}
-  const member=onlineSession.members.get(entry.actorId);if(!member||member.connected===false||member.hp<=0){onlineSession.combatRoundIndex++;return onlineHostDispatchNextCombatEntry()}
-  const rawTarget=String(entry.action?.target||entry.actorId),targetId=rawTarget==='self'?entry.actorId:rawTarget,targetMember=onlineSession.members.get(targetId);if(targetMember&&(targetMember.spectator||Number(targetMember.hp)<=0)){refundTargetWill(member,Math.max(0,Number(entry.cost)||0));addLog(`${targetMember.name}は観戦中のため戦闘対象から除外し、${member.name}のカードを使用しなかった。`);onlineSession.combatRoundIndex++;onlineSession.combatCurrentEntry=null;onlineBroadcastRoster();return onlineHostDispatchNextCombatEntry()}
+  const controllerId=onlineCombatControllerId(entry),member=onlineSession.members.get(controllerId);if(!member||member.connected===false||member.hp<=0){onlineSession.combatRoundIndex++;return onlineHostDispatchNextCombatEntry()}
+  const rawTarget=String(entry.action?.target||entry.actorId),targetId=rawTarget==='self'?(entry.actorKind==='npc'?entry.npcId:controllerId):rawTarget,targetMember=onlineSession.members.get(targetId);if(targetMember&&(targetMember.spectator||Number(targetMember.hp)<=0)){refundTargetWill(member,Math.max(0,Number(entry.cost)||0));addLog(`${targetMember.name}は観戦中のため戦闘対象から除外し、${entry.actorLabel||member.name}のカードを使用しなかった。`);onlineSession.combatRoundIndex++;onlineSession.combatCurrentEntry=null;onlineBroadcastRoster();return onlineHostDispatchNextCombatEntry()}
   onlineSession.combatCurrentEntry=entry;
   const message={protocol:ONLINE_PROTOCOL,type:'combatExecuteEntry',token:onlineSession.combatRoundToken,turn:s.turn,entry};
-  onlineSendToMember(entry.actorId,message);
-  onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'combatServerStatus',token:onlineSession.combatRoundToken,entryId:entry.entryId,actorId:entry.actorId,stage:entry.stage,index:onlineSession.combatRoundIndex,total:onlineSession.combatRoundPlan.length},entry.actorId);
-  onlineSession.combatEntryTimer=setTimeout(()=>{if(!onlineSession.combatRoundActive||onlineSession.combatCurrentEntry?.entryId!==entry.entryId)return;addLog(`${member.name}のカード処理がタイムアウトしたため、サーバーが次の処理へ進めた。`);onlineSession.combatRoundIndex++;onlineSession.combatCurrentEntry=null;onlineHostDispatchNextCombatEntry()},35000);
+  onlineSendToMember(controllerId,message);
+  onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'combatServerStatus',token:onlineSession.combatRoundToken,entryId:entry.entryId,actorId:entry.actorId,actorKind:entry.actorKind,actorLabel:entry.actorLabel,controllerId,stage:entry.stage,index:onlineSession.combatRoundIndex,total:onlineSession.combatRoundPlan.length},controllerId);
+  onlineSession.combatEntryTimer=setTimeout(()=>{if(!onlineSession.combatRoundActive||onlineSession.combatCurrentEntry?.entryId!==entry.entryId)return;addLog(`${entry.actorLabel||member.name}のカード処理がタイムアウトしたため、サーバーが次の処理へ進めた。`);onlineSession.combatRoundIndex++;onlineSession.combatCurrentEntry=null;onlineHostDispatchNextCombatEntry()},35000);
 }
 function onlineHostFinishCombatRound(){
   if(!onlineSession.isHost)return;if(onlineSession.combatEntryTimer){clearTimeout(onlineSession.combatEntryTimer);onlineSession.combatEntryTimer=null}
@@ -6374,7 +6375,7 @@ function onlineHostFinishCombatRound(){
   onlineSession.combatRoundActive=false;onlineSession.combatCurrentEntry=null;onlineSession.combatRoundPlan=[];onlineSession.combatRoundIndex=0;onlineSession.combatSubmissions.clear();onlineBroadcastRoster();
 }
 function onlineHostReceiveCombatEntryDone(senderId,message){
-  if(!onlineSession.combatRoundActive||message.token!==onlineSession.combatRoundToken)return;const entry=onlineSession.combatCurrentEntry;if(!entry||entry.entryId!==message.entryId||entry.actorId!==senderId)return;
+  if(!onlineSession.combatRoundActive||message.token!==onlineSession.combatRoundToken)return;const entry=onlineSession.combatCurrentEntry;if(!entry||entry.entryId!==message.entryId||onlineCombatControllerId(entry)!==senderId)return;
   if(onlineSession.combatEntryTimer){clearTimeout(onlineSession.combatEntryTimer);onlineSession.combatEntryTimer=null}onlineSession.combatRoundIndex++;onlineSession.combatCurrentEntry=null;onlineHostDispatchNextCombatEntry();
 }
 function onlineHydrateServerAction(source){
@@ -6384,7 +6385,7 @@ function onlineHydrateServerAction(source){
 function onlineSeededRandom(seed){let value=(Number(seed)||1)>>>0;return()=>{value+=0x6D2B79F5;let t=value;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 async function onlineExecuteAuthoritativeCombatEntry(message){
   if(!onlineSession.started||message.token!==onlineSession.combatRoundToken||onlineSession.serverCombatExecuting)return;
-  const entry=message.entry;if(!entry||entry.actorId!==onlineSession.localId)return;
+  const entry=message.entry;if(!entry||onlineCombatControllerId(entry)!==onlineSession.localId)return;
   onlineSession.serverCombatExecuting=true;let ok=true,errorText='';
   try{
     const serverEntries=Array.isArray(entry.entries)&&entry.entries.length?entry.entries:[entry],localEntries=[];
@@ -6433,19 +6434,19 @@ function onlineHandleHostMessage(senderId,message){
     onlineSession.members.set(senderId,onlinePublicMember(merged));onlineBroadcastRoster();onlineCheckStageTimer();onlineHostMaybeStartCombatRound();onlineCheckTurnAdvance();return
   }
   if(message.type==='targetPatch'){
-    if(onlineSession.combatRoundActive&&onlineSession.combatCurrentEntry&&onlineSession.combatCurrentEntry.actorId!==senderId)return;
+    if(onlineSession.combatRoundActive&&onlineSession.combatCurrentEntry&&onlineCombatControllerId(onlineSession.combatCurrentEntry)!==senderId)return;
     const target=onlineSession.members.get(String(message.targetId||''));if(target)onlinePatchMemberObject(target,message.patch);onlineApplyTargetPatch(message,{publish:message.targetId===onlineSession.localId});onlineBroadcast(message,senderId);return
   }
   if(message.type==='receiveTimeBomb'){onlineSendToMember(String(message.targetId||''),{protocol:ONLINE_PROTOCOL,type:'receiveTimeBomb',explodeTurn:message.explodeTurn,from:message.from||'相手'});return}
 
   if(message.type==='frozenCancel'){
-    if(!onlineSession.combatRoundActive||message.token!==onlineSession.combatRoundToken||onlineSession.combatCurrentEntry?.actorId!==senderId||!isFrozenInIceAction(onlineSession.combatCurrentEntry?.action))return;
+    if(!onlineSession.combatRoundActive||message.token!==onlineSession.combatRoundToken||onlineCombatControllerId(onlineSession.combatCurrentEntry)!==senderId||!isFrozenInIceAction(onlineSession.combatCurrentEntry?.action))return;
     const targetId=String(message.targetId||'');if(!targetId)return;let refund=0;const currentIndex=onlineSession.combatRoundIndex;
     onlineSession.combatRoundPlan=onlineSession.combatRoundPlan.filter((entry,index)=>{if(index<=currentIndex||entry.actorId!==targetId)return true;refund+=Math.max(0,Number(entry.cost)||0);return false});
     const member=onlineSession.members.get(targetId);if(member)refundTargetWill(member,refund);
     onlineSendToMember(targetId,{protocol:ONLINE_PROTOCOL,type:'combatFrozenCancel',token:message.token,refund,turn:s.turn});onlineBroadcastRoster();return
   }
-  if(message.type==='iceAgeStart'){if(onlineSession.combatRoundActive&&onlineSession.combatCurrentEntry?.actorId!==senderId)return;applyIceAgeState(Math.max(1,Math.min(5,Number(message.turns)||5)),senderId);onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'iceAgeState',turns:s.iceAgeTurns,casterId:senderId,turn:s.turn});return}
+  if(message.type==='iceAgeStart'){if(onlineSession.combatRoundActive&&onlineCombatControllerId(onlineSession.combatCurrentEntry)!==senderId)return;applyIceAgeState(Math.max(1,Math.min(5,Number(message.turns)||5)),onlineSession.combatCurrentEntry?.actorId||senderId);onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'iceAgeState',turns:s.iceAgeTurns,casterId:onlineSession.combatCurrentEntry?.actorId||senderId,turn:s.turn});return}
   if(message.type==='timerRequest'){const limits={explore:currentRoomSettings.exploreLimit,action:currentRoomSettings.actionLimit,itemUse:currentRoomSettings.itemUseLimit};if(message.kind in limits){const turn=Math.max(0,Math.floor(Number(message.turn)||s.turn));if(message.kind==='itemUse')onlineCheckStageTimer();else onlineHostStartPersonalTimer(senderId,message.kind,limits[message.kind],turn)}return}
   if(message.type==='personalTimerDone'){const kind=String(message.kind||''),turn=Math.max(0,Math.floor(Number(message.turn)||s.turn)),key=onlinePersonalTimerKey(senderId,kind,turn),timer=onlineSession.personalTimers.get(key);if(timer)onlineHostStoreCarryFromTimer(senderId,timer);onlineHostClearPersonalTimer(senderId,kind,turn);return}
   if(message.type==='turnReady'){const member=onlineSession.members.get(senderId),turn=Math.max(0,Math.floor(Number(message.turn)||0));if(turn!==s.turn)return;if(member){member.turnReady=true;member.turn=turn;member.phase='waiting';member.updatedAt=Date.now()}onlineBroadcastRoster();onlineHostMaybeStartCombatRound();onlineCheckTurnAdvance();return}
@@ -6465,8 +6466,8 @@ function onlineHandleHostMessage(senderId,message){
   }
   if(message.type==='combatEntryDone'){onlineHostReceiveCombatEntryDone(senderId,message);return}
   if(message.type==='combatActionView'){
-    if(!onlineSession.combatRoundActive||message.token!==onlineSession.combatRoundToken||onlineSession.combatCurrentEntry?.actorId!==senderId)return;
-    const member=onlineSession.members.get(senderId),payload={protocol:ONLINE_PROTOCOL,type:'combatActionView',token:message.token,turn:s.turn,actorId:senderId,actorLabel:member?.name||'プレイヤー',itemId:ITEMS[message.itemId]?message.itemId:null,targetLabel:String(message.targetLabel||'対象なし').slice(0,40),title:String(message.title||'行動を実行しました').slice(0,180),count:Math.max(1,Math.min(99,Math.floor(Number(message.count)||1))),changes:(Array.isArray(message.changes)?message.changes:[]).slice(0,10).map(change=>({text:String(change?.text||'').slice(0,60),tone:['damage','heal','will','buff','debuff','neutral'].includes(change?.tone)?change.tone:'neutral'}))};
+    const currentEntry=onlineSession.combatCurrentEntry;if(!onlineSession.combatRoundActive||message.token!==onlineSession.combatRoundToken||onlineCombatControllerId(currentEntry)!==senderId)return;
+    const member=onlineSession.members.get(senderId),npc=currentEntry?.actorKind==='npc'?(member?.npcs||[]).find(entry=>entry.id===currentEntry.npcId):null,payload={protocol:ONLINE_PROTOCOL,type:'combatActionView',token:message.token,turn:s.turn,actorId:currentEntry?.actorId||senderId,controllerId:senderId,actorKind:currentEntry?.actorKind||'player',actorLabel:currentEntry?.actorLabel||member?.name||'プレイヤー',actorIcon:npc?npcIcon(npc):'',itemId:ITEMS[message.itemId]?message.itemId:null,targetLabel:String(message.targetLabel||'対象なし').slice(0,40),title:String(message.title||'行動を実行しました').slice(0,180),count:Math.max(1,Math.min(99,Math.floor(Number(message.count)||1))),changes:(Array.isArray(message.changes)?message.changes:[]).slice(0,10).map(change=>({text:String(change?.text||'').slice(0,60),tone:['damage','heal','will','buff','debuff','neutral'].includes(change?.tone)?change.tone:'neutral'}))};
     if(senderId!==onlineSession.localId){recordSharedCombatAction(payload);showSharedCombatAction(payload)}onlineBroadcast(payload,senderId);return
   }
   if(message.type==='combatConfirmRequest'){onlineForwardCombatConfirmation(senderId,message);return}
@@ -6506,7 +6507,7 @@ function onlineAttachConnection(connection,isIncoming=false){
   const remoteId=connection.peer;onlineSession.connections.set(remoteId,connection);
   connection.on('open',()=>{if(!onlineSession.isHost)onlineSend(connection,{protocol:ONLINE_PROTOCOL,type:'hello',name:onlinePlayerDisplayName()})});
   connection.on('data',message=>onlineSession.isHost?onlineHandleHostMessage(remoteId,message):onlineHandleClientMessage(message));
-  connection.on('close',()=>{onlineSession.connections.delete(remoteId);if(onlineSession.isHost){onlineCancelCombatRoutesForMember(remoteId);for(const timer of [...onlineSession.personalTimers.values()])if(timer.memberId===remoteId)onlineHostClearPersonalTimer(remoteId,timer.kind,timer.turn);onlineSession.members.delete(remoteId);onlineSession.combatSubmissions.delete(remoteId);if(onlineSession.combatRoundActive&&onlineSession.combatCurrentEntry?.actorId===remoteId){if(onlineSession.combatEntryTimer)clearTimeout(onlineSession.combatEntryTimer);onlineSession.combatEntryTimer=null;onlineSession.combatRoundIndex++;onlineSession.combatCurrentEntry=null;onlineHostDispatchNextCombatEntry()}else onlineHostMaybeStartCombatRound();onlineBroadcastRoster();onlineCheckTurnAdvance()}else if(remoteId===onlineSession.hostId){onlineSetError('#onlineLobbyError','部屋主との接続が切れました。');onlineReturnHome('部屋主との接続が切れました。')}});
+  connection.on('close',()=>{onlineSession.connections.delete(remoteId);if(onlineSession.isHost){onlineCancelCombatRoutesForMember(remoteId);for(const timer of [...onlineSession.personalTimers.values()])if(timer.memberId===remoteId)onlineHostClearPersonalTimer(remoteId,timer.kind,timer.turn);onlineSession.members.delete(remoteId);onlineSession.combatSubmissions.delete(remoteId);if(onlineSession.combatRoundActive&&onlineCombatControllerId(onlineSession.combatCurrentEntry)===remoteId){if(onlineSession.combatEntryTimer)clearTimeout(onlineSession.combatEntryTimer);onlineSession.combatEntryTimer=null;onlineSession.combatRoundIndex++;onlineSession.combatCurrentEntry=null;onlineHostDispatchNextCombatEntry()}else onlineHostMaybeStartCombatRound();onlineBroadcastRoster();onlineCheckTurnAdvance()}else if(remoteId===onlineSession.hostId){onlineSetError('#onlineLobbyError','部屋主との接続が切れました。');onlineReturnHome('部屋主との接続が切れました。')}});
   connection.on('error',error=>console.warn('オンライン接続エラー',error));
 }
 function onlinePeerErrorText(error){const type=error?.type||'';if(type==='unavailable-id')return'同じ合言葉の部屋がすでに存在します。「部屋に入る」から参加してください。';if(type==='peer-unavailable')return'その合言葉の部屋は見つかりませんでした。';if(type==='network'||type==='server-error'||type==='socket-error')return'オンラインサーバーへ接続できませんでした。通信環境を確認してください。';return`接続に失敗しました${error?.message?`：${error.message}`:''}`}
@@ -12901,7 +12902,9 @@ const npcDeathExecutePlayer=executePlayerBattleAction;executePlayerBattleAction=
 const npcPatchHost=onlineHandleHostMessage;onlineHandleHostMessage=function(senderId,message){if(message?.protocol===ONLINE_PROTOCOL&&message.type==='npcStatePatch'){const ownerId=String(message.targetOwnerId||'');if(ownerId===onlineSession.localId){applyOwnedNpcPatch(message.npcId,message.patch||{})}else{const member=onlineSession.members.get(ownerId);if(member&&Array.isArray(member.npcs)){const npc=member.npcs.find(n=>n.id===message.npcId);if(npc)Object.assign(npc,message.patch||{});onlineSendToMember(ownerId,{protocol:ONLINE_PROTOCOL,type:'npcStatePatchApply',npcId:message.npcId,patch:message.patch||{}});onlineBroadcastRoster()}}return}return npcPatchHost(senderId,message)};
 const npcPatchClient=onlineHandleClientMessage;onlineHandleClientMessage=function(message){if(message?.protocol===ONLINE_PROTOCOL&&message.type==='npcStatePatchApply'){applyOwnedNpcPatch(message.npcId,message.patch||{});return}return npcPatchClient(message)};
 function refreshNpcDeathVisuals(){const list=allNpcs();document.querySelectorAll('#npcGrid .npc-card img').forEach((img,i)=>{if(list[i])img.src=npcIcon(list[i])});const page=list.slice(npcRosterPage*NPC_PAGE_SIZE,npcRosterPage*NPC_PAGE_SIZE+NPC_PAGE_SIZE);document.querySelectorAll('#npcRosterList .npc-roster-icon').forEach((img,i)=>{if(page[i])img.src=npcIcon(page[i])});if(q('#npcPortraitOverlay')?.classList.contains('show')){const name=q('#npcPortraitName')?.textContent,npc=list.find(n=>n.name===name);if(npc){q('#npcPortraitImage').src=npcIcon(npc);q('#npcPortraitInfo').textContent=npc.hp<=0?'死亡状態・行動不能':(npc.enemy?'敵エネミー・所属なし':`${npc.ownerName||'不明'}の味方NPC`)}}}
-/* α7.15.3: NPC命令を主人の通常行動として二重送信せず、NPC自身を行動者にする。 */
+/* α7.16.0: 「自分対象」は主人ではなく、カードを使うNPC自身を指す。 */
+const npcActorTargetExecute=executeSingleNpcCommand;executeSingleNpcCommand=function(command={}){const targetId=command.targetId==='self'?command.npcId:command.targetId;return npcActorTargetExecute({...command,targetId})};
+/* NPC命令を主人の通常行動として二重送信せず、NPC自身を行動者にする。 */
 const npcActorPresentBattleAction=presentBattleAction;presentBattleAction=function(options={}){const label=String(options.actorLabel||'');if(!label.startsWith('NPC：'))return npcActorPresentBattleAction(options);const name=label.slice(4)||'NPC',npc=allNpcs().find(entry=>entry.name===name);return npcActorPresentBattleAction({...options,actorLabel:name,actorKind:'npc',actorIcon:npc?npcIcon(npc):'',shareOnline:false})};
 const npcDeathShowAction=showNpcAction;showNpcAction=function(npc,title,text,broadcast=false,itemId=null){return npcDeathShowAction({...npc,icon:npcIcon(npc)},title,text,broadcast,itemId)};
 const npcDeathRender=render;render=function(){npcDeathRender();refreshNpcDeathVisuals()};
