@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Dream Crafter α7.16.0 Online Room</title>
+<title>Dream Crafter α7.17.0 Online Room</title>
 <style>
 /* ==========================================================================
    00. CSS変数・リセット・共通設定
@@ -3996,7 +3996,7 @@ body.layout-phone-landscape.craft-ui-active #craftPanel .craft-entry-will{
 // 00. 厳格モード・グローバル設定
 // ============================================================================
 // 単一HTML全体で共有するビルド表記・保存キー。既存値は変更しない。
-const BUILD_LABEL="α7.16.0・NPC独立行動者システム";
+const BUILD_LABEL="α7.17.0・NPC独立行動権システム";
 const SAVE_KEY='dc_alpha4_save';
 
 // ============================================================================
@@ -6235,7 +6235,7 @@ function onlineBuildCombatDescriptors(fromTimeout=false){
   for(const x of handActions){const data=ITEMS[x.item.id];if(data.magicStaff)continue;actions.push({kind:'hand',item:onlineJsonItem(x.item),target:data.shieldType?'self':x.target,accessorySlot:x.accessorySlot,baseCost:data.shieldType?0:(data.willCost||0)})}
   for(const x of useCards)actions.push({kind:'use',item:onlineJsonItem(x.item),target:isInventoryTargetUse(ITEMS[x.item.id])?'self':x.target,itemTargetUid:x.itemTargetUid||null,magicStaffUid:magicSpellData(x.item)?selectedStaffForMagic?.uid:null,magicStaff:magicSpellData(x.item)?onlineJsonItem(selectedStaffForMagic):null,baseCost:magicSpellData(x.item)?magicActionBaseCost(x.item):battleUseBaseCost(x.item,x.target)});
   for(const x of sharpenUses)actions.push({kind:'sharpen',item:onlineJsonItem(x.item),weapon:onlineJsonItem(x.weapon),baseCost:3});
-  for(const command of npcCommands){const item=getItemByUid(command.itemUid);if(item)actions.push({kind:'npc',item:onlineJsonItem(item),target:command.targetId,npcId:command.npcId,npcName:command.npcName,npcCost:command.cost,baseCost:0})}
+  for(const command of npcCommands){const item=getItemByUid(command.itemUid);if(item)actions.push({kind:'npc',actorKind:'npc',actorId:command.npcId,actorName:command.npcName,controllerId:onlineSession.localId,item:onlineJsonItem(item),target:command.targetId,npcId:command.npcId,npcName:command.npcName,npcCost:command.cost,baseCost:0})}
   for(const target of new Set(actions.map(a=>a.target).filter(Boolean))){const flours=actions.filter(a=>a.kind==='use'&&a.item?.id==='flour'&&a.target===target),fires=actions.filter(a=>a.kind==='use'&&a.item?.id==='fire'&&a.target===target);if(flours.length&&fires.length){for(const a of flours){a.specialDamage=5;a.specialDamageType='fire'}fires[0].comboCatalyst=true}}
   for(const target of new Set(actions.map(a=>a.target).filter(Boolean))){const targetActions=actions.filter(a=>a.target===target),fires=targetActions.filter(a=>ITEMS[a.item?.id]?.fireElement),rocks=targetActions.filter(a=>a.item?.id==='explosive_rock');if(rocks.length&&fires.some(a=>a.item?.id!=='explosive_rock'))for(const r of rocks){r.specialDamage=10;r.specialDamageType='fireUnblockable'}}
   return actions;
@@ -6270,8 +6270,8 @@ function onlineHostPrepareCombatSubmission(senderId,message){
       if(spell&&spellItem)baseCost=Math.max(0,Math.round((Number(spellItem.willCost)||0)*(Number(staffData?.magicCostMultiplier)||1)));
       else baseCost=data.useEffect?.selfHealWill&&String(source.target||'self')==='self'?0:Math.max(0,Math.floor(Number(data.willCost)||0));
     }
-    if(kind==='npc')baseCost=0;
-    const action={kind,item,target:String(source.target||'self'),npcId:String(source.npcId||''),npcName:String(source.npcName||'召喚獣').slice(0,32),npcCost:Math.max(0,Number(source.npcCost)||0),accessorySlot:source.accessorySlot,itemTargetUid:source.itemTargetUid||null,magicStaffUid:source.magicStaffUid||null,magicStaff:source.magicStaff&&ITEMS[source.magicStaff.id]?{...source.magicStaff}:null,weapon:source.weapon&&ITEMS[source.weapon.id]?{...source.weapon}:null,baseCost,specialDamage:Math.max(0,Number(source.specialDamage)||0),specialDamageType:source.specialDamageType||'',comboCatalyst:source.comboCatalyst===true,roll:Math.random()};
+    let npcActor=null;if(kind==='npc'){const requestedNpcId=String(source.actorId||source.npcId||''),memberNpcs=Array.isArray(member.npcs)?member.npcs:[];npcActor=memberNpcs.find(npc=>npc.id===requestedNpcId&&!npc.enemy&&Number(npc.hp)>0&&!npc.collected);if(!npcActor)continue;if(data.hand==='twoHanded')continue;const npcRequiredWill=Math.max(0,Number(source.npcCost)||Number(data.willCost)||0);if(npcRequiredWill>Math.max(0,Number(npcActor.will)||0))continue;baseCost=0}
+    const action={kind,actorKind:npcActor?'npc':'player',actorId:npcActor?.id||senderId,actorName:npcActor?.name||member.name||'プレイヤー',controllerId:senderId,item,target:String(source.target||'self'),npcId:npcActor?.id||'',npcName:String(npcActor?.name||source.npcName||'召喚獣').slice(0,32),npcCost:npcActor?Math.max(0,Number(source.npcCost)||Number(data.willCost)||0):0,accessorySlot:source.accessorySlot,itemTargetUid:source.itemTargetUid||null,magicStaffUid:source.magicStaffUid||null,magicStaff:source.magicStaff&&ITEMS[source.magicStaff.id]?{...source.magicStaff}:null,weapon:source.weapon&&ITEMS[source.weapon.id]?{...source.weapon}:null,baseCost,specialDamage:Math.max(0,Number(source.specialDamage)||0),specialDamageType:source.specialDamageType||'',comboCatalyst:source.comboCatalyst===true,roll:Math.random()};
     (baseCost<=0?zero:paid).push(action);
   }
   zero.sort((a,b)=>a.roll-b.roll);
@@ -6348,7 +6348,7 @@ function onlineHostMaybeStartCombatRound(){
   if(onlineSession.combatTimeoutGraceTimer){clearTimeout(onlineSession.combatTimeoutGraceTimer);onlineSession.combatTimeoutGraceTimer=null}
   onlineClearServerTimerHandle();onlineSession.serverTimer=null;onlineClearDisplayedTimer();onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'serverTimer',timer:null,serverNow:Date.now()});
   const token=`round_${s.turn}_${Date.now().toString(36)}`,plan=[],costs={};
-  for(const id of ids){const sub=onlineSession.combatSubmissions.get(id),member=onlineSession.members.get(id);costs[id]=sub.totalCost;for(const action of sub.actions){const npcActor=action.kind==='npc',actorId=npcActor?`npc:${id}:${action.npcId}`:id;plan.push({entryId:`${token}_${plan.length}`,controllerId:id,actorId,actorKind:npcActor?'npc':'player',actorLabel:npcActor?action.npcName:(member?.name||'プレイヤー'),npcId:npcActor?action.npcId:'',stage:isFrozenInIceAction(action)?'priority':(battleActionDealsDirectDamage(action,false)?'damage':'preparation'),cost:Math.max(0,Number(action.cost)||0),roll:Number(action.roll)||0,seed:Math.floor(Math.random()*0x7fffffff),action})}}
+  for(const id of ids){const sub=onlineSession.combatSubmissions.get(id),member=onlineSession.members.get(id);costs[id]=sub.totalCost;for(const action of sub.actions){const npcActor=action.actorKind==='npc',actorId=npcActor?`npc:${id}:${action.actorId}`:id;plan.push({entryId:`${token}_${plan.length}`,controllerId:id,actorId,actorEntityId:npcActor?action.actorId:id,actorKind:npcActor?'npc':'player',actorLabel:action.actorName||(npcActor?action.npcName:(member?.name||'プレイヤー')),npcId:npcActor?action.actorId:'',stage:isFrozenInIceAction(action)?'priority':(battleActionDealsDirectDamage(action,false)?'damage':'preparation'),cost:Math.max(0,Number(action.cost)||0),roll:Number(action.roll)||0,seed:Math.floor(Math.random()*0x7fffffff),action})}}
   const stageRank={priority:0,preparation:1,damage:2};plan.sort((a,b)=>(stageRank[a.stage]??9)-(stageRank[b.stage]??9)||a.cost-b.cost||a.roll-b.roll);
   const groupedPlan=onlineGroupCombatPlanEntries(plan);
   onlineSession.combatRoundToken=token;onlineSession.combatRoundPlan=groupedPlan;onlineSession.combatRoundIndex=0;onlineSession.combatRoundActive=true;onlineSession.combatCurrentEntry=null;
@@ -6389,7 +6389,7 @@ async function onlineExecuteAuthoritativeCombatEntry(message){
   onlineSession.serverCombatExecuting=true;let ok=true,errorText='';
   try{
     const serverEntries=Array.isArray(entry.entries)&&entry.entries.length?entry.entries:[entry],localEntries=[];
-    for(const serverEntry of serverEntries){const action=onlineHydrateServerAction(serverEntry.action);if(!action)throw new Error('選択したカードが所持品にありません。');localEntries.push({actor:'self',action,cost:Math.max(0,Number(serverEntry.cost)||0),roll:Number(serverEntry.roll)||0})}
+    for(const serverEntry of serverEntries){const action=onlineHydrateServerAction(serverEntry.action);if(!action)throw new Error('選択したカードが所持品にありません。');const actor=action.actorKind==='npc'?action.actorId:'self';localEntries.push({actor,actorKind:action.actorKind||'player',controllerId:onlineSession.localId,action,cost:Math.max(0,Number(serverEntry.cost)||0),roll:Number(serverEntry.roll)||0})}
     const localEntry=localEntries.length>1?{...localEntries[0],entries:localEntries,groupCount:localEntries.length}:localEntries[0];
     const ctx=onlineSession.serverCombatContext||(onlineSession.serverCombatContext={shields:{},shieldItems:{},readyShields:{self:[],enemy:[]}});battleReadyShields=ctx.readyShields;
     const originalRandom=Math.random;Math.random=onlineSeededRandom(entry.seed);
@@ -9050,11 +9050,11 @@ function groupBattleStageEntries(entries){
   return result;
 }
 function combatEntryInfoSingle(entry){
-  const enemy=entry?.actor==='enemy',action=entry?.action||{},actorId=enemy?'enemy':'self',actor=targetState(actorId);
+  const enemy=entry?.actor==='enemy',action=entry?.action||{},npcAction=(entry?.actorKind==='npc'||action.actorKind==='npc'||action.kind==='npc')&&Boolean(action.actorId||action.npcId),actorId=enemy?'enemy':(npcAction?(action.actorId||action.npcId):'self'),actor=targetState(actorId);
   const itemId=enemy?action.itemId:action.item?.id,data=itemId?ITEMS[itemId]:null;
-  const targetId=action.kind==='sharpen'?actorId:(isValidTarget(action.target)?action.target:actorId),target=targetState(targetId);
+  const requestedTarget=npcAction&&action.target==='self'?actorId:action.target,targetId=action.kind==='sharpen'?actorId:(isValidTarget(requestedTarget)?requestedTarget:actorId),target=targetState(targetId);
   const itemTarget=action.itemTargetUid?getItemByUid(action.itemTargetUid):null,itemTargetData=itemTarget?ITEMS[itemTarget.id]:null;
-  return{enemy,action,actorId,actor,itemId,data,targetId,target,itemTarget,itemTargetData};
+  return{enemy,npcAction,action,actorId,actor,itemId,data,targetId,target,itemTarget,itemTargetData};
 }
 function combatEntryDisplayName(info){return`${info?.data?.name||'アイテム'}${Number(info?.count)>1?`×${info.count}`:''}`}
 
