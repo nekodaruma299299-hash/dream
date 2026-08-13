@@ -5173,9 +5173,9 @@ RECIPES.push(
   {id:'copper_shield',name:'銅のシールド',result:'copper_shield',materials:{copper:1,wood:2},will:20},
   {id:'silver_shield',name:'銀のシールド',result:'silver_shield',materials:{silver:1,hinoki_wood:2},will:20},
   {id:'golden_shield',name:'金のシールド',result:'golden_shield',materials:{gold:1,walnut_wood:2},will:20},
-  {id:'iron_shield',name:'鉄のシールド',result:'iron_shield',materials:{iron:1,wood:2},will:20},
+  {id:'iron_shield',name:'鉄のシールド',result:'iron_shield',materials:{iron:1,hinoki_wood:2},will:20},
   {id:'steel_shield',name:'鋼鉄のシールド',result:'steel_shield',materials:{steel:1,walnut_wood:2},will:20},
-  {id:'platinum_shield',name:'白金のシールド',result:'platinum_shield',materials:{platinum:1,hinoki_wood:2},will:20},
+  {id:'platinum_shield',name:'白金のシールド',result:'platinum_shield',materials:{platinum:1,ebony_wood:2},will:20},
   {id:'tamahagane_shield',name:'玉鋼のシールド',result:'tamahagane_shield',materials:{tamahagane:1,ebony_wood:2},will:20},
   {id:'iron_large_shield',name:'鉄の大楯',result:'iron_large_shield',materials:{iron:5},will:40},
   {id:'steel_large_shield',name:'鋼鉄の大楯',result:'steel_large_shield',materials:{steel:5},will:40},
@@ -5230,12 +5230,12 @@ RECIPES.push(
   {id:'ebony_ring',name:'黒檀の指輪',result:'ebony_ring',materials:{ebony_wood:1},will:15},
   {id:'ebony_bangle',name:'黒檀の腕輪',result:'ebony_bangle',materials:{ebony_wood:3},will:45}
 );
-/* 既存の金属防具は全部位の金属必要量を 2 / 3 / 4 / 5 に統一する。 */
+/* 既存の金属防具はブーツ / ヘルメット / レギンス / チェストプレートを 1 / 2 / 3 / 4 に統一する。 */
 const ARMOR_METAL_RECIPE_UPDATE={
   copper:{prefix:'copper',metal:'copper',label:'銅'},silver:{prefix:'silver',metal:'silver',label:'銀'},gold:{prefix:'golden',metal:'gold',label:'金'},
   iron:{prefix:'iron',metal:'iron',label:'鉄'},steel:{prefix:'steel',metal:'steel',label:'鋼鉄'},platinum:{prefix:'platinum',metal:'platinum',label:'白金'},tamahagane:{prefix:'tamahagane',metal:'tamahagane',label:'玉鋼'}
 };
-const ARMOR_METAL_SLOT_COUNTS={boots:2,helmet:3,leggings:4,chestplate:5};
+const ARMOR_METAL_SLOT_COUNTS={boots:1,helmet:2,leggings:3,chestplate:4};
 for(const spec of Object.values(ARMOR_METAL_RECIPE_UPDATE))for(const [suffix,count] of Object.entries(ARMOR_METAL_SLOT_COUNTS)){
   const id=`${spec.prefix}_${suffix}`,recipe=RECIPES.find(r=>r.id===id),data=ITEMS[id];
   if(recipe)recipe.materials[spec.metal]=count;
@@ -5670,9 +5670,10 @@ function fieldCategory(fieldOrId){
   const field=typeof fieldOrId==='string'?FIELDS[fieldOrId]:fieldOrId;
   if(!field)return'other';
   if(field.biome==='plains')return'plains';
-  if(field.biome==='forest')return'wood';
+  if(field.biome==='forest'||field.biome==='strange_forest')return'wood';
+  if(field.biome==='beach')return'beach';
   if(field.biome==='snow')return'snow';
-  if(field.biome==='cave'||field.biome==='volcano')return'mineral';
+  if(field.biome==='cave'||field.biome==='volcano'||field.biome==='abyss_cave')return'mineral';
   return'other';
 }
 function consecutiveFieldCategoryCount(previousFieldIds=[]){
@@ -5684,11 +5685,11 @@ function consecutiveFieldCategoryCount(previousFieldIds=[]){
   return{category,count};
 }
 function fieldBiomeWeight(field,previousFieldIds=[]){
-  // 草原を含む全フィールドの基本比率を同じ1へ戻す。
-  const base=1,history=consecutiveFieldCategoryCount(previousFieldIds),category=fieldCategory(field);
-  // 草原は連続しても減衰しない。通常カテゴリは同カテゴリが続いた回数だけ1/2ずつ減衰する。
-  if(category==='plains'||category!==history.category||history.count<=0)return base;
-  return base/Math.pow(2,history.count);
+  const ids=(Array.isArray(previousFieldIds)?previousFieldIds:[previousFieldIds]).filter(id=>FIELDS[id]).slice(0,3),category=fieldCategory(field);
+  let weight=1;
+  const exactPenalty=[.03,.12,.3],categoryPenalty=[.28,.5,.72];
+  ids.forEach((id,index)=>{weight*=id===field.id?exactPenalty[index]:fieldCategory(id)===category?categoryPenalty[index]:1});
+  return Math.max(.001,weight);
 }
 function randomFieldId(difficulty=null,previousFieldIds=[]){
   const candidates=difficulty&&FIELD_IDS_BY_DIFFICULTY[difficulty]
@@ -6165,7 +6166,7 @@ function onlineCheckTurnAdvance(){
   onlineSession.turnAdvanceScheduled=true;onlineClearServerTimerHandle();onlineSession.serverTimer=null;onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'serverTimer',timer:null,serverNow:Date.now()});
   setTimeout(()=>{
     onlineSession.turnAdvanceScheduled=false;const current=onlineRosterPayload().filter(member=>!member.spectator);if(!current.length||!current.every(member=>member.turnReady&&member.turn===turn))return;
-    const nextTurn=turn+1,fieldId=(FIELDS[s.nextFieldId]&&s.nextFieldId!=='plains_dawn'?s.nextFieldId:randomFieldIdForTurn(nextTurn,[s.fieldId])),nextFieldId=randomFieldIdForTurn(nextTurn+1,[fieldId,s.fieldId]),message={protocol:ONLINE_PROTOCOL,type:'advanceTurn',fromTurn:turn,nextTurn,fieldId,nextFieldId,startedAt:Date.now()+250};
+    const recentFields=[s.fieldId,...(Array.isArray(s.fieldHistory)?s.fieldHistory:[])].filter(id=>FIELDS[id]).slice(0,3),nextTurn=turn+1,fieldId=(FIELDS[s.nextFieldId]&&s.nextFieldId!=='plains_dawn'?s.nextFieldId:randomFieldIdForTurn(nextTurn,recentFields)),nextFieldId=randomFieldIdForTurn(nextTurn+1,[fieldId,...recentFields].slice(0,3)),message={protocol:ONLINE_PROTOCOL,type:'advanceTurn',fromTurn:turn,nextTurn,fieldId,nextFieldId,startedAt:Date.now()+250};
     for(const member of onlineSession.members.values())member.turnReady=false;
     onlineBroadcast(message);onlineApplyTurnAdvance(message);
   },350);return true;
@@ -6598,7 +6599,7 @@ function onlineInit(){
  * 注意:
  *   セーブ形式の基準となるため、キー名や初期値をカテゴリー整理だけで変更しない。
  */
-function fresh(){return{version:42,gameMode:'long',hp:100,maxHp:100,will:100,overWill:0,maxWill:100,baseMaxWill:100,gemstoneMaxWillBonus:0,armor:0,gems:0,capacity:10,items:[],selectedUid:null,playerStatuses:emptyStatuses(),equipment:emptyEquipment(),accessories:emptyAccessories(),enemyHp:100,enemyMaxHp:100,enemyWill:100,enemyMaxWill:100,enemyArmor:0,enemyStatuses:emptyStatuses(),enemyEquipment:emptyEquipment(),enemyAccessories:emptyAccessories(),otherPlayers:defaultOtherPlayers(),phase:'explore',turn:0,log:[],logTimes:[],battleSelection:emptyItemSelection(),selectedRecipe:'wood_ring',exploreToolUid:null,exploreToolUids:[],fieldId:'plains_dawn',nextFieldId:randomFieldIdForTurn(1),iceAgeTurns:0,iceAgeCasterId:''}}
+function fresh(){return{version:42,gameMode:'long',hp:100,maxHp:100,will:100,overWill:0,maxWill:100,baseMaxWill:100,gemstoneMaxWillBonus:0,armor:0,gems:0,capacity:10,items:[],selectedUid:null,playerStatuses:emptyStatuses(),equipment:emptyEquipment(),accessories:emptyAccessories(),enemyHp:100,enemyMaxHp:100,enemyWill:100,enemyMaxWill:100,enemyArmor:0,enemyStatuses:emptyStatuses(),enemyEquipment:emptyEquipment(),enemyAccessories:emptyAccessories(),otherPlayers:defaultOtherPlayers(),phase:'explore',turn:0,log:[],logTimes:[],battleSelection:emptyItemSelection(),selectedRecipe:'wood_ring',exploreToolUid:null,exploreToolUids:[],fieldId:'plains_dawn',fieldHistory:[],nextFieldId:randomFieldIdForTurn(1),iceAgeTurns:0,iceAgeCasterId:''}}
 
 // ============================================================================
 // 10. セーブ・ロード
@@ -6658,6 +6659,7 @@ function migrate(raw){
   n.exploreToolUid=null;
   n.exploreToolUids=Array.isArray(raw.exploreToolUids)?[...new Set(raw.exploreToolUids.filter(id=>n.items.some(x=>x.uid===id)))]:[];
   n.fieldId=n.turn===0?'plains_dawn':normalizedFieldId(raw.fieldId,n.turn);
+  n.fieldHistory=(Array.isArray(raw.fieldHistory)?raw.fieldHistory:[]).filter(id=>FIELDS[id]).slice(0,3);
   n.iceAgeTurns=Math.max(0,Math.floor(Number(raw.iceAgeTurns)||0));n.iceAgeCasterId=String(raw.iceAgeCasterId||'');
   n.nextFieldId=normalizedFieldId(raw.nextFieldId,Math.max(1,n.turn+1));
   if(n.nextFieldId==='plains_dawn')n.nextFieldId=randomFieldIdForTurn(Math.max(1,n.turn+1));
@@ -7397,12 +7399,16 @@ function exploreToolKind(data){
 function toolMatchesExploreItem(data,field,itemId){
   const kind=exploreToolKind(data);
   if(!data||!field||!itemId)return false;
-  const woodItems=['stick','wood','hinoki_wood','walnut_wood'];
+  const woodItems=['stick','wood','hinoki_wood','walnut_wood','ebony_wood','curse_wood','fiend_wood','sefirot_wood','fairy_wood'];
   const plantItems=['vine','grass','medicinal_herbs','calming_grass','currant','blueberry','grape','spice_fruit','potato','carrot','onion','lettuce'];
   const caveItems=CAVE_EXPLORE_ITEMS;
   const volcanoPickaxeItems=['stone','coal','explosive_rock','flame_stone','copper','iron','silver','gold','platinum'];
   const volcanoWeaponItems=['bone','cooked_meat',...DRAGON_DROP_EXPLORE_ITEMS];
   const dropItems=[...DROP_EXPLORE_ITEMS,'poop','tomato','basil','mushroom','strange_mushroom'];
+  const isWeapon=Boolean(data.hand&&(Number(data.damage)>0||data.soulWeapon||data.willDamage));
+  if(field.biome==='strange_forest'&&kind==='axe')return woodItems.includes(itemId);
+  if(field.biome==='abyss_cave'&&kind==='pickaxe')return(field.pool||[]).some(entry=>entry.id===itemId);
+  if(field.biome==='beach'&&isWeapon)return['fish','shellfish','crab_meat','tuna','shark_tooth','bone'].includes(itemId);
   if(kind==='monster'&&DRAGON_DROP_EXPLORE_ITEMS.includes(itemId))return true;
   if(field.biome==='forest'&&kind==='axe')return woodItems.includes(itemId);
   if(field.biome==='forest'&&kind==='hoe')return plantItems.includes(itemId);
@@ -7541,7 +7547,7 @@ function toolWorksInField(data,field){return(field.pool||[]).some(x=>toolMatches
 // ---------------------------------------------------------------------------
 // 探索：使用可能な採取道具
 // ---------------------------------------------------------------------------
-function availableExploreTools(field){return s.items.filter(item=>EXPLORE_TOOL_IDS.includes(item.id)&&toolUsableInField(ITEMS[item.id],field))}
+function availableExploreTools(field){return s.items.filter(item=>{const data=ITEMS[item.id],beachWeapon=field?.biome==='beach'&&data?.hand&&(Number(data.damage)>0||data.soulWeapon||data.willDamage);return(EXPLORE_TOOL_IDS.includes(item.id)||beachWeapon)&&toolUsableInField(data,field)})}
 function normalizeExploreToolSelection(field=getField(s.fieldId)){if(!Array.isArray(s.exploreToolUids))s.exploreToolUids=[];const allowed=new Set(availableExploreTools(field).map(x=>x.uid));s.exploreToolUids=[...new Set(s.exploreToolUids.filter(uid=>allowed.has(uid)))];return s.exploreToolUids}
 function effectiveExploreTools(field){const selected=new Set(normalizeExploreToolSelection(field));return s.items.filter(item=>selected.has(item.uid)&&toolUsableInField(ITEMS[item.id],field))}
 // ---------------------------------------------------------------------------
@@ -7930,8 +7936,10 @@ function completeTurnRecovery(label,advance={}){
   /* フルセット・終了時アクセサリー効果を先に解決し、その後すべて自動解除する。 */
   const clearedEquipment=clearTemporaryTurnEquipment();
   const iceAgeActive=Math.max(0,Math.floor(Number(s.iceAgeTurns)||0))>0;if(iceAgeActive)processIceAgeTurnEffect();
+  const previousFieldId=s.fieldId,previousHistory=Array.isArray(s.fieldHistory)?s.fieldHistory:[];
   const nextTurn=Math.max(s.turn+1,Math.floor(Number(advance.nextTurn)||s.turn+1));s.turn=nextTurn;processPendingGrowth();processIgnitedRocks();processTimeBombs();s.phase='explore';
-  if(iceAgeActive){s.iceAgeTurns=Math.max(0,s.iceAgeTurns-1);s.fieldId='ice_age';s.nextFieldId=s.iceAgeTurns>0?'ice_age':(FIELDS[advance.nextFieldId]?advance.nextFieldId:randomFieldIdForTurn(s.turn+1,['ice_age']))}else{s.fieldId=FIELDS[advance.fieldId]?advance.fieldId:normalizedFieldId(s.nextFieldId,s.turn);s.nextFieldId=FIELDS[advance.nextFieldId]?advance.nextFieldId:randomFieldIdForTurn(s.turn+1,[s.fieldId])}
+  if(iceAgeActive){s.iceAgeTurns=Math.max(0,s.iceAgeTurns-1);s.fieldId='ice_age';s.nextFieldId=s.iceAgeTurns>0?'ice_age':(FIELDS[advance.nextFieldId]?advance.nextFieldId:randomFieldIdForTurn(s.turn+1,['ice_age',previousFieldId,...previousHistory].slice(0,3)))}else{s.fieldId=FIELDS[advance.fieldId]?advance.fieldId:normalizedFieldId(s.nextFieldId,s.turn);s.nextFieldId=FIELDS[advance.nextFieldId]?advance.nextFieldId:randomFieldIdForTurn(s.turn+1,[s.fieldId,previousFieldId,...previousHistory].slice(0,3))}
+  s.fieldHistory=[previousFieldId,...previousHistory].filter(id=>FIELDS[id]).slice(0,3);
   s.battleSelection=emptyItemSelection();
   const current=getField(s.fieldId),next=getField(s.nextFieldId);
   const bonusParts=[];if(gemstoneTurn.hp)bonusParts.push(`宝石HP${gemstoneTurn.hp}`);if(gemstoneTurn.will)bonusParts.push(`宝石意志${gemstoneTurn.will}`);if(fullSetRecovered)bonusParts.push(`皮フルセット${fullSetRecovered}`);if(goldSetRecovered)bonusParts.push(`金フルセット${goldSetRecovered}`);if(accessoryRecovered)bonusParts.push(`白金アクセサリー${accessoryRecovered}`);const bonusText=bonusParts.length?`（${bonusParts.join('・')}を含む）`:'';
@@ -8220,24 +8228,25 @@ function destroyItemReference(ref,holderTarget=null){
 function resolveEquipmentBreak({weaponAttack=false,attackerId='self',attackerItem=null,target,attackAtShield=0,attackAfterShield=0,shieldCandidates=[],shieldEntries=[]}){
   if(!weaponAttack||!attackerItem||!target)return null;
   const attacker=targetState(attackerId),attackerLabel=attacker?.label||'攻撃者';
+  const attackerData=ITEMS[attackerItem.id]||{},structuralAttack=Math.max(attackAtShield,attackAfterShield,Math.max(0,Number(attackerData.damage)||Number(attackerItem.damage)||0));
   let outcome=null;
-  const activeShields=(Array.isArray(shieldCandidates)?shieldCandidates:[]).filter(x=>x&&x.entry&&x.strength>0);
-  if(attackAtShield>0&&activeShields.length){
+  const activeShields=(Array.isArray(shieldCandidates)?shieldCandidates:[]).filter(x=>x&&x.entry).map(x=>({...x,strength:Math.max(0,Number(ITEMS[x.entry.id]?.shieldDefense)||Number(x.strength)||0)})).filter(x=>x.strength>0);
+  if(structuralAttack>0&&activeShields.length){
     const maxStrength=Math.max(...activeShields.map(x=>x.strength)),strongest=activeShields.filter(x=>x.strength===maxStrength),candidate=strongest[Math.floor(Math.random()*strongest.length)];
-    if(attackAtShield>maxStrength){const chance=breakChanceFromRatio(attackAtShield,maxStrength);if(Math.random()*100<chance)outcome={kind:'shield',chance,candidate}}
-    else if(maxStrength>attackAtShield){const chance=breakChanceFromRatio(maxStrength,attackAtShield);if(Math.random()*100<chance)outcome={kind:'weapon',chance}}
+    if(structuralAttack>maxStrength){const chance=breakChanceFromRatio(structuralAttack,maxStrength);if(Math.random()*100<chance)outcome={kind:'shield',chance,candidate}}
+    else if(maxStrength>structuralAttack){const chance=breakChanceFromRatio(maxStrength,structuralAttack);if(Math.random()*100<chance)outcome={kind:'weapon',chance}}
   }
-  if(!outcome&&attackAfterShield>0){
+  if(!outcome&&structuralAttack>0&&!activeShields.length){
     const pieces=armorPieceEntries(target),total=pieces.reduce((sum,x)=>sum+x.defense,0),maxPiece=pieces.length?Math.max(...pieces.map(x=>x.defense)):0;
     if(total>0&&maxPiece>0){
-      if(attackAfterShield<=maxPiece){
-        const chance=breakChanceFromRatio(maxPiece,attackAfterShield);if(Math.random()*100<chance)outcome={kind:'weapon',chance};
-      }else if(attackAfterShield<=total){
-        const armorChance=Math.max(5,Math.min(15,5+10*(attackAfterShield-maxPiece)/Math.max(1,total-maxPiece))),weaponChance=1,roll=Math.random()*100;
+      if(structuralAttack<=maxPiece){
+        const chance=breakChanceFromRatio(maxPiece,structuralAttack);if(Math.random()*100<chance)outcome={kind:'weapon',chance};
+      }else if(structuralAttack<=total){
+        const armorChance=Math.max(5,Math.min(15,5+10*(structuralAttack-maxPiece)/Math.max(1,total-maxPiece))),weaponChance=1,roll=Math.random()*100;
         if(roll<armorChance)outcome={kind:'armor',chance:armorChance,piece:weightedArmorPiece(pieces)};
         else if(roll<armorChance+weaponChance)outcome={kind:'weapon',chance:weaponChance};
       }else{
-        const chance=breakChanceFromRatio(attackAfterShield,total);if(Math.random()*100<chance)outcome={kind:'armor',chance,piece:weightedArmorPiece(pieces)};
+        const chance=breakChanceFromRatio(structuralAttack,total);if(Math.random()*100<chance)outcome={kind:'armor',chance,piece:weightedArmorPiece(pieces)};
       }
     }
   }
@@ -10542,7 +10551,7 @@ function updateDreamCrafterOutcome(){
   if(onlineSession.localSpectator)return;
   if(s.hp<=0){
     if(aliveOthers.length){
-      onlineSession.localSpectator=true;onlineSession.turnReady=true;onlineSession.combatPrepReady=true;onlineSession.combatResolved=true;onlineSession.activityLabel='観戦中';battleSubmissionLocked=true;s.battleSelection=emptyItemSelection();const overlay=qs('#dreamOutcomeOverlay');if(overlay)overlay.classList.remove('show');hideCombatPhaseOverlay(true);addLog(`戦闘不能になったため観戦モードへ移行した。残り${aliveOthers.length}人を観戦する。`);toast(`観戦モードになりました。残り${aliveOthers.length}人`);onlinePublishSnapshot();onlineSendToHost({protocol:ONLINE_PROTOCOL,type:'turnReady',turn:s.turn});
+      onlineSession.localSpectator=true;onlineSession.turnReady=true;onlineSession.combatPrepReady=true;onlineSession.combatResolved=true;onlineSession.activityLabel='観戦中';battleSubmissionLocked=true;s.battleSelection=emptyItemSelection();const overlay=qs('#dreamOutcomeOverlay');if(overlay)overlay.classList.remove('show');hideCombatPhaseOverlay(true);addLog(`戦闘不能になったため観戦モードへ移行した。残り${aliveOthers.length}人を観戦する。`);toast(`観戦モードになりました。残り${aliveOthers.length}人`);render();onlinePublishSnapshot();onlineSendToHost({protocol:ONLINE_PROTOCOL,type:'turnReady',turn:s.turn});
       return;
     }
     dreamCrafterGameEnded=true;showDreamOutcome('defeat','敗北','あなたは最後まで生き残れませんでした。');
@@ -12916,7 +12925,7 @@ const npcActiveTargetsV2=activeTargets;activeTargets=function(){const base=npcAc
 const oldExplore=explore;explore=function(){const before=exploreSubmissionLocked,phase=s.phase;const result=oldExplore();if(!before&&phase==='explore'&&exploreSubmissionLocked)maybeSpawnEnemyNpc();return result};
 const oldCompleteTurnRecovery=completeTurnRecovery;completeTurnRecovery=function(...args){const result=oldCompleteTurnRecovery(...args);ensureNpcState();for(const npc of s.npcs){npc.passiveTurnHp=0;npc.passiveTurnWill=0;if(npc.hp<=0)continue;if(npc.enemy)enemyNpcAttack(npc,false);else{npc.will=Math.min(npc.maxWill,npc.will+Math.max(1,Math.floor(npc.maxWill*.1)));if(npc.passive==='regeneration'){const gain=Math.max(1,Math.floor(npc.maxHp*dreamHpPercent(10)/100*avatarNpcPassiveScale(npc)));npc.hp=Math.min(npc.maxHp,npc.hp+gain);addLog(`${npc.name}の生命再生：HP+${gain}`)}if(npc.passive==='will_regeneration'){const gain=Math.max(1,Math.floor(npc.maxWill*.1*avatarNpcPassiveScale(npc)));npc.will=Math.min(npc.maxWill,npc.will+gain);addLog(`${npc.name}の意志再生：意志力+${gain}`)}}}save(false);return result};
 const oldSubmitBattleSelection=submitBattleSelection;submitBattleSelection=function(fromTimeout=false,allowEmpty=false){const hasAction=selectedHandActions().length||selectedBattleUses().length||selectedSharpenUses().length||(s.npcCommands||[]).length;return oldSubmitBattleSelection(fromTimeout,allowEmpty||!hasAction)};
-const oldRender=render;render=function(){oldRender();ensureNpcState();if(s.phase!=='combat'){npcInstructionMode=false;document.body.classList.remove('npc-instruction-active')}installNpcButton();installSummonWidget();installNpcMobileButton();installNpcCommandBox();installNpcInstructionButton();renderNpcRosterCards();const count=q('#npcTitleCount');if(count)count.textContent=`NPC ${allNpcs().filter(n=>n.hp>0).length}`;const widget=q('#npcSummonWidget');if(widget)widget.classList.toggle('show',['action','craft','trade','waiting'].includes(s.phase));renderNpcCommandBox()};
+const oldRender=render;render=function(){oldRender();ensureNpcState();if(s.phase!=='combat'){npcInstructionMode=false;document.body.classList.remove('npc-instruction-active')}installNpcButton();installSummonWidget();installNpcMobileButton();installNpcCommandBox();installNpcInstructionButton();renderNpcRosterCards();const count=q('#npcTitleCount');if(count)count.textContent=`NPC ${allNpcs().filter(n=>n.hp>0).length}`;const widget=q('#npcSummonWidget'),summonAllowed=!onlineSession.localSpectator&&s.phase==='action'&&q('#actionPanel')?.classList.contains('active');if(widget)widget.classList.toggle('show',Boolean(summonAllowed));if(!summonAllowed)q('#npcSummonOverlay')?.classList.remove('show');renderNpcCommandBox()};
   const oldHost=onlineHandleHostMessage;onlineHandleHostMessage=function(senderId,message){if(message?.protocol===ONLINE_PROTOCOL&&message.type==='npcActionView'){const member=onlineSession.members.get(senderId);if(!member)return;const payload={...message,actorId:`npc:${senderId}:${message.npc?.id||''}`,npc:{...cleanNpc(message.npc),ownerName:member.name},itemId:ITEMS[message.itemId]?message.itemId:null,title:String(message.title||'NPCの行動').slice(0,120),text:String(message.text||'').slice(0,200)};onlineBroadcast(payload,senderId);if(senderId!==onlineSession.localId){addLog(`[NPC行動] ${payload.text}`);showNpcAction(payload.npc,payload.title,payload.text,false,payload.itemId);recordSharedCombatAction({actorId:payload.actorId,actorLabel:payload.npc.name,actorKind:'npc',actorIcon:npcIcon(payload.npc),itemId:payload.itemId,targetLabel:'対象',title:payload.text,changes:[changeBadge('NPCが使用','neutral')]})}return}return oldHost(senderId,message)};
   const oldClient=onlineHandleClientMessage;onlineHandleClientMessage=function(message){if(message?.protocol===ONLINE_PROTOCOL&&message.type==='npcActionView'){if(message.actorId&&!message.actorId.includes(onlineSession.localId)){const itemId=ITEMS[message.itemId]?message.itemId:null,npc=cleanNpc(message.npc);addLog(`[NPC行動] ${String(message.text||'NPCが行動した')}`);showNpcAction(npc,message.title,message.text,false,itemId);recordSharedCombatAction({actorId:message.actorId,actorLabel:npc.name,actorKind:'npc',actorIcon:npcIcon(npc),itemId,targetLabel:'対象',title:message.text,changes:[changeBadge('NPCが使用','neutral')]})}return}return oldClient(message)};
 /* α7.13.25: NPC状態は軽量同期へ戻し、画像定義だけを小分けにして送受信する。 */
@@ -13310,5 +13319,22 @@ function bind(){load();ensureView();renderAvatarLibrary();$('avatarNewButton')?.
 .rarity-frame-mystic img,.rarity-view-mystic .item-preview{filter:drop-shadow(0 0 7px #fff) drop-shadow(0 0 15px #58eaff) drop-shadow(0 0 22px #ff55e7)!important;animation:mysticIcon .65s ease-in-out infinite alternate}
 @keyframes mysticRainbow{to{background-position:300% 0}}@keyframes mysticFrame{0%{border-color:#ff5274}20%{border-color:#ffd84d}40%{border-color:#63ff9b}60%{border-color:#4eeaff}80%{border-color:#a26fff}100%{border-color:#ff5274}}@keyframes mysticIcon{to{transform:scale(1.08);filter:drop-shadow(0 0 11px #fff) drop-shadow(0 0 22px #7cf5ff) drop-shadow(0 0 30px #ff55e7)!important}}
 </style>
+<style id="dreamCrafterSpectatorOnlyStyle">
+#dcSpectatorScreen{display:none;position:fixed;inset:0;z-index:2147481800;place-items:center;padding:20px;background:radial-gradient(circle at 50% 22%,#253d63 0,#10182d 38%,#070b14 100%);color:#eef6ff;text-align:center}
+body.dc-chat-only-spectator #dcSpectatorScreen{display:grid}
+#dcSpectatorScreen .dc-spectator-card{width:min(520px,94vw);padding:28px 22px;border:1px solid #7591bb;border-radius:20px;background:#0d1728e8;box-shadow:0 22px 70px #000b}
+#dcSpectatorScreen h2{margin:0 0 8px;font-size:clamp(24px,5vw,38px)}#dcSpectatorScreen p{margin:7px 0;color:#bbcbe2;line-height:1.7}#dcSpectatorScreen .btn{width:min(300px,100%);margin-top:18px;font-size:16px;padding:13px}
+</style>
+<script id="dreamCrafterFinalBalancePatch">
+(()=>{'use strict';
+/* 通常の「夢の洞窟」は、宝石型の深淵洞窟と差別化して金属を出やすくする。 */
+const caveMetalIds=new Set(['copper','iron','silver','gold','platinum']);
+for(const field of Object.values(FIELDS))if(field?.biome==='cave')for(const entry of field.pool||[])if(caveMetalIds.has(entry.id))entry.weight*=2.4;
+function ensureSpectatorScreen(){let screen=document.getElementById('dcSpectatorScreen');if(screen)return screen;screen=document.createElement('section');screen.id='dcSpectatorScreen';screen.setAttribute('aria-label','観戦専用画面');screen.innerHTML='<div class="dc-spectator-card"><h2>観戦モード</h2><p>戦闘不能のため、ゲームへの操作はできません。</p><p id="dcSpectatorStatus">他のプレイヤーの進行を観戦中です。</p><button type="button" class="btn primary" id="dcSpectatorChat">チャットを開く</button></div>';document.body.appendChild(screen);screen.querySelector('#dcSpectatorChat').addEventListener('click',()=>document.getElementById('log')?.click());return screen}
+function renderSpectatorOnly(){const active=Boolean(onlineSession?.started&&onlineSession?.localSpectator);document.body.classList.toggle('dc-chat-only-spectator',active);if(!active)return;ensureSpectatorScreen();const alive=typeof onlineRosterPayload==='function'?onlineRosterPayload().filter(member=>!member.spectator).length:0,status=document.getElementById('dcSpectatorStatus');if(status)status.textContent=alive?`生存プレイヤー ${alive}人を観戦中です。`:'他のプレイヤーの進行を観戦中です。'}
+const spectatorBaseRender=render;render=function(){const result=spectatorBaseRender();renderSpectatorOnly();return result};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{ensureSpectatorScreen();renderSpectatorOnly()},{once:true});else{ensureSpectatorScreen();renderSpectatorOnly()}
+})();
+</script>
 </body>
 </html>
