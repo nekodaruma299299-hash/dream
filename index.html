@@ -12972,6 +12972,51 @@ add('condensed_soul_blade',soulWeapon('凝縮したソウルの刃',U['restraint
 add('soul_crystal_blade',soulWeapon('ソウルクリスタルブレード',U['soul_crystal_blade.png'],'fantasy',30,10,'pierce10','意志力へ30ダメージ。防具・盾・装甲で軽減できるが、その合計値を10まで貫通する。'));
 add('durandal',soulWeapon('魂を貪る魔剣・デュランダル',U['durandal.png'],'legendary',60,20,'normal','防具・盾・装甲で軽減できる意志力ダメージ60。対象の意志力を0以下にする場合、余剰意志力×2をHPダメージへ変換する。',{soulOverflowHpMultiplier:2}));
 add('underworld_incarnation',soulWeapon('冥府の具象剣',U['underworld_incarnation.png'],'mystic',144,44,'ignore','最高階級ミスティックの具象剣。あらゆる物理軽減を貫通して意志力へ144ダメージを与え、この攻撃で意志力が0になった対象を即死させる。',{mystic:true,soulExecute:true,baseValue:5000}));
+// レア度だけでなく、効果・入手難度・素材需要・段階クラフトの累積原価を加味したショップ基礎価格。
+const updatePrices={slime_essence:35,gummy:80,soul_essence:90,soul:330,soul_crystal:1100,curse_wood:180,fiend_wood:450,sefirot_wood:1800,fairy_wood:220,curse_wood_ring:250,curse_wood_bangle:700,fiend_wood_ring:650,fiend_wood_bangle:2000,sefirot_ring:3500,sefirot_bangle:6500,fairy_ring:350,fairy_bangle:900,fairy_staff:1100,holy_crystal:300,highly_poisonous_mushroom:160,healing_mushroom:400,deadly_poison:900,fish:15,grilled_fish:45,crab_meat:180,grilled_crab_meat:500,tuna:650,shark_tooth:160,shark_chopper:900,soft_serve_ice_cream:600,vegetable_juice:450,cure_scroll:130,heal_scroll:280,clean_scroll:450,resurrection_scroll:1900,wavering_soul:450,condensed_soul_blade:1500,soul_crystal_blade:5500,durandal:9000,underworld_incarnation:25000};
+const updateFlavors={
+slime_essence:'ぷるぷると震え続ける、スライムの生命そのもの。ひんやり甘く、噛むたびに形が戻ろうとする。',
+gummy:'夢の果実を閉じ込めた真紅の弾力。ひと粒かじれば、沈んだ心まで元気よく跳ね返る。',
+soul_essence:'耳を澄ますと、誰のものとも知れない夢の寝言が聞こえる。握りしめるほど、自分の声に似てくる。',
+soul:'いくつもの魂片が寄り添い、一つの淡い灯となったもの。温かいのに、触れた指先だけが寂しくなる。',
+soul_crystal:'魂が永い沈黙の果てに結晶化したもの。光の奥には、忘れられた人生が星空のように瞬いている。',
+curse_wood:'年輪の一つ一つに、誰かを恨む言葉が刻まれている。折った者の手には、その続きを書く責任が残る。',
+fiend_wood:'樹皮の下で怨魂がひしめく忌まわしい木材。傷をつけると、森のどこかから同じ数だけ悲鳴が返る。',
+sefirot_wood:'世界樹の理を夢が模倣して生んだ、不滅に近い木材。壊れぬ限り、夜明けとともに完全な姿を思い出す。',
+fairy_wood:'妖精たちが月明かりで育てた軽やかな木材。耳を当てると、小さな羽音と楽しげな笑い声がする。',
+curse_wood_ring:'指にはめた瞬間、鼓動の一つが森へ奪われる。代わりに、樹々のざわめきが思考を研ぎ澄ます。',
+curse_wood_bangle:'腕へ絡みつく呪木は、血をすすって囁きを返す。痛みを受け入れる者ほど、その声は明瞭になる。',
+fiend_wood_ring:'怨魂が命を少しずつ啜るたび、持ち主の心には異様な活力が満ちる。外しても指に冷たさが残る。',
+fiend_wood_bangle:'無数の怨念を腕に束ねた禁忌の装具。生命を大きく差し出す者へ、魂たちは惜しみなく力を貸す。',
+sefirot_ring:'成長という概念を輪にした神秘の指輪。身につけた者は、一夜ごとに昨日の限界を古びた殻として脱ぎ捨てる。',
+sefirot_bangle:'生命と精神の枝を際限なく伸ばす腕輪。その先端がどこへ届くのかは、創った者でさえ知らない。',
+fairy_ring:'妖精の祝福を小さな輪へ編み込んだ指輪。眠りにつく頃、心の器がほんの少し広がっている。',
+fairy_bangle:'妖精たちの輪舞をかたどった腕輪。ターンの終わりに鈴が二度鳴り、持ち主の夢を大きく育てる。',
+fairy_staff:'妖精の森に差した最初の朝日を芯に宿す杖。振るえば光は柔らかく、そして驚くほど力強く応える。',
+holy_crystal:'闇の底でなお曇らなかった祈りが結晶になったもの。その光は傷ではなく、苦しみだけを選んで洗い流す。',
+highly_poisonous_mushroom:'傘に浮かぶ妖しい斑点は、食べた者が見る幻の数だという。命を蝕むほど、心だけは鮮明になる。',
+healing_mushroom:'森の傷ついた獣たちが秘密にしている淡緑のきのこ。割ると、雨上がりの土と春の匂いが広がる。',
+deadly_poison:'一滴の中で、百の毒が互いを喰らって濃縮されている。蓋を開けるだけで、周囲の花が眠る。',
+fish:'夢の海から跳ね上がった、ごく普通に見える魚。鱗には、まだ見ぬ水平線の色が残っている。',
+grilled_fish:'焚き火の香りをまとった素朴なごちそう。夢の旅人にとって、温かい食事はそれだけで希望になる。',
+crab_meat:'硬い殻の奥で守られていた上質な身。潮の甘みとともに、波へ立ち向かう力が湧いてくる。',
+grilled_crab_meat:'香ばしく焼かれた蟹の身。食べ終えたあとも、不思議と見えない甲羅に守られている気がする。',
+tuna:'夢の大海を一度も休まず泳ぎ続けた赤身。その力強い味は、体と心の疲れをまとめて押し流す。',
+shark_tooth:'海の恐怖が残した鋭い証。武器に添えると、刃は獲物の匂いを覚えたように冴え渡る。',
+shark_chopper:'鮫の歯を連ねた獰猛な刃。振り抜くたびに波音が響き、傷口には海の赤い記憶が残る。',
+soft_serve_ice_cream:'雪より滑らかで、冬より優しい冷たさ。どれほど激しい炎の記憶も、甘さの中で静かに溶けていく。',
+vegetable_juice:'四つの畑の恵みを一杯の水に溶かした鮮やかな飲み物。飲み干すと、身体の土台から元気が芽吹く。',
+cure_scroll:'紙面に宿るのは、傷へそっと触れる小さな光。短い祈りでも、痛みを和らげるには十分だ。',
+heal_scroll:'薬草の記憶を光へ変えた治癒の巻物。開けば暖かな風が吹き、深い傷さえ静かに閉じていく。',
+clean_scroll:'聖なる文字は汚れの名を見つけると、自ら紙面を離れて白い炎となる。燃えるのは苦しみだけだ。',
+resurrection_scroll:'死者の名を書くための余白が一つだけ残された禁断の巻物。光は帰り道を示すが、歩く意思までは与えない。',
+wavering_soul:'刃の形を真似て揺らめく魂。肉体には触れず、戦う意志だけを薄紙のように切り裂く。',
+condensed_soul_blade:'幾重もの魂を圧縮した蒼白い刃。振るう者の迷いさえ糧にして、敵の心へ深く沈み込む。',
+soul_crystal_blade:'魂晶の光を刃へ定着させた幻想の武器。防壁に阻まれても、切っ先の十歩だけは必ず心へ届く。',
+durandal:'喰らった魂の叫びを刃文として刻む魔剣。心を食べ尽くした後も飢えは止まず、余った牙を肉体へ向ける。',
+underworld_incarnation:'冥府そのものが剣という形で現世へ指を伸ばしたもの。斬られた魂は死ぬのではなく、最初から存在しなかったことになる。'
+};
+for(const [id,value] of Object.entries(updatePrices)){const item=ITEMS[id];if(!item)continue;item.baseValue=value;item.price=value;item.flavor=updateFlavors[id]||item.flavor||''}
 // 今回追加した純素材を、カスタムアイテム制作とアヴァターラ制作の共通素材表へ登録する。
 const materialProfile=(id,profile)=>{const item=ITEMS[id],value=Math.max(1,Number(item?.baseValue)||1);ITEM_MATERIAL_PROFILES_V1[id]={mode:'hybrid',baseCap:.65,specialCap:.9,affinity:{attack:0,defense:0,healing:0,will:0,magic:0,penetration:0},burden:0,tags:[],unlocks:[],ultraUnlocks:[],...profile,baseValue:value,pointBudget:Math.round(Math.sqrt(value)*100)/100,label:item.name}};
 materialProfile('slime_essence',{baseCap:.35,specialCap:1,affinity:{attack:0,defense:.35,healing:.8,will:.15,magic:.25,penetration:0},tags:['slime','food','regeneration'],unlocks:['hp_recovery','damage_reduction','hardening'],note:'スライム由来の柔軟な回復素材。HP回復と打撃を受け流す防御性を持つ。'});
