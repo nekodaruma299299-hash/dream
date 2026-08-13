@@ -7401,14 +7401,16 @@ function toolMatchesExploreItem(data,field,itemId){
   if(!data||!field||!itemId)return false;
   const woodItems=['stick','wood','hinoki_wood','walnut_wood','ebony_wood','curse_wood','fiend_wood','sefirot_wood','fairy_wood'];
   const plantItems=['vine','grass','medicinal_herbs','calming_grass','currant','blueberry','grape','spice_fruit','potato','carrot','onion','lettuce'];
-  const caveItems=CAVE_EXPLORE_ITEMS;
+  /* ツルハシの追加抽選は採掘物だけ。通常洞窟テーブルに含まれるドロップ素材は混ぜない。 */
+  const caveItems=[...CAVE_MINERAL_ITEMS,...CAVE_GEM_ITEMS];
   const volcanoPickaxeItems=['stone','coal','explosive_rock','flame_stone','copper','iron','silver','gold','platinum'];
   const volcanoWeaponItems=['bone','cooked_meat',...DRAGON_DROP_EXPLORE_ITEMS];
   const dropItems=[...DROP_EXPLORE_ITEMS,'poop','tomato','basil','mushroom','strange_mushroom'];
   const isWeapon=Boolean(data.hand&&(Number(data.damage)>0||data.soulWeapon||data.willDamage));
+  const isBeachCombatWeapon=isWeapon&&!['axe','pickaxe','hoe'].includes(kind);
   if(field.biome==='strange_forest'&&kind==='axe')return woodItems.includes(itemId);
-  if(field.biome==='abyss_cave'&&kind==='pickaxe')return(field.pool||[]).some(entry=>entry.id===itemId);
-  if(field.biome==='beach'&&isWeapon)return['fish','shellfish','crab_meat','tuna','shark_tooth','bone'].includes(itemId);
+  if(field.biome==='abyss_cave'&&kind==='pickaxe')return[...CAVE_MINERAL_ITEMS,...CAVE_GEM_ITEMS,'holy_crystal'].includes(itemId);
+  if(field.biome==='beach'&&isBeachCombatWeapon)return['fish','shellfish','crab_meat','tuna','shark_tooth','bone'].includes(itemId);
   if(kind==='monster'&&DRAGON_DROP_EXPLORE_ITEMS.includes(itemId))return true;
   if(field.biome==='forest'&&kind==='axe')return woodItems.includes(itemId);
   if(field.biome==='forest'&&kind==='hoe')return plantItems.includes(itemId);
@@ -7547,7 +7549,7 @@ function toolWorksInField(data,field){return(field.pool||[]).some(x=>toolMatches
 // ---------------------------------------------------------------------------
 // 探索：使用可能な採取道具
 // ---------------------------------------------------------------------------
-function availableExploreTools(field){return s.items.filter(item=>{const data=ITEMS[item.id],beachWeapon=field?.biome==='beach'&&data?.hand&&(Number(data.damage)>0||data.soulWeapon||data.willDamage);return(EXPLORE_TOOL_IDS.includes(item.id)||beachWeapon)&&toolUsableInField(data,field)})}
+function availableExploreTools(field){return s.items.filter(item=>{const data=ITEMS[item.id],kind=exploreToolKind(data),beachWeapon=field?.biome==='beach'&&data?.hand&&(Number(data.damage)>0||data.soulWeapon||data.willDamage)&&!['axe','pickaxe','hoe'].includes(kind);return(EXPLORE_TOOL_IDS.includes(item.id)||beachWeapon)&&toolUsableInField(data,field)})}
 function normalizeExploreToolSelection(field=getField(s.fieldId)){if(!Array.isArray(s.exploreToolUids))s.exploreToolUids=[];const allowed=new Set(availableExploreTools(field).map(x=>x.uid));s.exploreToolUids=[...new Set(s.exploreToolUids.filter(uid=>allowed.has(uid)))];return s.exploreToolUids}
 function effectiveExploreTools(field){const selected=new Set(normalizeExploreToolSelection(field));return s.items.filter(item=>selected.has(item.uid)&&toolUsableInField(ITEMS[item.id],field))}
 // ---------------------------------------------------------------------------
