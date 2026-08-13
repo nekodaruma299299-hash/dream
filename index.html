@@ -4528,8 +4528,8 @@ Object.assign(ITEMS,{
   sapphire:{name:'サファイア',icon:GEMSTONE_ICONS.sapphire,type:'宝石系・消費アイテム',rarity:'epic',damage:0,willCost:0,consumable:true,selfOnly:true,useEffect:{gemWillRecoveryPercent:40},flavor:'深い夜空を映した青い宝石。',effectText:'自分に使用すると最大意志力の40%ぶん意志力を回復する。',desc:'洞窟から見つかるエピック宝石。ジュエリー素材、または最大意志力40%回復の消費アイテム。'},
   tanzanite:{name:'タンザナイト',icon:GEMSTONE_ICONS.tanzanite,type:'宝石系・消費アイテム',rarity:'fantasy',damage:0,willCost:0,consumable:true,selfOnly:true,useEffect:{gemWillRecoveryPercent:80},flavor:'青と紫の境界を揺らめく幻の宝石。',effectText:'自分に使用すると最大意志力の80%ぶん意志力を回復する。',desc:'洞窟から見つかるファンタズマ宝石。ジュエリー素材、または最大意志力80%回復の消費アイテム。'},
   topaz:{name:'トパーズ',icon:GEMSTONE_ICONS.topaz,type:'宝石系・消費アイテム',rarity:'fantasy',damage:0,willCost:0,consumable:true,selfOnly:true,useEffect:{gemWillRecoveryPercent:80},flavor:'黄金の光を幾重にも反射する幻の宝石。',effectText:'自分に使用すると最大意志力の80%ぶん意志力を回復する。',desc:'洞窟から見つかるファンタズマ宝石。ジュエリー素材、または最大意志力80%回復の消費アイテム。'},
-  jade:{name:'翡翠',icon:GEMSTONE_ICONS.jade,type:'宝石系・消費アイテム',rarity:'legendary',damage:0,willCost:0,consumable:true,selfOnly:true,useEffect:{gemWillRecoveryPercent:160},flavor:'大地の記憶を宿す深緑の宝石。',effectText:'自分に使用すると最大意志力の160%ぶん回復する。最大値を超えた分は最大意志力60%まで「過剰意志力」として保存され、次の意志力消費から先に使われる。',desc:'洞窟から見つかるレジェンダリー宝石。ジュエリー素材、または160%意志力回復の消費アイテム。'},
-  wurtzite:{name:'ウルツァイト',icon:GEMSTONE_ICONS.wurtzite,type:'宝石系・消費アイテム',rarity:'legendary',damage:0,willCost:0,consumable:true,selfOnly:true,useEffect:{gemWillRecoveryPercent:160},flavor:'極端な圧力の中で生まれた異常な硬度を持つ結晶。',effectText:'自分に使用すると最大意志力の160%ぶん回復する。最大値を超えた分は最大意志力60%まで「過剰意志力」として保存され、次の意志力消費から先に使われる。',desc:'洞窟から見つかるレジェンダリー宝石。ジュエリー素材、または160%意志力回復の消費アイテム。'},
+  jade:{name:'翡翠',icon:GEMSTONE_ICONS.jade,type:'宝石系・消費アイテム',rarity:'legendary',damage:0,willCost:0,consumable:true,selfOnly:true,useEffect:{gemWillRecoveryPercent:160},flavor:'大地の記憶を宿す深緑の宝石。',effectText:'自分に使用すると最大意志力の160%ぶん回復する。最大値を超えた分は最大意志力100%まで「過剰意志力」として保存され、次の意志力消費から先に使われる。',desc:'洞窟から見つかるレジェンダリー宝石。ジュエリー素材、または160%意志力回復の消費アイテム。'},
+  wurtzite:{name:'ウルツァイト',icon:GEMSTONE_ICONS.wurtzite,type:'宝石系・消費アイテム',rarity:'legendary',damage:0,willCost:0,consumable:true,selfOnly:true,useEffect:{gemWillRecoveryPercent:160},flavor:'極端な圧力の中で生まれた異常な硬度を持つ結晶。',effectText:'自分に使用すると最大意志力の160%ぶん回復する。最大値を超えた分は最大意志力100%まで「過剰意志力」として保存され、次の意志力消費から先に使われる。',desc:'洞窟から見つかるレジェンダリー宝石。ジュエリー素材、または160%意志力回復の消費アイテム。'},
   crystal_ball:{name:'水晶玉',icon:GEM_JEWELRY_ICONS.crystal_ball,type:'ジュエリー・所持アクセサリー',rarity:'uncommon',passiveGem:true,passiveAccessory:true,nonStackable:true,consumable:false,gemstoneEffect:{maxWill:5,turnWill:3},effectText:'所持中、最大意志力+5、毎ターン意志力を3回復する。同じ水晶玉を複数持っても効果は重複しない。',desc:'水晶5個から作るアンコモンのジュエリー。旧水晶の所持効果を3倍に強化したもの。'},
   citrine_brooch:{name:'シトリンのブローチ',icon:GEM_JEWELRY_ICONS.citrine_brooch,type:'ジュエリー・所持アクセサリー',rarity:'rare',passiveGem:true,passiveAccessory:true,nonStackable:true,consumable:false,gemstoneEffect:{maxWill:10,defense:3},effectText:'所持中、最大意志力+10、防御力+3。同種を複数持っても効果は重複しない。',desc:'シトリン1個と銅2個から作るレアジュエリー。'},
   peridot_brooch:{name:'ペリドットのブローチ',icon:GEM_JEWELRY_ICONS.peridot_brooch,type:'ジュエリー・所持アクセサリー',rarity:'rare',passiveGem:true,passiveAccessory:true,nonStackable:true,consumable:false,gemstoneEffect:{maxWill:10,turnWill:3},effectText:'所持中、最大意志力+10、毎ターン意志力+3。同種を複数持っても効果は重複しない。',desc:'ペリドット1個と銅2個から作るレアジュエリー。'},
@@ -5889,7 +5889,7 @@ function syncPassiveGemstoneMaxWill(state=null){
   if(!Number.isFinite(Number(source.baseMaxWill)))source.baseMaxWill=Math.max(100,Math.floor(Number(source.maxWill)||100)-previous);
   source.baseMaxWill=Math.max(100,Math.floor(Number(source.baseMaxWill)||100));
   const bonus=passiveGemstoneMaxWillBonus(source);
-  source.gemstoneMaxWillBonus=bonus;source.maxWill=Math.max(100,source.baseMaxWill+bonus);source.will=Math.max(0,Math.min(source.maxWill,Number(source.will)||0));if('overWill' in source)source.overWill=Math.max(0,Math.min(Math.floor(source.maxWill*.6),Math.floor(Number(source.overWill)||0)));
+  source.gemstoneMaxWillBonus=bonus;source.maxWill=Math.max(100,source.baseMaxWill+bonus);source.will=Math.max(0,Math.min(source.maxWill,Number(source.will)||0));if('overWill' in source)source.overWill=Math.max(0,Math.min(Math.floor(source.maxWill),Math.floor(Number(source.overWill)||0)));
   return bonus;
 }
 function passiveGemstoneDefense(target){return passiveGemCount('citrine',target)*3}
@@ -5905,7 +5905,7 @@ function localAvailableWill(){return Math.max(0,Math.floor(Number(s?.will)||0))+
 function availableTargetWill(target){if(!target)return 0;return Math.max(0,Math.floor(Number(target.will)||0))+Math.max(0,Math.floor(Number(target.overWill)||0))}
 function spendTargetWill(target,amount){let cost=Math.max(0,Math.floor(Number(amount)||0));if(!target||availableTargetWill(target)<cost)return false;const over=Math.min(Math.max(0,Math.floor(Number(target.overWill)||0)),cost);if(over>0)target.overWill=Math.max(0,Math.floor(Number(target.overWill)||0)-over);cost-=over;if(cost>0)target.will=Math.max(0,Math.floor(Number(target.will)||0)-cost);return true}
 function spendLocalWill(amount){return spendTargetWill(targetState('self'),amount)}
-function refundTargetWill(target,amount){let refund=Math.max(0,Math.floor(Number(amount)||0));if(!target||refund<=0)return 0;const before=availableTargetWill(target),maxWill=Math.max(0,Math.floor(Number(target.maxWill)||0));const normal=Math.max(0,Math.floor(Number(target.will)||0)),normalAdd=Math.min(Math.max(0,maxWill-normal),refund);target.will=normal+normalAdd;refund-=normalAdd;if(refund>0&&'overWill' in target){const cap=Math.max(0,Math.floor(maxWill*.6)),over=Math.max(0,Math.floor(Number(target.overWill)||0)),overAdd=Math.min(Math.max(0,cap-over),refund);target.overWill=over+overAdd;refund-=overAdd}return availableTargetWill(target)-before}
+function refundTargetWill(target,amount){let refund=Math.max(0,Math.floor(Number(amount)||0));if(!target||refund<=0)return 0;const before=availableTargetWill(target),maxWill=Math.max(0,Math.floor(Number(target.maxWill)||0));const normal=Math.max(0,Math.floor(Number(target.will)||0)),normalAdd=Math.min(Math.max(0,maxWill-normal),refund);target.will=normal+normalAdd;refund-=normalAdd;if(refund>0&&'overWill' in target){const cap=Math.max(0,Math.floor(maxWill)),over=Math.max(0,Math.floor(Number(target.overWill)||0)),overAdd=Math.min(Math.max(0,cap-over),refund);target.overWill=over+overAdd;refund-=overAdd}return availableTargetWill(target)-before}
 function refundLocalWill(amount){return refundTargetWill(targetState('self'),amount)}
 
 // ---------------------------------------------------------------------------
@@ -5956,7 +5956,7 @@ function onlinePatchMemberObject(member,patch={}){
     else if(patch.key==='maxWill')member.maxWill=Math.max(100,value);
     else member[patch.key]=Math.max(0,value);
     member.hp=Math.min(Math.max(0,Number(member.hp)||0),Math.max(1,Number(member.maxHp)||1));
-    member.will=Math.min(Math.max(0,Number(member.will)||0),Math.max(100,Number(member.maxWill)||100));member.overWill=Math.min(Math.max(0,Number(member.overWill)||0),Math.floor(Math.max(100,Number(member.maxWill)||100)*.6));
+    member.will=Math.min(Math.max(0,Number(member.will)||0),Math.max(100,Number(member.maxWill)||100));member.overWill=Math.min(Math.max(0,Number(member.overWill)||0),Math.floor(Math.max(100,Number(member.maxWill)||100)));
   }
   member.updatedAt=Date.now();return member;
 }
@@ -5968,8 +5968,8 @@ function onlineApplyTargetPatch(message,{publish=true}={}){
       if(patch.key==='hp')s.hp=Math.max(0,Math.min(s.maxHp,Number(patch.value)||0));
       else if(patch.key==='maxHp'){s.maxHp=Math.max(1,Number(patch.value)||1);s.hp=Math.min(s.hp,s.maxHp)}
       else if(patch.key==='will')s.will=Math.max(0,Math.min(s.maxWill,Number(patch.value)||0));
-      else if(patch.key==='overWill')s.overWill=Math.max(0,Math.min(Math.floor(s.maxWill*.6),Math.floor(Number(patch.value)||0)));
-      else if(patch.key==='maxWill'){const bonus=passiveGemstoneMaxWillBonus(s);s.baseMaxWill=Math.max(100,(Number.isFinite(Number(patch.value))?Number(patch.value):100)-bonus);s.gemstoneMaxWillBonus=bonus;s.maxWill=s.baseMaxWill+bonus;s.will=Math.min(s.will,s.maxWill);s.overWill=Math.min(Math.max(0,Math.floor(Number(s.overWill)||0)),Math.floor(s.maxWill*.6))}
+      else if(patch.key==='overWill')s.overWill=Math.max(0,Math.min(Math.floor(s.maxWill),Math.floor(Number(patch.value)||0)));
+      else if(patch.key==='maxWill'){const bonus=passiveGemstoneMaxWillBonus(s);s.baseMaxWill=Math.max(100,(Number.isFinite(Number(patch.value))?Number(patch.value):100)-bonus);s.gemstoneMaxWillBonus=bonus;s.maxWill=s.baseMaxWill+bonus;s.will=Math.min(s.will,s.maxWill);s.overWill=Math.min(Math.max(0,Math.floor(Number(s.overWill)||0)),Math.floor(s.maxWill))}
       else if(patch.key==='armor')s.armor=Math.max(0,Number(patch.value)||0);
       else if(patch.key==='gems')s.gems=Math.max(0,Number(patch.value)||0);
     }
@@ -6603,7 +6603,7 @@ function fresh(){return{version:41,hp:100,maxHp:100,will:100,overWill:0,maxWill:
 function migrate(raw){
   const n=fresh();if(!raw||typeof raw!=='object')return n;
   for(const k of ['hp','maxHp','will','overWill','maxWill','baseMaxWill','gemstoneMaxWillBonus','armor','gems','capacity','enemyHp','enemyMaxHp','enemyWill','enemyMaxWill','enemyArmor','turn','iceAgeTurns'])if(Number.isFinite(raw[k]))n[k]=raw[k];
-  n.maxHp=Math.max(100,Math.floor(Number(n.maxHp)||100));n.hp=Math.max(0,Math.min(n.maxHp,n.hp));n.maxWill=Math.max(100,Math.floor(Number(n.maxWill)||100));n.will=Math.max(0,Math.min(n.maxWill,n.will));n.overWill=Math.max(0,Math.min(Math.floor(n.maxWill*.6),Math.floor(Number(n.overWill)||0)));n.armor=Math.max(0,Math.floor(Number(n.armor)||0));n.capacity=normalizeInventoryCapacity(n.capacity);n.enemyMaxHp=Math.max(100,Math.floor(Number(n.enemyMaxHp)||100));n.enemyHp=Math.max(0,Math.min(n.enemyMaxHp,n.enemyHp));n.enemyMaxWill=Math.max(100,Math.floor(Number(n.enemyMaxWill)||100));n.enemyWill=Math.max(0,Math.min(n.enemyMaxWill,Number(n.enemyWill)||0));n.enemyArmor=Math.max(0,Math.floor(Number(n.enemyArmor)||0));
+  n.maxHp=Math.max(100,Math.floor(Number(n.maxHp)||100));n.hp=Math.max(0,Math.min(n.maxHp,n.hp));n.maxWill=Math.max(100,Math.floor(Number(n.maxWill)||100));n.will=Math.max(0,Math.min(n.maxWill,n.will));n.overWill=Math.max(0,Math.min(Math.floor(n.maxWill),Math.floor(Number(n.overWill)||0)));n.armor=Math.max(0,Math.floor(Number(n.armor)||0));n.capacity=normalizeInventoryCapacity(n.capacity);n.enemyMaxHp=Math.max(100,Math.floor(Number(n.enemyMaxHp)||100));n.enemyHp=Math.max(0,Math.min(n.enemyMaxHp,n.enemyHp));n.enemyMaxWill=Math.max(100,Math.floor(Number(n.enemyMaxWill)||100));n.enemyWill=Math.max(0,Math.min(n.enemyMaxWill,Number(n.enemyWill)||0));n.enemyArmor=Math.max(0,Math.floor(Number(n.enemyArmor)||0));
   n.log=Array.isArray(raw.log)?raw.log.slice(0,100):[];
   {const fallbackNow=Date.now()-1000;const rawTimes=Array.isArray(raw.logTimes)?raw.logTimes:[];n.logTimes=n.log.map((_,index)=>{const saved=Number(rawTimes[index]);return Number.isFinite(saved)&&saved>0?saved:fallbackNow-index*1000})}
   if(Array.isArray(raw.items))for(const old of raw.items){
@@ -9708,7 +9708,7 @@ function battleUseEffectText(effect){if(effect?.magicBook)return'魔法選択式
   if(effect.healHpPercent)labels.push(`HP+最大値の${effect.healHpPercent}%`);
   if(effect.healWill)labels.push(`意志力+${effect.healWill}`);
   if(effect.healWillPercent)labels.push(`意志力+最大値の${effect.healWillPercent}%`);
-  if(effect.gemWillRecoveryPercent)labels.push(`意志力+最大値の${effect.gemWillRecoveryPercent}%${effect.gemWillRecoveryPercent>100?'（超過分は過剰意志力として最大60%保存）':''}`);
+  if(effect.gemWillRecoveryPercent)labels.push(`意志力+最大値の${effect.gemWillRecoveryPercent}%${effect.gemWillRecoveryPercent>100?'（超過分は過剰意志力として最大100%保存）':''}`);
   if(effect.loseHp)labels.push(`HP-${effect.loseHp}`);
   if(effect.loseWill)labels.push(`意志力-${effect.loseWill}`);
   if(effect.bindChance)labels.push(`${Math.round(effect.bindChance*100)}%で拘束${effect.bindTurns||1}ターン`);
@@ -9822,7 +9822,7 @@ function applyBattleUse(item,targetId,context={}){
   if(effect.maxWillMultiplier){const before=target.maxWill,multiplier=Math.max(1,Number(effect.maxWillMultiplier)||1);if(target.id==='self'){s.baseMaxWill=Math.max(100,Math.round(s.baseMaxWill*multiplier));syncPassiveGemstoneMaxWill()}else target.maxWill=Math.max(1,Math.round(target.maxWill*multiplier));target.will=Math.min(target.maxWill,target.will);effects.push(`最大意志力を${before}から${target.maxWill}へ増加`)}
   if(effect.magicSourceTurns){const turns=Math.max(1,Math.floor(effect.magicSourceTurns)*buffMultiplier);target.statuses.magicSource=Math.max(target.statuses.magicSource||0,turns);if(buffMultiplier>1)topazBoosted=true;effects.push(`魔力の源を${turns}ターン付与`)}
   if(effect.maxWillPercent){const percent=Math.max(0,Number(effect.maxWillPercent)),basis=target.id==='self'?s.baseMaxWill:target.maxWill,gain=Math.max(1,Math.ceil(basis*percent/100));target.maxWill+=gain;effects.push(`最大意志力を${gain}増加（${effect.maxWillPercent}%）`)}
-  if(effect.gemWillRecoveryPercent){const percent=Math.max(0,Number(effect.gemWillRecoveryPercent)||0),recovery=Math.max(0,Math.ceil(target.maxWill*percent/100)),missing=Math.max(0,target.maxWill-target.will),normal=Math.min(missing,recovery);target.will=Math.min(target.maxWill,target.will+normal);let overflow=Math.max(0,recovery-normal),stored=0;if(percent>100&&overflow>0){const cap=Math.max(0,Math.floor(target.maxWill*.6)),before=Math.max(0,Math.floor(Number(target.overWill)||0));stored=Math.min(Math.max(0,cap-before),overflow);target.overWill=before+stored}effects.push(`意志力を${normal}回復${stored?`・過剰意志力を${stored}保存（現在${target.overWill}）`:''}`)}
+  if(effect.gemWillRecoveryPercent){const percent=Math.max(0,Number(effect.gemWillRecoveryPercent)||0),recovery=Math.max(0,Math.ceil(target.maxWill*percent/100)),missing=Math.max(0,target.maxWill-target.will),normal=Math.min(missing,recovery);target.will=Math.min(target.maxWill,target.will+normal);let overflow=Math.max(0,recovery-normal),stored=0;if(percent>100&&overflow>0){const cap=Math.max(0,Math.floor(target.maxWill)),before=Math.max(0,Math.floor(Number(target.overWill)||0));stored=Math.min(Math.max(0,cap-before),overflow);target.overWill=before+stored}effects.push(`意志力を${normal}回復${stored?`・過剰意志力を${stored}保存（現在${target.overWill}）`:''}`)}
   if(d.alcohol&&effect.dizzyTurns){
     const added=Math.max(1,Math.floor(Number(effect.dizzyTurns)||1)),current=Math.max(0,Math.floor(Number(target.statuses.dizzy)||0));
     if(current>=10){
