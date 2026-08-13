@@ -13327,6 +13327,81 @@ body.dc-chat-only-spectator #dcSpectatorScreen{display:grid}
 #dcSpectatorScreen .dc-spectator-card{width:min(520px,94vw);padding:28px 22px;border:1px solid #7591bb;border-radius:20px;background:#0d1728e8;box-shadow:0 22px 70px #000b}
 #dcSpectatorScreen h2{margin:0 0 8px;font-size:clamp(24px,5vw,38px)}#dcSpectatorScreen p{margin:7px 0;color:#bbcbe2;line-height:1.7}#dcSpectatorScreen .btn{width:min(300px,100%);margin-top:18px;font-size:16px;padding:13px}
 </style>
+<style id="dreamCrafterMobileScrollRebuild">
+/* スマホ縦：固定高の4段グリッドを廃止し、ページ全体を1本の縦スクロールにする。 */
+body.layout-phone-portrait{
+  height:auto!important;min-height:100dvh!important;overflow-x:hidden!important;overflow-y:auto!important;
+  overscroll-behavior-y:auto!important;-webkit-overflow-scrolling:touch;
+}
+body.layout-phone-portrait .app{height:auto!important;min-height:100dvh!important;overflow:visible!important;padding-bottom:calc(12px + env(safe-area-inset-bottom))!important}
+body.layout-phone-portrait .game-layout{
+  height:auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;gap:7px!important;overflow:visible!important;
+}
+body.layout-phone-portrait .left-column{order:1!important;flex:0 0 170px!important;height:170px!important;min-height:170px!important;overflow:hidden!important}
+body.layout-phone-portrait .center-column{order:2!important;flex:0 0 auto!important;width:100%!important;height:auto!important;min-height:0!important;overflow:visible!important}
+body.layout-phone-portrait .right-column{order:3!important;flex:0 0 auto!important;width:100%!important;height:auto!important;min-height:0!important;display:block!important;overflow:visible!important}
+body.layout-phone-portrait .inventory-panel{order:4!important;flex:0 0 auto!important;width:100%!important;height:auto!important;min-height:0!important;overflow:visible!important}
+
+body.layout-phone-portrait .phase-stage{height:auto!important;min-height:420px!important;overflow:visible!important;padding:7px!important}
+body.layout-phone-portrait .stage-content{height:auto!important;max-height:none!important;min-height:400px!important;overflow:visible!important;touch-action:pan-y!important;overscroll-behavior:auto!important}
+body.layout-phone-portrait .mode-panel.active{height:auto!important;max-height:none!important;overflow:visible!important}
+
+/* カード使用中は中央画面で指のスクロールを止めず、所持品の最後までページを伸ばす。 */
+body.layout-phone-portrait .phase-stage.combat-open{min-height:0!important;padding-bottom:7px!important;overflow:visible!important}
+body.layout-phone-portrait .phase-stage.combat-open .stage-content{min-height:0!important;overflow:visible!important}
+body.layout-phone-portrait #combatPanel.active{display:block!important;height:auto!important;min-height:0!important;overflow:visible!important;touch-action:pan-y!important}
+body.layout-phone-portrait #combatPanel .combat-card{display:flex!important;flex-direction:column!important;height:auto!important;min-height:0!important;overflow:visible!important}
+body.layout-phone-portrait #combatPanel .battle-hand{
+  flex:none!important;height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;
+  touch-action:pan-y!important;overscroll-behavior:auto!important;-webkit-overflow-scrolling:touch;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;padding-bottom:8px!important;
+}
+body.layout-phone-portrait #combatPanel .item-action-card{min-width:0!important;touch-action:pan-y!important}
+body.layout-phone-portrait #battleDock{
+  position:sticky!important;inset:auto!important;bottom:max(4px,env(safe-area-inset-bottom))!important;width:100%!important;margin-top:7px!important;
+  z-index:80!important;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;padding:7px!important;border-radius:12px!important;
+}
+body.layout-phone-portrait #battleDock.show{display:grid!important}
+body.layout-phone-portrait #battleDock .btn{min-height:48px!important;white-space:normal!important}
+
+/* 詳細とログは別行に分け、インベントリと重ならない自然高にする。 */
+body.layout-phone-portrait .detail-panel{height:auto!important;min-height:0!important;overflow:visible!important}
+body.layout-phone-portrait .detail-panel .body{height:auto!important;min-height:0!important;display:grid!important;grid-template-rows:auto 86px!important;gap:7px!important;overflow:visible!important}
+body.layout-phone-portrait .detail-panel #itemCard{min-height:190px!important;overflow:visible!important}
+body.layout-phone-portrait .detail-panel .log{position:relative!important;inset:auto!important;width:100%!important;height:86px!important;min-height:86px!important;margin:0!important;overflow:auto!important;z-index:1!important}
+
+/* インベントリ：操作行とアイテム行の高さを内容から決める。 */
+body.layout-phone-portrait .inventory-panel .body{height:auto!important;min-height:0!important;display:block!important;overflow:visible!important;padding:8px!important}
+body.layout-phone-portrait .inventory-header{
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"title tools" "filters filters"!important;
+  align-items:center!important;gap:7px!important;margin-bottom:7px!important;overflow:visible!important;
+}
+body.layout-phone-portrait .inventory-title{grid-area:title!important;min-width:0!important}
+body.layout-phone-portrait .inventory-title b{display:block!important;font-size:15px!important;white-space:normal!important}
+body.layout-phone-portrait .inventory-title .subtitle{display:block!important;margin-top:2px!important;font-size:9px!important}
+body.layout-phone-portrait .inventory-tools{grid-area:tools!important;display:block!important;position:relative!important;z-index:3!important}
+body.layout-phone-portrait #expandBtn{display:block!important;visibility:visible!important;max-width:44vw!important;min-height:42px!important;padding:7px 9px!important;white-space:normal!important;line-height:1.25!important;font-size:10px!important}
+body.layout-phone-portrait .inventory-filter{grid-area:filters!important;width:100%!important;display:flex!important;overflow-x:auto!important;overflow-y:hidden!important;gap:4px!important;padding-bottom:3px!important;touch-action:pan-x!important;-webkit-overflow-scrolling:touch}
+body.layout-phone-portrait .inventory-pager{position:static!important;display:flex!important;justify-content:center!important;align-items:center!important;margin:4px 0 8px!important;z-index:2!important}
+body.layout-phone-portrait .slots{
+  width:100%!important;height:auto!important;min-height:0!important;display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-template-rows:none!important;grid-auto-rows:minmax(64px,auto)!important;
+  gap:6px!important;padding:0!important;overflow:visible!important;
+}
+body.layout-phone-portrait .slot{width:100%!important;height:auto!important;min-height:64px!important;aspect-ratio:1!important;position:relative!important;z-index:1!important}
+
+@media(min-width:430px){body.layout-phone-portrait .slots{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
+
+/* スマホ横：全体固定レイアウトのまま、カード一覧のタッチスクロールを確実にする。 */
+body.layout-phone-landscape .stage-content,
+body.layout-phone-landscape #combatPanel.active,
+body.layout-phone-landscape #combatPanel .combat-card,
+body.layout-phone-landscape #combatPanel .battle-hand{touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important}
+body.layout-phone-landscape #combatPanel .battle-hand{overscroll-behavior-y:contain!important;overflow-y:auto!important;overflow-x:hidden!important;padding-bottom:14px!important}
+body.layout-phone-landscape .inventory-header{overflow:visible!important}
+body.layout-phone-landscape .inventory-tools{display:block!important;min-width:0!important;position:relative!important;z-index:4!important}
+body.layout-phone-landscape #expandBtn{display:block!important;visibility:visible!important;max-width:118px!important;white-space:normal!important;line-height:1.15!important}
+</style>
 <script id="dreamCrafterFinalBalancePatch">
 (()=>{'use strict';
 /* 通常の「夢の洞窟」は、宝石型の深淵洞窟と差別化して金属を出やすくする。 */
