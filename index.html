@@ -13357,6 +13357,10 @@ body.layout-phone-portrait #combatPanel .battle-hand{
   grid-template-columns:repeat(2,minmax(0,1fr))!important;padding-bottom:8px!important;
 }
 body.layout-phone-portrait #combatPanel .item-action-card{min-width:0!important;touch-action:pan-y!important}
+body.layout-phone-portrait #combatPanel .battle-hand{width:100%!important;justify-items:stretch!important;align-items:start!important;column-gap:7px!important;row-gap:9px!important}
+body.layout-phone-portrait #combatPanel .item-action-card{width:100%!important;max-width:none!important;justify-self:stretch!important;align-self:start!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+body.layout-phone-portrait #combatPanel .item-action-card .battle-card,
+body.layout-phone-portrait #combatPanel .item-action-card .battle-use-card{width:100%!important;height:auto!important;min-height:128px!important;max-height:none!important;box-sizing:border-box!important;overflow:hidden!important}
 body.layout-phone-portrait #battleDock{
   position:sticky!important;inset:auto!important;bottom:max(4px,env(safe-area-inset-bottom))!important;width:100%!important;margin-top:7px!important;
   z-index:80!important;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;padding:7px!important;border-radius:12px!important;
@@ -13397,7 +13401,40 @@ body.layout-phone-landscape .stage-content,
 body.layout-phone-landscape #combatPanel.active,
 body.layout-phone-landscape #combatPanel .combat-card,
 body.layout-phone-landscape #combatPanel .battle-hand{touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important}
-body.layout-phone-landscape #combatPanel .battle-hand{overscroll-behavior-y:contain!important;overflow-y:auto!important;overflow-x:hidden!important;padding-bottom:14px!important}
+/* 古い「カード左／操作右」分割を解除。操作欄は下段へ移す。 */
+body.layout-phone-landscape .phase-stage.combat-open{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) auto!important;
+  gap:4px!important;padding:4px!important;overflow:hidden!important;
+}
+body.layout-phone-landscape .phase-stage.combat-open .stage-content{
+  grid-column:1!important;grid-row:1!important;width:100%!important;min-width:0!important;height:100%!important;min-height:0!important;
+  padding:1px!important;overflow:hidden!important;
+}
+body.layout-phone-landscape #battleDock{
+  position:relative!important;inset:auto!important;grid-column:1!important;grid-row:2!important;width:100%!important;min-width:0!important;
+  display:none!important;grid-template-columns:minmax(0,1fr) auto minmax(0,.8fr)!important;grid-auto-rows:auto!important;
+  align-items:stretch!important;gap:5px!important;margin:0!important;padding:5px!important;overflow:visible!important;z-index:20!important;
+}
+body.layout-phone-landscape #battleDock.show{display:grid!important}
+body.layout-phone-landscape #battleDock:has(#npcInstructionBtn){grid-template-columns:minmax(72px,.65fr) minmax(0,1fr) auto minmax(0,.8fr)!important}
+body.layout-phone-landscape #battleDock::before{display:none!important;content:none!important}
+body.layout-phone-landscape #battleDock .btn,
+body.layout-phone-landscape #battleDock .battle-total-will{width:auto!important;min-width:0!important;min-height:38px!important;height:auto!important;margin:0!important;padding:5px!important;font-size:9px!important}
+body.layout-phone-landscape #combatPanel.active,
+body.layout-phone-landscape #combatPanel .combat-card{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;overflow:hidden!important}
+body.layout-phone-landscape #combatPanel .battle-hand{
+  width:100%!important;min-width:0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:max-content!important;
+  justify-items:stretch!important;align-items:start!important;gap:6px!important;overscroll-behavior-y:contain!important;
+  overflow-y:auto!important;overflow-x:hidden!important;padding:2px 3px 14px!important;
+}
+body.layout-phone-landscape #combatPanel .item-action-card{
+  width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;max-height:none!important;
+  justify-self:stretch!important;align-self:start!important;display:flex!important;flex-direction:column!important;overflow:visible!important;
+}
+body.layout-phone-landscape #combatPanel .item-action-card .battle-card,
+body.layout-phone-landscape #combatPanel .item-action-card .battle-use-card{
+  width:100%!important;height:auto!important;min-height:108px!important;max-height:none!important;box-sizing:border-box!important;overflow:hidden!important;
+}
 body.layout-phone-landscape .inventory-header{overflow:visible!important}
 body.layout-phone-landscape .inventory-tools{display:block!important;min-width:0!important;position:relative!important;z-index:4!important}
 body.layout-phone-landscape #expandBtn{display:block!important;visibility:visible!important;max-width:118px!important;white-space:normal!important;line-height:1.15!important}
