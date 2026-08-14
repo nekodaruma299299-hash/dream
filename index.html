@@ -13230,6 +13230,47 @@ for(const id of ['silver_boots','silver_helmet','silver_leggings','silver_chestp
 const avatarExploreBias=exploreItemBias;exploreItemBias=function(biome,id){const base=avatarExploreBias(biome,id);return biome==='plains'&&id==='slime_essence'?base*10:base};
 for(const biome of Object.keys(BIOME_EXPLORE_ITEMS))BIOME_EXPLORE_ITEMS[biome]=BIOME_EXPLORE_ITEMS[biome].filter(id=>id!=='slime_essence');for(const biome of ['plains','cave','forest'])if(!BIOME_EXPLORE_ITEMS[biome].includes('slime_essence'))BIOME_EXPLORE_ITEMS[biome].push('slime_essence');for(const field of Object.values(FIELDS))if(['plains','cave','forest'].includes(field?.biome))field.pool=buildFieldPool(field.biome,field.time);
 for(const [id,value]of Object.entries({concentrated_magic_raw_stone:60,magic_essence:220,magic_shard:750,magic_crystal:2500,magic_rose_crystal:3500})){if(ITEMS[id]){ITEMS[id].price=value;ITEMS[id].baseValue=value}}
+
+/* 2026-08-14: 米料理・探索配置・海辺の価格・爆裂岩/コップ修正 */
+const RICE_UPDATE_ICONS={
+ rice_ear:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABlUlEQVQ4EY2SPUsDQRCGJ0cIekUKCUEOOVJYWKpYWIk/wCKIBkkhYiESLI5gYWEhgq2ksBQRiyCHSCrrkEpSqFhZhRBEYggWFmcKYc07yayruYhT7O3szvPOx16EQsz3bGUeZwpBxPTNfdR0BFzKpGh0YoGvPp4r5FNdDRPRyoAFvL8qal3HHaG4k6DjQo32/Y6OlwCuAPBqfp3PBAYIO6vFaJPavA9bfrQA2MwIwJpLsEjTiXe9jtbY8ZI8J0uyo9eZlawuFwBKfrgLNCQbwNnlSWo1P0lXgKG9Vq/p1H+njYPtfmxRnRRa6FtNz9qUWRtTyfEo7W1lKX94Qf7lW8TCdI92zxnAsGC4bLSrHAiID/sL4MrjjT7SFaCF70mj1yfl5YjS6QSVSr0herkpFoaP7FBhgd7z1DiTDAf9iaH8lGuzW75tyDF/B94VAo4T40uB6o2AFuddAoyhSnYEDQjgEH1LVsAQwvc3jFg9Azhi/QwKWan7Ew2DER9agbxz/eVvGAIWljD7DwwutALz7c2BhSX6Ai0pw0SfiBCyAAAAAElFTkSuQmCC',
+ raw_rice:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABQ0lEQVQ4EWNgoBVorcr9D8KEzGdBVwDTlJxXzfD48WOQ9P/qtsmM6Oqw8kGaQeDFixdgDOYACZihWDXBBGGaQZpOnz4NNwBmGC5DULzw8uVLsLNlZWXB5p45cwZMw/gwy5BpFANAEiYmJgzoGkFh4RYYB5LGCA+wASDngQJNXFwcpAgMXjy6xQDCIGBq7QymsRmC4gKQF04f3cvw6jk49MGa9MydGbauWcAgJgnxloSUNENWfMD/aQs3gGMGbgBIIwhIyKmB8aWTexlAmmEAZCjMEJgYiIbHL8jUus4Z4ECEOR2kAFkjiH329AkGT79Qhu2bVjOAXMEEUgTTDGLPn9IKdwWIDwIgjTDNiTnVKF4Ee0FaWhZsM0gz1G9YkzCyHCwMIFYASVhCAbkGlHhAiQnGBtFwhcQwQBpgmmA0MfrIUgMAve7LEZF3KrIAAAAASUVORK5CYII=',
+ onigiri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABCklEQVQ4EWNgGGjASMgBG+Y0/YepCUipI6gephZMgzS/vnsMjK/sX/S/rSwBbhhMIQuMgU6DNFs7uoCFeYRloNL70JVh58Ns/v/n238QBrni+4dH/7G5ggndCJjNCFsZGETkDcDKxOVU0JUzoBiArJmDRwSu+MeXN3A2OoMZJoCs+cvbJwxMLCwMf359Y2Bh4wLjD89vMYBcJcbDyCAjzt+w9+iFRpBeFBfADAM5GWQIzBUwF4DE0AFKLLx8dAcsD1IIsg2kEWQITCNMHtkQuAGgRAKJ530Mfp5ODCDFoEADacamEWYI1pSFnGBAhiGDTdv3MVR1LYDrgzOQFSGzkQ0DiSNrRlY3cGwAVBp+X1J03KoAAAAASUVORK5CYII=',
+ tuna_sushi:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAADiNXWtAAACAElEQVRIDWNgGAWjITAaAjQPAUZibOjkkfsPU1f+5RGKHnxyID0oikECGf7acMMU934GCTGUZWUxMJy+yrDr0jmGCz8/M9x35mXAJwfWBCRmbLzKiGIByPCEIAuw/MHs3Qxlu5fD1ILpl5GVDBc/vwVbgktu6ddnDC07ixkWL93CcOLycwYWFBOAHCkFRYbl3rMghlfNgEi3ZTDs8kkDs0E+ABuORe57ZzhDiyoTipFwH4BcX1UUiTB8/WGwwpertoFdLb2mnGGrbw3EcCxy4nIqDEf372GQYH3IsPfoVbBeDB+AXQ4Kb6DrXt5/CFYEChK44TjkQIbPnjmLwUmbGcX1IA7YP8hhD1Zhqg2mQIYbnZrNADIADrDIgQzPz/Rh0LXzRHH95uMPGeFxAIrUeBEFBlCQgADMcB5hGYZJMjY45frb6hhivFUY3j66AXcDMoMFHvZ7ZzGIK8oj5C69BXsbJADyOC45kOHCchpgfRPae8A0KOxBrgdxwD44cuAYw9U/nxnij28BK4ARWdAwnYZFzoP7FVjZkQMg+hiDkoIkTBsKzQjygZ0RxOXoiu49eI6iGJ2DrB6k9v7Td+C0D3M9SD3YG76W8v+lxXhQ9D999QWFj8zBpxbZcJAeeCTLivMimwFmgyxB1wByDLFqUSwARQw6QDccJk+KWpgemtEAuX4NTQqi8yQAAAAASUVORK5CYII='
+};
+add('rice_ear',food('稲穂',RICE_UPDATE_ICONS.rice_ear,'uncommon',{healHp:3},'夢の平原でのみ、クワを使った追加探索で入手できるアンコモン食料。そのまま食べるとHPを3回復する。','平原限定食材・食品'));
+add('raw_rice',food('生米',RICE_UPDATE_ICONS.raw_rice,'uncommon',{healHp:5},'稲穂1個を意志力3で脱穀したアンコモン食材。生のまま食べるとHPを5回復する。','クラフト食材・食品'));
+add('onigiri',food('おにぎり',RICE_UPDATE_ICONS.onigiri,'rare',{healHp:10,healWill:25},'生米1個、水1個、火1個を意志力5で炊いたレア料理。食べるとHPを10、意志力を25回復する。水に使ったコップはクラフト後に返却される。','米料理・食品'));
+add('tuna_sushi',food('マグロの寿司',RICE_UPDATE_ICONS.tuna_sushi,'epic',{healHpPercent:50,healWillPercent:50,maxWillPercent:50},'おにぎり1個、マグロ1個、檜の木材1個を意志力5で仕上げたエピック料理。HPと意志力をそれぞれ最大値の50%回復し、最大意志力を50%増加させる。','海鮮米料理・食品'));
+Object.assign(ITEMS.rice_ear,{price:18,baseValue:18,flavor:'金色の粒に、平原の風と小さな夢が詰まっている。'});
+Object.assign(ITEMS.raw_rice,{price:28,baseValue:28,flavor:'白い一粒ごとに、まだ火を知らない穀物の強さが残る。'});
+Object.assign(ITEMS.onigiri,{price:75,baseValue:75,flavor:'手のひらに収まる、旅のための小さなごちそう。'});
+Object.assign(ITEMS.tuna_sushi,{price:360,baseValue:360,flavor:'夢の潮流を泳いだマグロを、檜の香りが一瞬の芸術へ変える。'});
+for(const recipe of [
+ {id:'raw_rice',name:'生米',result:'raw_rice',materials:{rice_ear:1},will:3},
+ {id:'onigiri',name:'おにぎり',result:'onigiri',materials:{raw_rice:1,water:1,fire:1},returns:{glass:1},will:5},
+ {id:'tuna_sushi',name:'マグロの寿司',result:'tuna_sushi',materials:{onigiri:1,tuna:1,hinoki_wood:1},will:5}
+])if(!RECIPES.some(r=>r.id===recipe.id))RECIPES.push(recipe);
+
+// 基本の「火」も火属性連携の対象にし、爆裂岩と同じ対象へ使うと爆発させる。
+ITEMS.fire.fireElement=true;
+Object.assign(ITEMS.glass,{type:'飲料用素材・探索容器・投擲武器',damage:0,willCost:8,consumable:true,useEffect:{damage:5},effectText:'意志力8を消費して対象へ投げつけ、5ダメージを与える。コップは使用後に割れて消滅する。'});
+
+// 海辺の回復食料は、店売りで経済を飛ばさない価格へ抑える。
+for(const [id,value]of Object.entries({fish:8,shellfish:18,grilled_shellfish:65,grilled_fish:24,crab_meat:55,grilled_crab_meat:130,tuna:180})){if(ITEMS[id]){ITEMS[id].price=value;ITEMS[id].baseValue=value}}
+
+// 新しい探索配置。稲穂は平原テーブルにだけ入れ、クワの追加抽選に限定する。
+for(const id of ['magic_raw_stone','concentrated_magic_raw_stone'])if(!BIOME_EXPLORE_ITEMS.beach.includes(id))BIOME_EXPLORE_ITEMS.beach.push(id);
+for(const id of ['magic_shard','magic_crystal','magic_rose_crystal'])if(!BIOME_EXPLORE_ITEMS.abyss_cave.includes(id))BIOME_EXPLORE_ITEMS.abyss_cave.push(id);
+if(!BIOME_EXPLORE_ITEMS.plains.includes('rice_ear'))BIOME_EXPLORE_ITEMS.plains.push('rice_ear');
+const riceToolMatchesExploreItem=toolMatchesExploreItem;toolMatchesExploreItem=function(data,field,itemId){if(field?.biome==='plains'&&exploreToolKind(data)==='hoe'&&itemId==='rice_ear')return true;return riceToolMatchesExploreItem(data,field,itemId)};
+const ricePassiveGemAdjustedExplorePool=passiveGemAdjustedExplorePool;passiveGemAdjustedExplorePool=function(field){const pool=ricePassiveGemAdjustedExplorePool(field);return field?.biome==='plains'?pool.filter(entry=>entry.id!=='rice_ear'):pool};
+for(const [id,field]of Object.entries(FIELDS))if(field?.biome&&['beach','abyss_cave','plains'].includes(field.biome)){field.pool=buildFieldPool(field.biome,field.time);if(field.biome==='beach')for(const entry of field.pool){if(entry.id==='magic_raw_stone')entry.weight*=1.5;if(entry.id==='concentrated_magic_raw_stone')entry.weight*=.8}if(field.biome==='abyss_cave')for(const entry of field.pool){if(entry.id==='magic_shard')entry.weight*=1.2;if(entry.id==='magic_crystal')entry.weight*=.45;if(entry.id==='magic_rose_crystal')entry.weight*=.15}if(field.biome==='plains')for(const entry of field.pool)if(entry.id==='rice_ear')entry.weight*=.8}
+
+materialProfile('rice_ear',{baseCap:.45,specialCap:.85,affinity:{attack:0,defense:0,healing:.65,will:.1,magic:0,penetration:0},tags:['plant','grain','food'],unlocks:['hp_recovery','cooking_boost'],note:'平原の穀物。小さなHP回復と米料理の基礎に向く。'});
+materialProfile('raw_rice',{baseCap:.5,specialCap:.9,affinity:{attack:0,defense:0,healing:.8,will:.15,magic:0,penetration:0},tags:['grain','food','processed'],unlocks:['hp_recovery','cooking_boost'],note:'脱穀した米食材。HP回復と調理性を少し強める。'});
+materialProfile('onigiri',{baseCap:.6,specialCap:1,affinity:{attack:0,defense:.1,healing:1,will:1.05,magic:0,penetration:0},tags:['grain','food','cooked'],unlocks:['hp_recovery','will_recovery','cooking_boost'],note:'体と心の両方を整える携帯食。'});
+materialProfile('tuna_sushi',{baseCap:.7,specialCap:1,affinity:{attack:.1,defense:.1,healing:1.45,will:1.5,magic:.15,penetration:0},tags:['seafood','grain','food','premium'],unlocks:['hp_percent_recovery','will_percent_recovery','max_will_percent','fresh_food_boost'],ultraUnlocks:['percentage_recovery','max_will_multiplier'],note:'割合回復と最大意志力拡張を併せ持つ高位料理。'});
 console.info('Dream Crafter large update 2026-08-12 loaded');
 })();
 })();
