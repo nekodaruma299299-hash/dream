@@ -10615,7 +10615,10 @@ function updateResponsiveLayout(){
   const isTablet=isExplicitIPad||isIPadOSDesktopUA||isTouchTabletSize;
 
   let nextLayout;
-  if(isTablet){
+  /* iPad / Split Viewでも、縦向きかつ実表示幅が狭い場合は3列タブレットUIに押し込まない。 */
+  if(portrait&&width<900){
+    nextLayout='layout-phone-portrait';
+  }else if(isTablet){
     nextLayout='layout-tablet';
   }else if(portrait){
     nextLayout='layout-phone-portrait';
