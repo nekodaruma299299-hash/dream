@@ -4353,7 +4353,7 @@ const ITEMS={
   torch:{name:'松明',icon:FIRE_UPDATE_ICONS.torch,type:'片手使用アイテム・火属性',rarity:'uncommon',usesHand:true,damage:0,willCost:10,consumable:false,fireElement:true,useEffect:{burnChance:.4,burnTurns:2},desc:'木材1個と石炭1個を意志力10で作る松明。片手を使い、意志力10で対象へ40%の確率で火傷を2ターン付与する。自分には必ず成功する。所持中は木材系から火を作るレシピの意志力消費が8になる。'},
   coal:{name:'石炭',icon:FIRE_UPDATE_ICONS.coal,type:'鉱石系素材・燃料・アイテム使用',rarity:'uncommon',damage:0,willCost:3,consumable:true,fireElement:true,useEffect:{fuelItem:true},flavor:'黒く乾いた燃料素材。火を起こしたり、長く燃やしたりするために使われる。',effectText:'プレイヤーではなく、所持している火傷・大火傷系アイテムへ使用する。選んだ火・松明などの次回使用時の火傷を、石炭1個につき1ターン延長する。石炭1個と意志力10から火を3個作ることもできる。',desc:'夢の洞窟や夢の火山で見つかるアンコモンの燃料素材。アイテム使用フェーズでは、所持している火傷・大火傷系アイテムを選び、そのアイテムの燃焼時間を延長する。プレイヤーや相手へ直接使用することはできない。'},
   fertilizer:{name:'肥料',icon:FIRE_UPDATE_ICONS.fertilizer,type:'栽培用素材・使用アイテム',rarity:'uncommon',damage:0,willCost:0,consumable:true,useEffect:{fertilize:true},desc:'うんち1個と骨1個を意志力5で作る肥料。植物系食品を選んで使うと、次のターンに栽培した植物が増える。コモンは2個、アンコモンは1個。レア以上はレアリティに応じた複数個の肥料が必要。'},
-  poison_item:{name:'毒',icon:FIRE_UPDATE_ICONS.poison,type:'塗布用素材・毒アイテム',rarity:'rare',damage:0,willCost:0,consumable:true,useEffect:{poisonItem:true},desc:'奇妙なキノコ2個を意志力15で作る毒。自分または相手へ直接使うと毒5ターン。相手は使用するか拒否できる。武器に塗れば、次に1以上のHPダメージを与えた相手へ毒5ターン。食品に混ぜれば、食べた相手へ毒10ターン。'},
+  poison_item:{name:'毒',icon:FIRE_UPDATE_ICONS.poison,type:'塗布用素材・毒アイテム',rarity:'rare',damage:0,willCost:0,consumable:true,useEffect:{poisonItem:true},desc:'奇妙なキノコ2個を意志力15で作る毒。カード使用画面で所持している武器または食品を対象に選ぶ。武器に塗れば、次にその武器で1以上のダメージを与えた相手へ毒5ターン。食品・料理・飲料に混ぜれば、実際に食べたまたは飲んだ対象へ毒10ターン。'},
   explosive_rock:{name:'爆裂岩',icon:FIRE_UPDATE_ICONS.explosive_rock,type:'投擲武器・火属性反応素材',rarity:'uncommon',hand:'free',damage:0,willCost:10,consumable:true,useEffect:{explosiveRock:true},desc:'意志力10を消費し、火属性アイテムと同じ対象へ使うと爆発して防御不能の火属性ダメージ10を与える。所持中に火属性ダメージを受けると20%で引火し、1〜5ターン後にインベントリ内で爆発する。'},
   ignited_explosive_rock:{name:'引火した爆裂岩',icon:FIRE_UPDATE_ICONS.ignited_explosive_rock,type:'危険物・投擲武器・火属性',rarity:'uncommon',hand:'free',damage:0,willCost:15,consumable:true,useEffect:{ignitedRock:true},desc:'引火して爆発寸前の爆裂岩。使用には意志力15が必要で、その場で爆発する。物理近接攻撃を受けても爆発し、攻撃者を巻き込む。インベントリ内で爆発すると防御不能の火属性ダメージ10と、アンコモン以下のアイテム1〜3個の消失を引き起こす。'},
   whetstone:{name:'砥石',icon:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABFUlEQVQ4EdVSPcqDUBBcQ0oF8QcsFHs7T2HnDb2Eh9FSRAsLFcED5PtmwzweQUJIlwXf/s7MPlXk583hDfI8fzD+xI/jqFg9AK7rWoqiUOy+7+qDIDBcqDHvuk7athWQOACXZSlZlunwNE3qkTMmC2f6vpfjOGQYBrmjWVWVUMHeIkkSo0oSzNnESoCV7CKGqbYsi2LRRw3qMM4rARJugSbuyo2Qw7BZ0zQa+76vHoe+gziOTYFBmqYyz7NwGHdmTPV1XZ/vgA2AMQgwjcDzPAXPq+lnDMNQvwSGbQOx67pawt09z9MYRFDfts25EUAl5tjiHZhz5k/EFlEUqcrVqgBAFQZlDf4PE6AAEjauvA286n9V+wPYbJDKg1jVVwAAAABJRU5ErkJggg==',type:'素材・強化アイテム',rarity:'common',damage:0,willCost:0,consumable:true,desc:'石を加工して作った簡素な砥石。\n意志力を3消費し、自分が所持する武器1個の攻撃力をそのターン中だけ2上げる。使用後は消滅する。'},
@@ -6962,7 +6962,7 @@ function defaultTargetForItem(data){
   return defaultOpponentTarget();
 }
 function targetOptions(selected){return activeTargets().map(t=>`<option value="${t.id}" ${t.id===selected?'selected':''}>${t.label}（防御${armorDefense(t)}・装甲${t.armor||0}）</option>`).join('')}
-function isInventoryTargetUse(data){const e=data?.useEffect||{};return Boolean(e.fertilize||e.fuelItem)}
+function isInventoryTargetUse(data){const e=data?.useEffect||{};return Boolean(e.fertilize||e.fuelItem||e.poisonItem)}
 const CULTIVATABLE_ITEM_IDS=new Set(['currant','blueberry','grape','tomato','basil','mushroom','strange_mushroom','sugar_cane','wheat']);
 function inventoryUseTargets(useItemId){
   if(useItemId==='fertilizer'){
@@ -6974,12 +6974,18 @@ function inventoryUseTargets(useItemId){
     const selected=new Set((s.battleSelection?.uses||[]).map(entry=>entry?.uid));
     return s.items.filter(item=>item.id!=='coal'&&Boolean(ITEMS[item.id]?.useEffect?.burnTurns||ITEMS[item.id]?.useEffect?.burnChance||ITEMS[item.id]?.useEffect?.majorBurnTurns)).sort((a,b)=>Number(selected.has(b.uid))-Number(selected.has(a.uid))||(Number(b.coalBurnBonus)||0)-(Number(a.coalBurnBonus)||0));
   }
+  if(useItemId==='poison_item'){
+    return s.items.filter(item=>item.id!=='poison_item'&&((ITEMS[item.id]?.hand&&Number(ITEMS[item.id]?.damage)>0)||isFoodItem(ITEMS[item.id]))).sort((a,b)=>{
+      const aw=ITEMS[a.id]?.hand&&Number(ITEMS[a.id]?.damage)>0?0:1,bw=ITEMS[b.id]?.hand&&Number(ITEMS[b.id]?.damage)>0?0:1;
+      return aw-bw||ITEMS[a.id].name.localeCompare(ITEMS[b.id].name,'ja');
+    });
+  }
   return [];
 }
 function isValidInventoryUseTarget(useItemId,targetUid){return inventoryUseTargets(useItemId).some(item=>item.uid===targetUid)}
 function defaultInventoryUseTargetUid(useItemId){return inventoryUseTargets(useItemId)[0]?.uid||null}
-function inventoryUseTargetLabel(useItemId,targetUid){const item=getItemByUid(targetUid),d=item&&ITEMS[item.id];if(!item||!d)return'対象アイテムなし';if(useItemId==='fertilizer')return`${d.name}（必要な肥料 ${fertilizerNeed(d.rarity)}個）`;if(useItemId==='coal')return`${d.name}${item.coalBurnBonus?`（燃焼+${item.coalBurnBonus}ターン済み）`:''}`;return d.name}
-function inventoryUseTargetOptions(useItemId,selectedUid){const targets=inventoryUseTargets(useItemId);if(!targets.length)return'<option value="">使用できるアイテムなし</option>';return targets.map((item,index)=>{const d=ITEMS[item.id],suffix=useItemId==='coal'&&targets.filter(x=>x.id===item.id).length>1?` ${index+1}`:'';const extra=useItemId==='fertilizer'?`／肥料${fertilizerNeed(d.rarity)}個必要`:(item.coalBurnBonus?`／燃焼+${item.coalBurnBonus}`:'');return`<option value="${item.uid}" ${item.uid===selectedUid?'selected':''}>${d.name}${suffix}${extra}</option>`}).join('')}
+function inventoryUseTargetLabel(useItemId,targetUid){const item=getItemByUid(targetUid),d=item&&ITEMS[item.id];if(!item||!d)return'対象アイテムなし';if(useItemId==='fertilizer')return`${d.name}（必要な肥料 ${fertilizerNeed(d.rarity)}個）`;if(useItemId==='coal')return`${d.name}${item.coalBurnBonus?`（燃焼+${item.coalBurnBonus}ターン済み）`:''}`;if(useItemId==='poison_item')return`${d.name}（${d.hand&&Number(d.damage)>0?'武器へ塗布':'食品へ混入'}）`;return d.name}
+function inventoryUseTargetOptions(useItemId,selectedUid){const targets=inventoryUseTargets(useItemId);if(!targets.length)return'<option value="">使用できるアイテムなし</option>';return targets.map((item,index)=>{const d=ITEMS[item.id],sameCount=targets.filter(x=>x.id===item.id).length,suffix=(useItemId==='coal'||useItemId==='poison_item')&&sameCount>1?` ${index+1}`:'',extra=useItemId==='fertilizer'?`／肥料${fertilizerNeed(d.rarity)}個必要`:(useItemId==='poison_item'?`／${d.hand&&Number(d.damage)>0?'武器塗布：1ダメージ以上で毒':'食品混入：食べた対象へ毒'}`:(item.coalBurnBonus?`／燃焼+${item.coalBurnBonus}`:''));return`<option value="${item.uid}" ${item.uid===selectedUid?'selected':''}>${d.name}${suffix}${extra}</option>`}).join('')}
 
 
 
@@ -8417,12 +8423,12 @@ function selectedUseEntriesForItemId(itemId){
 }
 function toggleBattleUseStack(itemId){
   if(s.phase!=='combat'||battleAnimating)return;if(frozenItemUseBlocked(targetState('self')))return toast('凍結中はアイテムを使用できません');
-  const data=ITEMS[itemId],npcReserved=window.npcReservedItemUids?.()||new Set(),owned=s.items.filter(item=>item.id===itemId&&data?.useEffect&&!npcReserved.has(item.uid)).sort((a,b)=>(Number(b.coalBurnBonus)||0)-(Number(a.coalBurnBonus)||0));
+  const data=ITEMS[itemId],npcReserved=window.npcReservedItemUids?.()||new Set(),owned=s.items.filter(item=>item.id===itemId&&data?.useEffect&&!npcReserved.has(item.uid)).sort((a,b)=>(Number(b.foodPoisonTurns)||0)-(Number(a.foodPoisonTurns)||0)||(Number(b.coalBurnBonus)||0)-(Number(a.coalBurnBonus)||0));
   if(!data?.useEffect||!owned.length)return;
   const sel=normalizeItemSelection(),selected=selectedUseEntriesForItemId(itemId),selectedUids=new Set(selected.map(entry=>entry.uid));
   if(isInventoryTargetUse(data)){
     const itemTargetUid=sel.useItemTargets[itemId]||defaultInventoryUseTargetUid(itemId);
-    if(!itemTargetUid)return toast(itemId==='fertilizer'?'栽培できるアイテムを持っていません':data.useEffect?.condiment?'調味料を使える意志力回復食品を持っていません':'石炭を使用できる火傷・大火傷系アイテムを持っていません');
+    if(!itemTargetUid)return toast(itemId==='fertilizer'?'栽培できるアイテムを持っていません':itemId==='poison_item'?'毒を混ぜられる食品、または塗れる武器を持っていません':data.useEffect?.condiment?'調味料を使える意志力回復食品を持っていません':'石炭を使用できる火傷・大火傷系アイテムを持っていません');
     sel.useItemTargets[itemId]=itemTargetUid;
     if(itemId==='fertilizer'){
       if(selected.length){sel.uses=sel.uses.filter(entry=>getItemByUid(entry.uid)?.id!==itemId);render();return}
@@ -9068,7 +9074,7 @@ async function executePlayerBattleAction(action,context={shields:{},shieldItems:
     const out=applyBattleDamage({baseDamage:damage,target,data:d,temporaryDefense,armorPierce,allowCritical:action.kind!=='stone',allowWhip:true,weaponAttack:action.kind==='hand',attackerId:'self',attackerItem:action.item,shieldEntries,activeShield});
     shields[target.id]=out.temporaryRemaining;
     const statusResult=action.kind!=='stone'&&out.finalDamage>0?applyAttackStatus(action.item,target.id,out.hpDamage):{applied:false,blocked:false};
-    if(out.hpDamage>0&&action.item.poisonCoating>0){target.statuses.poison=Math.max(target.statuses.poison||0,action.item.poisonCoating);target.statuses.poisonFresh=true;action.item.poisonCoating=0;addLog(`${d.name}に塗った毒が発動し、${target.label}へ毒5ターンを付与した。`)}
+    if(out.finalDamage>0&&action.item.poisonCoating>0){const poisonTurns=action.item.poisonCoating;target.statuses.poison=Math.max(target.statuses.poison||0,poisonTurns);target.statuses.poisonFresh=true;action.item.poisonCoating=0;addLog(`${d.name}に塗った毒が発動し、${target.label}へ毒${poisonTurns}ターンを付与した。`)}
     if(d.damageType==='physical'&&target.id==='self'){const ignited=s.items.find(x=>x.id==='ignited_explosive_rock');if(ignited){target.hp=Math.max(0,target.hp-10);actor.hp=Math.max(0,actor.hp-10);explodeInventoryRock(ignited,'物理攻撃の衝撃で爆発')}}
     const after=targetSnapshot(target),damageKind=d.damageType==='physical'?'物理':'',title=`${d.name}→${target.label}：${out.finalDamage}${damageKind}ダメージ（装甲${out.guardAbsorbed}・HP${out.hpDamage}）${damageOutcomeText(out)}${armorPierce?`（防御力貫通${out.piercedDefense}/${armorPierce}）`:''}`;
     if(target.id==='enemy')showEnemyDamage(out.finalDamage,title);else qs('#battleMessage').textContent=title;
@@ -9777,6 +9783,7 @@ function battleUseEffectText(effect){if(effect?.magicBook)return'魔法選択式
   if(effect.strangeMushroom)labels.push('意志+20・毒/猛毒抽選');
   if(effect.fertilize)labels.push('所持している栽培可能アイテムへ使用');
   if(effect.fuelItem)labels.push('所持している火傷・大火傷・大火傷系アイテムの次回継続時間+1ターン');
+  if(effect.poisonItem)labels.push('武器へ塗布、または食品・料理・飲料へ混入');
   if(Array.isArray(effect.cure)){if(effect.cure.includes('bleed'))labels.push('出血治療');if(effect.cure.includes('poison'))labels.push('毒治療');if(effect.cure.includes('deadlyPoison'))labels.push('猛毒治療');}
   return labels.join('・')||'補助効果';
 }
@@ -9856,7 +9863,14 @@ function applyBattleUse(item,targetId,context={}){
     else{fuelTarget.coalBurnBonus=Math.max(0,Math.floor(Number(fuelTarget.coalBurnBonus)||0))+1;effects.push(`${fuelData.name}の次回火傷を1ターン延長（合計+${fuelTarget.coalBurnBonus}）`)}
   }
   if(effect.poisonItem){
-    if(target.id!=='self'){
+    const chosen=getItemByUid(context.itemTargetUid),chosenData=chosen&&ITEMS[chosen.id];
+    if(chosen&&chosen.uid!==item.uid&&chosenData?.hand&&Number(chosenData.damage)>0){
+      chosen.poisonCoating=Math.max(5,Math.floor(Number(chosen.poisonCoating)||0));effects.push(`${chosenData.name}に毒を塗布。1ダメージ以上で毒5ターンを付与`);
+    }else if(chosen&&chosen.uid!==item.uid&&isFoodItem(chosenData)){
+      chosen.foodPoisonTurns=Math.max(10,Math.floor(Number(chosen.foodPoisonTurns)||0));effects.push(`${chosenData.name}に毒を混入。食べた対象へ毒10ターンを付与`);
+    }else if(context.itemTargetUid){
+      effects.push('毒を使える対象アイテムがない');context.skipConsume=true;
+    }else if(target.id!=='self'){
       target.statuses.poison=Math.max(target.statuses.poison||0,5);target.statuses.poisonFresh=true;effects.push(`${target.label}が毒を使用し、毒5ターン`);
     }else{
       const candidates=s.items.filter(x=>x.uid!==item.uid&&((ITEMS[x.id]?.hand&&Number(ITEMS[x.id]?.damage)>0)||isFoodItem(ITEMS[x.id])));
@@ -10264,6 +10278,7 @@ function renderBattleHand(){
       return `<div class="item-action-card magic-staff-card ${selected?'selected':''}"><button type="button" class="btn battle-card rarity-frame-${d.rarity} ${selected?'selected':''}" data-battle-card="${x.uid}" data-item-id="${x.id}" ${s.phase!=='combat'||battleAnimating?'disabled':''}><span class="card-count">${selected?'使用準備中':'所持品'}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">両手魔法の杖・威力×${damageMultiplier}</span><span class="card-effect magic-staff-effect">${loadedMediumDisplay}</span><span class="card-cost">消費${costPercent}%${medium?`・意志力 ${cost}`:'・魔法媒体未装填'}</span></button>${loadout}</div>`;
     }
     const effect=[];if(d.shieldType)effect.push(`構え中に攻撃を受けた時、防御を選択可能<br>盾防御${dreamDefenseDisplay(d.shieldDefense)}${dreamHpMode()==='long'?'':`（元${d.shieldDefense}）`}・防御時意志力${d.shieldWillCost}`);if(itemDamage(x)>0)effect.push(`${itemDamage(x)}${d.damageType==='physical'?'物理':''}ダメージ${d.whip?'（防具未装備1部位につき+12.5%・最大1.5倍）':''}`);if(d.armorPierce)effect.push(`防御力貫通 ${d.armorPierce}`);if(d.armorSlot)effect.push(`${ARMOR_SLOT_LABELS[d.armorSlot]}へこのターン装備・防御力${dreamDefenseDisplay(d.defense)}${dreamHpMode()==='long'?'':`（元${d.defense}）`}`);else if(d.accessoryType)effect.push(accessoryEffectText(d));else if(d.defense)effect.push(`一時防御力${dreamDefenseDisplay(d.defense)}${dreamHpMode()==='long'?'':`（元${d.defense}）`}`);if(bleed)effect.push(`出血 ${Math.round(bleed.chance*100)}%・${bleed.phases}フェイズ`);
+    if(Number(x.poisonCoating)>0)effect.push(`毒塗布済み：1ダメージ以上で毒${x.poisonCoating}ターン`);
     const tag=d.shieldType?(d.shieldType==='large'?'両手ラージシールド':'片手盾'):(d.armorSlot?`${ARMOR_SLOT_LABELS[d.armorSlot]}防具`:(d.accessoryType?ACCESSORY_TYPE_LABELS[d.accessoryType]:(d.hand==='twoHanded'?'両手':'片手')));
     const ownedText=d.shieldType?(selected?'盾装備中':'盾系カード'):(equippedAt?`装備中：${equippedAt.label}`:'所持品');
     const slotIndex=d.accessoryType?Math.max(0,Math.floor(Number(sel.accessorySlots[x.uid])||0)):0;
@@ -10276,7 +10291,7 @@ function renderBattleHand(){
     const selectedItemTargetLabel=selectedItemTarget?inventoryUseTargetLabel(group.id,selectedItemTarget):'使用できるアイテムなし';
     const targetRow=itemTargetMode?`<label class="target-row item-target-row"><span>使用するアイテム</span><strong class="item-target-current" title="${safeHtml(selectedItemTargetLabel)}">${safeHtml(selectedItemTargetLabel)}</strong><select class="target-select" data-use-item-target="${group.id}" ${battleAnimating?'disabled':''}>${inventoryUseTargetOptions(group.id,selectedItemTarget)}</select></label>`:`<label class="target-row">対象<select class="target-select" data-use-stack-target="${group.id}" ${!selected||battleAnimating?'disabled':''}>${targetOptions(target)}</select></label>`;
     const npcSelectedCount=(s.npcCommands||[]).filter(command=>command.itemId===group.id).length,countText=group.id==='fertilizer'&&selectedItemTarget?`使用 ${selectedCount?'準備済み':'未選択'} / 所持 ${group.items.length}（必要${fertilizerNeed(ITEMS[getItemByUid(selectedItemTarget)?.id]?.rarity)}）`:`選択 ${selectedCount+npcSelectedCount} / ${group.items.length}`;
-    const fuelBonus=group.items.reduce((sum,item)=>sum+Math.max(0,Number(item.coalBurnBonus)||0),0),effectText=`${battleUseEffectText(d.useEffect)}${fuelBonus?`<br>燃料補正 合計+${fuelBonus}ターン`:''}`;
+    const fuelBonus=group.items.reduce((sum,item)=>sum+Math.max(0,Number(item.coalBurnBonus)||0),0),poisonedCount=group.items.filter(item=>Number(item.foodPoisonTurns)>0).length,effectText=`${battleUseEffectText(d.useEffect)}${fuelBonus?`<br>燃料補正 合計+${fuelBonus}ターン`:''}${poisonedCount?`<br>毒混入済み ${poisonedCount}個（毒10ターン）`:''}`;
     return `<div class="item-action-card ${selected?'selected stack-selected':''}"><button type="button" class="battle-use-card stacked-use-card rarity-frame-${d.rarity} ${selected?'selected-self':''}" data-use-stack="${group.id}" ${battleAnimating||!hasItemTarget?'disabled':''}><span class="card-count">${countText}</span><img src="${d.icon}"><span class="card-name">${d.name}</span><span class="hand-tag">${itemTargetMode?'アイテムに使用':(d.usesHand?'片手使用料理':'消費アイテム')}</span><span class="card-effect">${effectText}</span><span class="card-cost">意志力 ${d.willCost||0}／1個</span></button>${targetRow}</div>`;
   }).join('');
   const weapons=s.items.filter(x=>ITEMS[x.id].hand&&ITEMS[x.id].damage>0);
@@ -13283,6 +13298,7 @@ directNpcCommand=function(itemOrId,exactUid='',chosenTarget=''){ensureNpcState()
 queueNpcCommand=function(){return directNpcCommand(npcCommandDraft.itemId,'',npcCommandDraft.targetId)};
 const avatarBaseArmorDefense=armorDefense;armorDefense=function(target){const base=avatarBaseArmorDefense(target),adapted=target?.kind==='npc'&&target.npc?.passive==='defense_adaptation'?base+Math.floor(Object.keys(ARMOR_SLOT_LABELS).reduce((sum,slot)=>{const equipped=equipmentItem(target,slot);return sum+(equipped?Math.round((ITEMS[equipped.id].defense||0)*passiveJewelryDefenseCardMultiplier(target)):0)},0)*.5*avatarNpcPassiveScale(target.npc)):base;return dreamDefenseValue(adapted,'armor:'+String(target?.id||''))};
 const avatarBaseNpcExecute=executeSingleNpcCommand;executeSingleNpcCommand=async function(command={}){const npc=s.npcs.find(n=>n.id===command.npcId),item=command.itemUid?getItemByUid(command.itemUid):null,d=item&&ITEMS[item.id],target=targetState(command.targetId);if(npc&&d?.armorSlot&&item&&npc.hp>0&&npc.will>=command.cost){npc.will-=command.cost;npc.equipment=npc.equipment||emptyEquipment();npc.equipment[d.armorSlot]=item.uid;const text=npc.name+'が'+d.name+'を'+(ARMOR_SLOT_LABELS[d.armorSlot]||'防具')+'へ装備した';addLog(text);presentBattleAction({actorLabel:'NPC：'+npc.name,itemId:item.id,targetId:npc.id,title:text,extras:[changeBadge('防具を装備','buff')]});showNpcAction(npc,npc.name+'が防具を装備！',text,true,item.id);render();save(false);await sleep(650);return true}const beforeHp=Number(target?.hp)||0,beforeStatuses={...(target?.statuses||{})};window.__dcFortuneActorId=npc?.id||'';let result;try{result=await avatarBaseNpcExecute(command)}finally{delete window.__dcFortuneActorId}if(!result||!npc||!target)return result;if(beforeHp>(Number(target.hp)||0)&&d?.statusEffects)for(const [key,effect]of Object.entries(d.statusEffects)){const rawChance=Number(effect?.chance),chance=Number.isFinite(rawChance)?rawChance:1,luckyChance=Math.min(1,Math.max(0,chance)*avatarFortuneFactor(npc));if(Math.random()<luckyChance)target.statuses[key]=Math.max(Number(target.statuses[key])||0,Math.max(1,Math.floor(Number(effect?.phases)||1)))}if(npc.passive==='status_amplifier'){let added=0,scale=avatarNpcPassiveScale(npc);for(const key of ['bleed','burn','majorBurn','frostbite','freeze','bind','blind','dizzy','poison','deadlyPoison','fracture','curse','healShackle']){const before=Math.max(0,Number(beforeStatuses[key])||0),after=Math.max(0,Number(target.statuses?.[key])||0),delta=Math.max(0,after-before);if(delta){const extra=Math.ceil(delta*(.5*scale));target.statuses[key]=after+extra;added+=extra}}if(added){addLog(npc.name+'の状態増幅（'+avatarPassiveQuality(scale)+'）：状態異常の持続時間を合計'+added+'ターン延長');toast(npc.name+'の状態増幅が発動しました')}}if(onlineSession.started)onlinePublishSnapshot();render();save(false);return result};
+const poisonAwareNpcExecute=executeSingleNpcCommand;executeSingleNpcCommand=async function(command={}){const item=command.itemUid?getItemByUid(command.itemUid):null,target=targetState(command.targetId),beforeHp=Number(target?.hp)||0,result=await poisonAwareNpcExecute(command);if(result&&item&&target&&Number(item.poisonCoating)>0&&beforeHp>Number(target.hp)){const turns=Math.max(1,Math.floor(Number(item.poisonCoating)||5));target.statuses.poison=Math.max(target.statuses.poison||0,turns);target.statuses.poisonFresh=true;item.poisonCoating=0;addLog(`${ITEMS[item.id]?.name||'武器'}に塗った毒が発動し、${target.label}へ毒${turns}ターンを付与した。`);render();save(false)}return result};
 const armorBalance20260813={leather_shoes:{defense:1,willCost:1},leather_hat:{defense:2,willCost:1},leather_trousers:{defense:3,willCost:2},leather_jacket:{defense:4,willCost:2},copper_boots:{willCost:1},copper_helmet:{willCost:2},copper_leggings:{willCost:3},copper_chestplate:{willCost:4},steel_boots:{defense:14},steel_helmet:{defense:16},steel_leggings:{defense:18},steel_chestplate:{defense:22},dragon_boots:{willCost:2},dragon_helmet:{willCost:3},dragon_leggings:{willCost:4},dragon_chestplate:{willCost:5},silver_boots:{rarity:'epic'},silver_helmet:{rarity:'epic'},silver_leggings:{rarity:'epic'},silver_chestplate:{rarity:'epic'},golden_boots:{rarity:'fantasy'},golden_helmet:{rarity:'fantasy'},golden_leggings:{rarity:'fantasy'},golden_chestplate:{rarity:'fantasy'}};
 for(const [id,change]of Object.entries(armorBalance20260813)){
  const data=ITEMS[id];
