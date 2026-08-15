@@ -7118,9 +7118,10 @@ const PHASE_LIMITS={explore:20,action:40,itemUse:60};
 function stopPhaseTimer(force=false){if(phaseTimerHandle){clearInterval(phaseTimerHandle);phaseTimerHandle=null}phaseTimerDeadline=0;phaseTimerKind='';updatePhaseTimerDisplay();if(force&&onlineSession?.isHost){onlineClearServerTimerHandle();onlineSession.serverTimer=null}}
 function phaseTimerDisplayElements(){return[qs('#phaseTimer'),qs('#itemUsePhaseTimer')].filter(Boolean)}
 function setPhaseTimerStatusText(text){for(const el of phaseTimerDisplayElements()){if(el.id==='itemUsePhaseTimer'){const label=el.querySelector('span'),value=el.querySelector('strong');if(label)label.textContent='カード使用の状態';if(value)value.textContent=String(text||'--')}else el.textContent=String(text||'残り --:--');el.classList.remove('warning','danger')}}
-function updatePhaseTimerDisplay(){const els=phaseTimerDisplayElements();if(!els.length)return;if(!phaseTimerDeadline){for(const el of els){if(el.id==='itemUsePhaseTimer'){const label=el.querySelector('span'),value=el.querySelector('strong');if(label)label.textContent='カード使用の残り時間';if(value)value.textContent='--:--'}else el.textContent='残り --:--';el.classList.remove('warning','danger')}return}const sec=Math.max(0,Math.ceil((phaseTimerDeadline-Date.now())/1000)),clock=`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;for(const el of els){if(el.id==='itemUsePhaseTimer'){const label=el.querySelector('span'),value=el.querySelector('strong');if(label)label.textContent=phaseTimerKind==='itemUse'?'カード使用の残り時間':'フェーズの残り時間';if(value)value.textContent=clock}else el.textContent=`残り ${clock}`;el.classList.toggle('warning',sec<=10&&sec>5);el.classList.toggle('danger',sec<=5)}}
-function startPhaseTimer(kind,seconds){if(onlineRequestServerTimer(kind,seconds))return;stopPhaseTimer();phaseTimerKind=kind;phaseTimerDeadline=Date.now()+seconds*1000;updatePhaseTimerDisplay();phaseTimerHandle=setInterval(()=>{updatePhaseTimerDisplay();checkImmediatePhaseAdvance();if(Date.now()>=phaseTimerDeadline){stopPhaseTimer();handlePhaseTimeout(kind)}},250)}
+function updatePhaseTimerDisplay(){const els=phaseTimerDisplayElements();if(!els.length)return;if(window.__dcRealTutorialActive===true){for(const el of els){if(el.id==='itemUsePhaseTimer'){const label=el.querySelector('span'),value=el.querySelector('strong');if(label)label.textContent='チュートリアル';if(value)value.textContent='時間制限なし'}else el.textContent='時間制限なし';el.classList.remove('warning','danger')}return}if(!phaseTimerDeadline){for(const el of els){if(el.id==='itemUsePhaseTimer'){const label=el.querySelector('span'),value=el.querySelector('strong');if(label)label.textContent='カード使用の残り時間';if(value)value.textContent='--:--'}else el.textContent='残り --:--';el.classList.remove('warning','danger')}return}const sec=Math.max(0,Math.ceil((phaseTimerDeadline-Date.now())/1000)),clock=`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;for(const el of els){if(el.id==='itemUsePhaseTimer'){const label=el.querySelector('span'),value=el.querySelector('strong');if(label)label.textContent=phaseTimerKind==='itemUse'?'カード使用の残り時間':'フェーズの残り時間';if(value)value.textContent=clock}else el.textContent=`残り ${clock}`;el.classList.toggle('warning',sec<=10&&sec>5);el.classList.toggle('danger',sec<=5)}}
+function startPhaseTimer(kind,seconds){if(window.__dcRealTutorialActive===true){stopPhaseTimer();updatePhaseTimerDisplay();return}if(onlineRequestServerTimer(kind,seconds))return;stopPhaseTimer();phaseTimerKind=kind;phaseTimerDeadline=Date.now()+seconds*1000;updatePhaseTimerDisplay();phaseTimerHandle=setInterval(()=>{updatePhaseTimerDisplay();checkImmediatePhaseAdvance();if(Date.now()>=phaseTimerDeadline){stopPhaseTimer();handlePhaseTimeout(kind)}},250)}
 function handlePhaseTimeout(kind){
+  if(window.__dcRealTutorialActive===true){stopPhaseTimer();return}
   if(kind==='explore'&&s.phase==='explore'){
     if(!exploreSubmissionLocked){addLog('探索フェーズの制限時間が終了したため、探索しないを選択した。');submitExploreSkip(true)}
     finalizeExploreReadiness(true);
@@ -7721,7 +7722,9 @@ function itemUsePhaseLogs(){
 }
 function clearItemUseResultTimer(){if(itemUseResultTimerHandle){clearInterval(itemUseResultTimerHandle);itemUseResultTimerHandle=null}itemUseResultTimerDeadline=0}
 function updateItemUseResultCountdown(){
-  const el=qs('#itemUseResultCountdown');if(!el||!itemUseResultTimerDeadline)return;
+  const el=qs('#itemUseResultCountdown');if(!el)return;
+  if(window.__dcRealTutorialActive===true){el.textContent='チュートリアル中は時間制限なし・確認後に「処理を完了する」を押してください';el.classList.remove('danger');return}
+  if(!itemUseResultTimerDeadline)return;
   const remaining=Math.max(0,Math.ceil((itemUseResultTimerDeadline-Date.now())/1000));el.textContent=`自動で処理を完了するまで ${remaining}秒`;el.classList.toggle('danger',remaining<=3);
   if(remaining<=0)closeItemUseResult(true);
 }
@@ -7757,7 +7760,7 @@ function showItemUseResult(extraText=''){
   const entries=itemUseResultDisplayEntries();
   const extra=extraText?`<div class="item-use-result-row">${safeHtml(extraText)}</div>`:'';
   list.innerHTML=extra+(entries.length?entries.map(itemUseResultEntryHtml).join(''):'<div class="item-use-result-empty">このフェーズでは何もしませんでした。</div>');
-  overlay.classList.add('show');clearItemUseResultTimer();itemUseResultTimerDeadline=Date.now()+10000;updateItemUseResultCountdown();itemUseResultTimerHandle=setInterval(updateItemUseResultCountdown,250);render();save(false);
+  overlay.classList.add('show');clearItemUseResultTimer();if(window.__dcRealTutorialActive===true){updateItemUseResultCountdown()}else{itemUseResultTimerDeadline=Date.now()+10000;updateItemUseResultCountdown();itemUseResultTimerHandle=setInterval(updateItemUseResultCountdown,250)}render();save(false);
 }
 function closeItemUseResult(auto=false){
   if(!itemUseResultPending)return;clearItemUseResultTimer();const overlay=qs('#itemUseResultOverlay');if(overlay)overlay.classList.remove('show');itemUseResultPending=false;if(auto)addLog('結果確認の10秒が経過したため、自動で処理を完了した。');recoverAfterPhase('アイテム使用フェーズ');
@@ -10070,7 +10073,10 @@ function renderCraft(){
   if(tutorialCraft)craftActiveCategory=craftRecipeCategory(selected);
   const grouped=Object.fromEntries(CRAFT_CATEGORY_ORDER.map(category=>[category,[]]));
   for(const recipe of allRecipes)grouped[craftRecipeCategory(recipe)].push(recipe);
-  for(const category of CRAFT_CATEGORY_ORDER)grouped[category]=sortCraftRecipesByAffinity(grouped[category]);
+  for(const category of CRAFT_CATEGORY_ORDER){
+    const categoryRecipes=grouped[category],craftable=categoryRecipes.filter(canCraft),unavailable=categoryRecipes.filter(recipe=>!canCraft(recipe));
+    grouped[category]=[...sortCraftRecipesByAffinity(craftable),...sortCraftRecipesByAffinity(unavailable)];
+  }
   tabs.innerHTML=CRAFT_CATEGORY_ORDER.map(category=>{const items=grouped[category],ready=items.filter(canCraft).length,active=category===craftActiveCategory;return`<button type="button" class="craft-category-tab ${active?'active':''} ${ready?'has-ready':''}" data-craft-category="${category}" role="tab" aria-selected="${active}"><span>${category}</span>${ready?`<small class="craft-ready-badge" aria-label="作成可能 ${ready}個">${ready}</small>`:''}</button>`}).join('');
   tabs.querySelectorAll('[data-craft-category]').forEach(button=>button.onclick=()=>{
     craftCategoryScrollPositions[craftActiveCategory]=list.scrollTop;craftActiveCategory=button.dataset.craftCategory;
@@ -11113,7 +11119,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
   }
   function seedTutorialInventory(){
     // 交易教材の皮を最初に確保し、ほかの教材に所持枠を使われても欠けないようにする。
-    const wanted={leather:1,wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1,stone_brick:1,grass:5,carrot:1,currant:2};
+    const wanted={leather:1,currant:2,wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1,stone_brick:1,grass:5,carrot:1};
     for(const [id,amount] of Object.entries(wanted))addTutorialItem(id,Math.max(0,amount-inventoryCount(id)));
     s.will=Math.max(100,Number(s.will)||0);
     s.maxWill=Math.max(100,Number(s.maxWill)||0);
@@ -11548,8 +11554,8 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       q('ctProgress').innerHTML='<b>準備中</b>';
 
       s=fresh();
-      // 教材8種類（交易練習用の皮を含む）が必ず収まる容量にする。
-      s.capacity=9;
+      // 現行の教材10種類が必ず収まり、10→20枠の容量拡張も練習できる。
+      s.capacity=10;
       s.hp=70;s.maxHp=100;
       s.will=100;s.maxWill=100;
       s.gems=300;
@@ -13253,8 +13259,8 @@ function toggleNpcUseThroughPlayerRoute(npc,itemId,chosenTarget=''){
  const data=ITEMS[itemId];if(!data?.useEffect)return false;
  const originalSelection=s.battleSelection,originalCommands=[...(s.npcCommands||[])],otherCommands=originalCommands.filter(command=>command.npcId!==npc.id),temporary=npcCommandsToBattleSelection(npc.id),blocked=playerReservedItemUids(),originalReservedHook=window.npcReservedItemUids;for(const command of otherCommands)if(command.itemUid)blocked.add(command.itemUid);
  s.battleSelection=temporary;window.npcReservedItemUids=()=>new Set(blocked);
- try{toggleBattleUseStack(itemId);if(isValidTarget(chosenTarget))for(const entry of normalizeItemSelection().uses)if(getItemByUid(entry.uid)?.id===itemId){entry.target=chosenTarget;entry.targetChosen=true}const next=npcSelectionToCommands(npc,normalizeItemSelection(),otherCommands),total=next.filter(command=>command.npcId===npc.id).reduce((sum,command)=>sum+Math.max(0,Number(command.cost)||0),0);if(total>npc.will){s.npcCommands=originalCommands;toast(npc.name+'の合計意志力が足りません')}else{s.npcCommands=next;toast(npc.name+'：'+data.name+'を'+next.filter(command=>command.npcId===npc.id&&command.itemId===itemId).length+'個選択')}}finally{s.battleSelection=originalSelection;window.npcReservedItemUids=originalReservedHook}
- render();save(false);return true
+ try{toggleBattleUseStack(itemId);if(isValidTarget(chosenTarget))for(const entry of normalizeItemSelection().uses)if(getItemByUid(entry.uid)?.id===itemId){entry.target=chosenTarget;entry.targetChosen=true}const next=npcSelectionToCommands(npc,normalizeItemSelection(),otherCommands),npcCommands=next.filter(command=>command.npcId===npc.id),total=npcCommands.reduce((sum,command)=>sum+Math.max(0,Number(command.cost)||0),0);if(total>npc.will){s.npcCommands=originalCommands;toast(npc.name+'の合計意志力が足りません')}else{s.npcCommands=next;if(window.__dcRealTutorialActive===true)window.__dcTutorialNpcCommandStep=npcCommands.length?'switch':'item';toast(npc.name+'：'+data.name+'を'+npcCommands.filter(command=>command.itemId===itemId).length+'個選択')}}finally{s.battleSelection=originalSelection;window.npcReservedItemUids=originalReservedHook}
+ render();save(false);window.__dcTutorialRefresh?.();return true
 }
 directNpcCommand=function(itemOrId,exactUid='',chosenTarget=''){ensureNpcState();if(!npcInstructionMode||s.phase!=='combat')return false;const npc=s.npcs.find(n=>n.id===npcCommandDraft.npcId&&n.hp>0&&!n.enemy)||localNpcs().find(n=>n.hp>0&&!n.enemy);if(!npc)return toast('指示できる召喚獣がいません'),true;const itemId=exactUid?getItemByUid(exactUid)?.id:itemOrId,data=ITEMS[itemId];if(!exactUid&&data?.useEffect&&isStackableItemId(itemId))return toggleNpcUseThroughPlayerRoute(npc,itemId,chosenTarget);return avatarDirectNpcNonStack(itemOrId,exactUid,chosenTarget)};
 queueNpcCommand=function(){return directNpcCommand(npcCommandDraft.itemId,'',npcCommandDraft.targetId)};
