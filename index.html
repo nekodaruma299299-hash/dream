@@ -9983,6 +9983,60 @@ function craftRecipeProgress(recipe){
 // ---------------------------------------------------------------------------
 function craftRecipeAvailability(recipe){const progress=craftRecipeProgress(recipe);return progress.tier*1000+progress.score}
 // ---------------------------------------------------------------------------
+// クラフト：追加時期ではなく、似たレシピを隣接表示
+// ---------------------------------------------------------------------------
+function craftRecipeAffinityTokens(recipe){
+  const item=ITEMS[recipe?.result]||{},name=String(item.name||recipe?.name||''),type=String(item.type||'');
+  const tokens=new Set();
+  for(const id of Object.keys(recipe?.materials||{}))tokens.add('mat:'+id);
+  if(item.armorSlot)tokens.add('armor');
+  if(item.accessoryType)tokens.add('accessory');
+  if(item.shieldType)tokens.add('shield');
+  if(item.magicStaff)tokens.add('staff');
+  if(item.magicBookSpells)tokens.add('magic-book');
+  if(item.magicScrollSpell)tokens.add('scroll');
+  const families=[
+    ['gummy',/グミ/],['bread',/パン|トースト/],['rice',/米|おにぎり|寿司/],
+    ['ice-food',/アイス|ソフトクリーム/],['candy',/飴/],['drink',/ジュース|ワイン|飲料/],
+    ['soup',/スープ/],['meat',/肉|ステーキ|ハンバーグ/],['seafood',/魚|マグロ|蟹|貝/],
+    ['mushroom',/キノコ|きのこ|茸/],['ring',/指輪/],['bangle',/腕輪/],
+    ['sword',/剣|刀|ブレード/],['spear',/槍|ランス|トライデント/],['whip',/鞭/],
+    ['axe',/斧/],['pickaxe',/ツルハシ/],['fire',/火|炎|煉獄|フレア|ファイア/],
+    ['ice',/氷|冷|寒|凍獄|フロスト/],['light',/光|ヒール|キュア|クリーン|ジャッジメント|リザレクション/],
+    ['soul',/魂|ソウル|冥府/],['wood',/木材|木の/],['metal',/銅|鉄|銀|金|鋼|プラチナ|玉鋼/]
+  ];
+  for(const [key,pattern] of families)if(pattern.test(name+' '+type))tokens.add('family:'+key);
+  return tokens;
+}
+function craftRecipeAffinityScore(a,b){
+  if(!a||!b)return-Infinity;
+  const am=a.materials||{},bm=b.materials||{};
+  let score=0;
+  if(am[b.result]||bm[a.result])score+=1200;
+  const at=craftRecipeAffinityTokens(a),bt=craftRecipeAffinityTokens(b);
+  for(const token of at)if(bt.has(token))score+=token.startsWith('mat:')?180:70;
+  const ai=ITEMS[a.result]||{},bi=ITEMS[b.result]||{};
+  if(ai.armorSlot&&bi.armorSlot)score+=35;
+  if(ai.accessoryType&&bi.accessoryType)score+=35;
+  if(ai.rarity===bi.rarity)score+=4;
+  return score;
+}
+function sortCraftRecipesByAffinity(recipes){
+  const remaining=[...recipes].sort((a,b)=>RECIPES.indexOf(a)-RECIPES.indexOf(b));
+  if(remaining.length<2)return remaining;
+  const ordered=[remaining.shift()];
+  while(remaining.length){
+    const previous=ordered[ordered.length-1];
+    let bestIndex=0,bestScore=-Infinity;
+    for(let index=0;index<remaining.length;index++){
+      const score=craftRecipeAffinityScore(previous,remaining[index]);
+      if(score>bestScore){bestScore=score;bestIndex=index}
+    }
+    ordered.push(remaining.splice(bestIndex,1)[0]);
+  }
+  return ordered;
+}
+// ---------------------------------------------------------------------------
 // クラフト：画面描画
 // ---------------------------------------------------------------------------
 /**
@@ -10016,7 +10070,7 @@ function renderCraft(){
   if(tutorialCraft)craftActiveCategory=craftRecipeCategory(selected);
   const grouped=Object.fromEntries(CRAFT_CATEGORY_ORDER.map(category=>[category,[]]));
   for(const recipe of allRecipes)grouped[craftRecipeCategory(recipe)].push(recipe);
-  for(const category of CRAFT_CATEGORY_ORDER)grouped[category].sort((a,b)=>craftRecipeAvailability(b)-craftRecipeAvailability(a)||RECIPES.indexOf(a)-RECIPES.indexOf(b));
+  for(const category of CRAFT_CATEGORY_ORDER)grouped[category]=sortCraftRecipesByAffinity(grouped[category]);
   tabs.innerHTML=CRAFT_CATEGORY_ORDER.map(category=>{const items=grouped[category],ready=items.filter(canCraft).length,active=category===craftActiveCategory;return`<button type="button" class="craft-category-tab ${active?'active':''} ${ready?'has-ready':''}" data-craft-category="${category}" role="tab" aria-selected="${active}"><span>${category}</span>${ready?`<small class="craft-ready-badge" aria-label="作成可能 ${ready}個">${ready}</small>`:''}</button>`}).join('');
   tabs.querySelectorAll('[data-craft-category]').forEach(button=>button.onclick=()=>{
     craftCategoryScrollPositions[craftActiveCategory]=list.scrollTop;craftActiveCategory=button.dataset.craftCategory;
