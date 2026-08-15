@@ -6926,7 +6926,18 @@ function equipArmor(item){
   const d=ITEMS[item.id],target=targetState('self');if(!target||!d.armorSlot)return false;
   clearEquippedUid(item.uid);target.equipment[d.armorSlot]=item.uid;return true;
 }
-function firstAccessorySlot(type){const target=targetState('self'),arr=accessoryArray(target,type),empty=arr.findIndex(x=>!x);return empty>=0?empty:0}
+function firstAccessorySlot(type,ignoreUid=''){
+  const target=targetState('self'),arr=accessoryArray(target,type),limit=type==='ring'?10:2,occupied=new Set();
+  for(let i=0;i<limit;i++)if(arr[i])occupied.add(i);
+  const sel=normalizeItemSelection();
+  for(const uid of sel.hands){
+    if(uid===ignoreUid)continue;
+    const item=getItemByUid(uid),data=item&&ITEMS[item.id];if(data?.accessoryType!==type)continue;
+    occupied.add(Math.max(0,Math.min(limit-1,Math.floor(Number(sel.accessorySlots[uid])||0))));
+  }
+  for(let i=0;i<limit;i++)if(!occupied.has(i))return i;
+  return 0;
+}
 function equipAccessory(item,slotIndex){
   const d=ITEMS[item.id],target=targetState('self'),type=d.accessoryType,key=ACCESSORY_ARRAY_KEYS[type],limit=type==='ring'?10:2;if(!target||!key)return false;
   const index=Math.max(0,Math.min(limit-1,Math.floor(Number(slotIndex)||0)));clearEquippedUid(item.uid);target.accessories[key][index]=item.uid;return true;
@@ -8469,7 +8480,7 @@ function toggleBattleCard(key){
   for(const old of oldHands)if(!sel.hands.includes(old))delete sel.handTargets[old];
   sel.handTargets[item.uid]=defaultTargetForItem(ITEMS[item.id]);
   if(ITEMS[item.id].magicStaff&&!selectedMagicUseEntry()){const medium=magicMediumItems()[0];if(medium)sel.uses.push({uid:medium.uid,target:defaultOpponentTarget(),targetChosen:true})}
-  if(ITEMS[item.id].accessoryType)sel.accessorySlots[item.uid]=firstAccessorySlot(ITEMS[item.id].accessoryType);
+  if(ITEMS[item.id].accessoryType)sel.accessorySlots[item.uid]=firstAccessorySlot(ITEMS[item.id].accessoryType,item.uid);
   battleHudTargetId=sel.handTargets[item.uid];
   render();
 }
@@ -8483,7 +8494,13 @@ function setSelectionTarget(kind,key,target){
   }
   render();
 }
-function setAccessorySlot(uid,index){const sel=normalizeItemSelection(),item=getItemByUid(uid);if(item&&ITEMS[item.id].accessoryType&&sel.hands.includes(uid)){const limit=ITEMS[item.id].accessoryType==='ring'?10:2;sel.accessorySlots[uid]=Math.max(0,Math.min(limit-1,Math.floor(Number(index)||0)));render()}}
+function setAccessorySlot(uid,index){
+  const sel=normalizeItemSelection(),item=getItemByUid(uid);if(!item||!ITEMS[item.id].accessoryType||!sel.hands.includes(uid))return;
+  const type=ITEMS[item.id].accessoryType,limit=type==='ring'?10:2,next=Math.max(0,Math.min(limit-1,Math.floor(Number(index)||0))),previous=Math.max(0,Math.min(limit-1,Math.floor(Number(sel.accessorySlots[uid])||0)));
+  const collision=sel.hands.find(otherUid=>otherUid!==uid&&ITEMS[getItemByUid(otherUid)?.id]?.accessoryType===type&&Math.max(0,Math.min(limit-1,Math.floor(Number(sel.accessorySlots[otherUid])||0)))===next);
+  if(collision)sel.accessorySlots[collision]=previous;
+  sel.accessorySlots[uid]=next;render();
+}
 function selectedSharpenEntriesForItemId(itemId){
   const sel=normalizeItemSelection();
   return sel.sharpens.filter(entry=>getItemByUid(entry.uid)?.id===itemId);
