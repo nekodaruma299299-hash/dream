@@ -13779,6 +13779,12 @@ html body.layout-phone-portrait .phase-stage.combat-open #battleDock{
 /* 通常の「夢の洞窟」は、宝石型の深淵洞窟と差別化して金属を出やすくする。 */
 const caveMetalIds=new Set(['copper','iron','silver','gold','platinum']);
 for(const field of Object.values(FIELDS))if(field?.biome==='cave')for(const entry of field.pool||[])if(caveMetalIds.has(entry.id))entry.weight*=2.4;
+/* 火山のレア枠総量は変えず、火炎の原石を1/3にした差分をドラゴンの鱗へ移す。 */
+for(const field of Object.values(FIELDS))if(field?.biome==='volcano'){
+  const flame=(field.pool||[]).find(entry=>entry.id==='flame_stone');
+  const scale=(field.pool||[]).find(entry=>entry.id==='dragon_scale');
+  if(flame&&scale){const moved=flame.weight*2/3;flame.weight/=3;scale.weight+=moved}
+}
 function ensureSpectatorScreen(){let screen=document.getElementById('dcSpectatorScreen');if(screen)return screen;screen=document.createElement('section');screen.id='dcSpectatorScreen';screen.setAttribute('aria-label','観戦専用画面');screen.innerHTML='<div class="dc-spectator-card"><h2>観戦モード</h2><p>戦闘不能のため、ゲームへの操作はできません。</p><p id="dcSpectatorStatus">他のプレイヤーの進行を観戦中です。</p><button type="button" class="btn primary" id="dcSpectatorChat">チャットを開く</button></div>';document.body.appendChild(screen);screen.querySelector('#dcSpectatorChat').addEventListener('click',()=>document.getElementById('log')?.click());return screen}
 function renderSpectatorOnly(){const active=Boolean(onlineSession?.started&&onlineSession?.localSpectator);document.body.classList.toggle('dc-chat-only-spectator',active);if(!active)return;ensureSpectatorScreen();const alive=typeof onlineRosterPayload==='function'?onlineRosterPayload().filter(member=>!member.spectator).length:0,status=document.getElementById('dcSpectatorStatus');if(status)status.textContent=alive?`生存プレイヤー ${alive}人を観戦中です。`:'他のプレイヤーの進行を観戦中です。'}
 const spectatorBaseRender=render;render=function(){const result=spectatorBaseRender();renderSpectatorOnly();return result};
