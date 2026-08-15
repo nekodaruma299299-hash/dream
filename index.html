@@ -10338,7 +10338,7 @@ function buyShopItem(itemId){
  * 注意:
  *   買取不可条件、売却価格、所持品削除方法を変更しない。
  */
-const TUTORIAL_PROTECTED_SELL_IDS=new Set(['wood','wood_sword','wooden_board','leather_jacket','medicinal_herbs','magic_staff','fireball_scroll','grass','leather']);
+const TUTORIAL_PROTECTED_SELL_IDS=new Set(['wood','wood_sword','wooden_board','leather_jacket','medicinal_herbs','magic_staff','fireball_scroll','grass','carrot','leather']);
 function tutorialSellBlocked(itemId){return window.__dcRealTutorialActive===true&&TUTORIAL_PROTECTED_SELL_IDS.has(String(itemId||''))}
 function sellShopItem(itemId,requested=1){
   if(s.phase!=='trade'||!ITEMS[itemId])return;
@@ -11059,7 +11059,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
   }
   function seedTutorialInventory(){
     // 交易教材の皮を最初に確保し、ほかの教材に所持枠を使われても欠けないようにする。
-    const wanted={leather:1,wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1,stone_brick:1,grass:5,currant:2};
+    const wanted={leather:1,wooden_board:1,leather_jacket:1,medicinal_herbs:2,magic_staff:1,fireball_scroll:1,stone_brick:1,grass:5,carrot:1,currant:2};
     for(const [id,amount] of Object.entries(wanted))addTutorialItem(id,Math.max(0,amount-inventoryCount(id)));
     s.will=Math.max(100,Number(s.will)||0);
     s.maxWill=Math.max(100,Number(s.maxWill)||0);
@@ -11168,7 +11168,12 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
 
     if(panelId==='action'){
       if(!progress.crafted)return {title:'クラフトへ進もう',body:'「クラフト」を選び、集めた素材から木の長剣を作ります。',hint:'説明を読んだら、実際の行動カードを選んでください。'};
-      if(!progress.summoned)return {title:'草5個でウサギを召喚',body:'画面の「召喚」を押し、一覧からウサギを選んでください。召喚素材の草5個は用意してあります。',hint:'召喚後は左の「NPC」でステータスを確認できます。'};
+      if(!progress.summoned){
+        const summonOpen=q('npcSummonOverlay')?.classList.contains('show');
+        return summonOpen
+          ?{title:'ウサギを召喚しよう',body:'草5個とにんじん1個を使う「ウサギ」の召喚ボタンを押してください。',hint:'チュートリアル用の草とにんじんは最初から所持しています。',selectors:['#summonRabbitFromList']}
+          :{title:'草5個とにんじん1個でウサギを召喚',body:'画面の「召喚」を押し、一覧からウサギを選んでください。召喚素材は用意してあります。',hint:'召喚後は左の「NPC」でステータスを確認できます。',selectors:['#openSummonListBtn']};
+      }
       if(!progress.tradeOpened)return {title:'ショップとトレードを試そう',body:'「トレード」を選ぶと、本物のショップで購入と売却を体験できます。',hint:'細かな価格説明はショップ画面の案内へ移動します。'};
       if(!progress.attacked)return {title:'カード使用を練習しよう',body:'「戦闘」を選び、作った木の長剣をカードとして選択します。手・対象・合計意志力を確認して確定してください。',hint:'1ターン目の夢見の人影は何もせず、カード操作を安全に練習できます。'};
       if(!progress.rested)return {title:'休んでみよう',body:'「休む」を選ぶと、次の探索へ進みながら意志力を回復します。',hint:'休む処理も本編と同じターン進行を使用します。'};
@@ -11227,7 +11232,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
       craft:{title:'クラフトの詳しい手順',body:panelId==='craft'?'①上のカテゴリーを選ぶ → ②レシピをタップ → ③完成品・必要素材・必要意志力を確認 → ④「クラフト」を押します。\n\n不足素材は作成できず、成功すると素材と意志力を消費して完成品がインベントリへ入ります。':'行動選択で「クラフト」を押してください。クラフト画面へ移動すると、カテゴリー・レシピ・必要素材・必要意志力・完成品の順に確認できます。',hint:'作り終えたら「行動を完了する」で次へ進みます。レシピをタップすると右側に完成品の詳細も出ます。',selectors:panelId==='craft'?['#craftCategoryTabs','#craftList','#craftBtn']:['#actionPanel [data-action="craft"]']},
       sell:{title:'ショップでアイテムを売却する',body:panelId==='trade'?'上の「アイテムを売る」タブへ切り替え、緑色の「スグリの実【不要品・売却練習用】」を1個売ります。後で使う教材はチュートリアル中だけ売却不可です。':'行動選択の「トレード」からショップへ入り、上部の「アイテムを売る」タブを押します。不要な素材をジェムへ変えられます。',hint:'本編では保護されません。クラフトレシピや召喚素材を確認し、必要な物まで売らないようにしてください。',selectors:panelId==='trade'?['.shop-tab[data-shop-tab="sell"]','[data-shop-sell-one="currant"]']:['#actionPanel [data-action="trade"]']},
       playerTrade:{title:'プレイヤートレードの流れ',body:panelId==='playerTrade'?'夢見の人影を選び、交換練習用の皮を提示します。人影が12ジェムを提示したら、双方の内容を確認して最終確定してください。':panelId==='trade'?'「プレイヤー取引」を押してください。チュートリアル中は夢見の人影が生存プレイヤーとして現れます。提案者が皮を提示し、人影の対価を確認して最後に成立させます。':'行動選択で「トレード」へ進み、ショップ画面の「プレイヤー取引」を押します。',hint:'本編ではオンライン中の生存プレイヤーと同じ流れで交換します。変更時は最終確認が解除され、不足・満杯・切断時は成立しません。',selectors:panelId==='playerTrade'?['#playerTradePlayerList .player-trade-player button','#tradeOfferItemOpen','#tradeFinalize']:panelId==='trade'?['#openPlayerTradeBtn']:['#actionPanel [data-action="trade"]']},
-      summon:{title:'召喚獣を召喚する',body:'クラフト・トレード・休憩などの画面で「召喚」を押すと召喚獣一覧が開きます。ウサギは草5個、アヴァターラは設計時に指定した素材を直接消費して召喚します。\n\nチュートリアルには草5個を用意してあります。',hint:'召喚後は左の「NPC」へ切り替えると、HP・意志力・所属を確認できます。NPCカードをタップすると中央に立ち絵が出ます。',selectors:['#openSummonListBtn','#npcSummonWidget']},
+      summon:{title:'召喚獣を召喚する',body:'クラフト・トレード・休憩などの画面で「召喚」を押すと召喚獣一覧が開きます。ウサギは草5個とにんじん1個、アヴァターラは設計時に指定した素材を直接消費して召喚します。\n\nチュートリアルには必要な草とにんじんを用意してあります。',hint:'召喚後は左の「NPC」へ切り替えると、HP・意志力・所属を確認できます。NPCカードをタップすると中央に立ち絵が出ます。',selectors:q('npcSummonOverlay')?.classList.contains('show')?['#summonRabbitFromList']:['#openSummonListBtn','#npcSummonWidget']},
       cards:{title:'カード使用画面の操作',body:panelId==='combat'?'①下のカードをタップ → ②左右どちらの手で使うか確認 → ③必要なら使用対象を選ぶ → ④合計意志力を確認 → ⑤行動を確定します。\n\n片手は左右で各1枚、両手アイテムは両方の枠を使います。':'行動選択で「戦闘」を選ぶとカード使用画面へ進みます。カードを選び、手・対象・消費意志力を確認して行動を確定します。',hint:'防具やアクセサリーもそのターンに使うカードです。選択したカードは結果画面で行動順に処理されます。',selectors:panelId==='combat'?['#battleHand','#battleDock']:['#actionPanel [data-action="battle"]']},
       npcCommand:{title:'召喚獣へ命令する',body:panelId==='combat'?'「召喚獣に指示」で紫の指示モードへ切り替え、通常のカード一覧から使わせたいアイテムを直接押します。紫枠になれば召喚獣の行動として登録済みです。もう一度ボタンを押して通常モードへ戻ると、自分の行動も選べます。':'先に召喚獣を呼び、カード使用画面へ進みます。そこで「召喚獣に指示」を押すと命令できます。',hint:'選択順は自由です。NPCが使うアイテムは主人と共有できず、NPC自身の意志力を使います。',selectors:panelId==='combat'?['#npcInstructionBtn','#battleHand .npc-command-selected']:['#openSummonListBtn','#npcSummonWidget']}
     };
@@ -11244,7 +11249,7 @@ body.real-tutorial-active .enemy-name b::after,body.real-tutorial-active #battle
     }
     if(panelId==='action'){
       if(!progress.crafted)return ['#actionPanel [data-action="craft"]'];
-      if(!progress.summoned)return ['#openSummonListBtn','#npcSummonWidget'];
+      if(!progress.summoned)return q('npcSummonOverlay')?.classList.contains('show')?['#summonRabbitFromList']:['#openSummonListBtn','#npcSummonWidget'];
       if(!progress.tradeOpened)return ['#actionPanel [data-action="trade"]'];
       return ['#actionPanel .action-grid'];
     }
