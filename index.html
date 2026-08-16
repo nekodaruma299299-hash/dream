@@ -6023,7 +6023,7 @@ function onlineRemoteStatusProxy(player){
   return new Proxy(player.statuses,{set(target,key,value){target[key]=value;onlineSendTargetPatch(player.id,{kind:'status',key:String(key),value});return true}})
 }
 function onlineRosterPayload(){return[...onlineSession.members.values()].filter(member=>member.connected!==false).map(onlinePublicMember).slice(0,8)}
-function onlineTimerPayload(){const timer=onlineSession.serverTimer;return timer?{kind:timer.kind,deadline:timer.deadline,token:timer.token,turn:timer.turn}:null}
+function onlineTimerPayload(){const timer=onlineSession.serverTimer;return timer?{kind:timer.kind,deadline:timer.deadline,token:timer.token,turn:timer.turn,readyFractionApplied:Number.isFinite(Number(timer.readyFractionApplied))?Number(timer.readyFractionApplied):1}:null}
 function onlineClearServerTimerHandle(){if(onlineSession.serverTimerHandle){clearTimeout(onlineSession.serverTimerHandle);onlineSession.serverTimerHandle=null}}
 function onlinePersonalTimerKey(memberId,kind,turn){return`${String(memberId||'')}:${Math.max(0,Math.floor(Number(turn)||0))}:${String(kind||'')}`}
 function onlinePhaseCarryMap(){if(!(onlineSession.phaseCarryByMember instanceof Map))onlineSession.phaseCarryByMember=new Map();return onlineSession.phaseCarryByMember}
@@ -6037,7 +6037,7 @@ function onlineClearAllPersonalTimers(){
 function onlineApplyPersonalTimer(timer,serverNow=Date.now()){
   if(!timer?.kind||!Number.isFinite(Number(timer.deadline))){onlineSession.personalTimer=null;if(!onlineSession.serverTimer)onlineClearDisplayedTimer();return false}
   const receivedAt=Date.now(),serverStamp=Number(serverNow||receivedAt),remaining=Math.max(0,Number(timer.deadline)-serverStamp);
-  const nextTimer={kind:String(timer.kind),deadline:Number(timer.deadline),token:String(timer.token||''),turn:Math.max(0,Math.floor(Number(timer.turn)||0)),memberId:String(timer.memberId||onlineSession.localId||'')};
+  const nextTimer={kind:String(timer.kind),deadline:Number(timer.deadline),token:String(timer.token||''),turn:Math.max(0,Math.floor(Number(timer.turn)||0)),memberId:String(timer.memberId||onlineSession.localId||''),readyFractionApplied:Number.isFinite(Number(timer.readyFractionApplied))?Number(timer.readyFractionApplied):(Number(onlineSession.personalTimer?.readyFractionApplied)||1)};
   const sameToken=Boolean(onlineSession.personalTimer?.token&&onlineSession.personalTimer.token===nextTimer.token);
   onlineSession.serverClockOffset=receivedAt-serverStamp;onlineSession.personalTimer=nextTimer;
   const candidateDeadline=receivedAt+remaining;phaseTimerKind=nextTimer.kind;phaseTimerDeadline=sameToken&&phaseTimerDeadline?Math.min(phaseTimerDeadline,candidateDeadline):candidateDeadline;
@@ -6082,7 +6082,7 @@ function onlineApplyPersonalPhaseTimeout(message){
 function onlineApplyServerTimer(timer,serverNow=Date.now()){
   if(!timer?.kind||!Number.isFinite(Number(timer.deadline))){onlineSession.serverTimer=null;return false}
   const receivedAt=Date.now(),serverStamp=Number(serverNow||receivedAt),remaining=Math.max(0,Number(timer.deadline)-serverStamp);
-  const nextTimer={kind:String(timer.kind),deadline:Number(timer.deadline),token:String(timer.token||''),turn:Math.max(0,Math.floor(Number(timer.turn)||0))};
+  const nextTimer={kind:String(timer.kind),deadline:Number(timer.deadline),token:String(timer.token||''),turn:Math.max(0,Math.floor(Number(timer.turn)||0)),readyFractionApplied:Number.isFinite(Number(timer.readyFractionApplied))?Number(timer.readyFractionApplied):(Number(onlineSession.serverTimer?.readyFractionApplied)||1)};
   const sameToken=Boolean(onlineSession.serverTimer?.token&&onlineSession.serverTimer.token===nextTimer.token);
   onlineSession.serverClockOffset=receivedAt-serverStamp;onlineSession.serverTimer=nextTimer;
   const candidateDeadline=receivedAt+remaining;
