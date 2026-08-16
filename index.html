@@ -6178,7 +6178,7 @@ function onlineCheckTurnAdvance(){
   setTimeout(()=>{
     onlineSession.turnAdvanceScheduled=false;const current=onlineRosterPayload().filter(member=>!member.spectator);if(!current.length||!current.every(member=>member.turnReady&&member.turn===turn))return;
     const recentFields=[s.fieldId,...(Array.isArray(s.fieldHistory)?s.fieldHistory:[])].filter(id=>FIELDS[id]).slice(0,3),nextTurn=turn+1,fieldId=(FIELDS[s.nextFieldId]&&s.nextFieldId!=='plains_dawn'?s.nextFieldId:randomFieldIdForTurn(nextTurn,recentFields)),nextFieldId=randomFieldIdForTurn(nextTurn+1,[fieldId,...recentFields].slice(0,3)),message={protocol:ONLINE_PROTOCOL,type:'advanceTurn',fromTurn:turn,nextTurn,fieldId,nextFieldId,startedAt:Date.now()+250};
-    for(const member of onlineSession.members.values())member.turnReady=false;
+    for(const member of onlineSession.members.values()){member.turnReady=false;member.battleReady=false;member.combatPrepReady=false;member.combatResolved=false}
     onlineBroadcast(message);onlineApplyTurnAdvance(message);
   },350);return true;
 }
@@ -13943,8 +13943,9 @@ if(ITEMS.platinum_axe){ITEMS.platinum_axe.price=3600;ITEMS.platinum_axe.baseValu
  * 共通タイマーの締切は変更しない。
  */
 function activeTimerRoster(_turn=s.turn){return onlineRosterPayload().filter(member=>member.connected!==false&&!member.spectator&&Number(member.hp)>0)}
-function readyForTimer(member){return member.turnReady===true||member.battleReady===true||member.combatResolved===true}
-function readyTimerFraction(_kind,turn=s.turn){const roster=activeTimerRoster(turn);if(!roster.length)return 1;const unfinished=roster.filter(member=>!readyForTimer(member)).length;return Math.max(0,Math.min(1,unfinished/roster.length))}
+/* 表示用battleReadyは遅延スナップショットで残ることがあるため集計に使わない。部屋主が当該ターンで受理したカード確定と休憩完了だけを数える。 */
+function readyForTimer(member,turn=s.turn){const submission=onlineSession.combatSubmissions?.get?.(String(member?.id||''));return Boolean(Number(submission?.turn)===Number(turn)||(member?.turnReady===true&&Number(member?.turn)===Number(turn)))}
+function readyTimerFraction(_kind,turn=s.turn){const roster=activeTimerRoster(turn);if(!roster.length)return 1;const unfinished=roster.filter(member=>!readyForTimer(member,turn)).length;return Math.max(0,Math.min(1,unfinished/roster.length))}
 function scaledRemaining(remainingMs,oldFraction,newFraction){const previous=Math.max(.000001,Math.min(1,Number(oldFraction)||1)),next=Math.max(0,Math.min(previous,Number(newFraction)||0));return Math.max(0,Math.floor(Math.max(0,remainingMs)*(next/previous)))}
 function resetPersonalExpiry(timer,remainingMs){const key=onlinePersonalTimerKey(timer.memberId,timer.kind,timer.turn),old=onlineSession.personalTimerHandles.get(key);if(old)clearTimeout(old);const handle=setTimeout(()=>onlineHostExpirePersonalTimer(timer.memberId,key,timer.token),Math.max(0,remainingMs)+30);onlineSession.personalTimerHandles.set(key,handle)}
 function onlineHostApplyReadyRatioTimers(){
