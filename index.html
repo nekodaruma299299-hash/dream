@@ -13945,28 +13945,33 @@ if(ITEMS.platinum_axe){ITEMS.platinum_axe.price=3600;ITEMS.platinum_axe.baseValu
 function activeTimerRoster(turn=s.turn){return onlineRosterPayload().filter(member=>member.connected!==false&&!member.spectator&&Number(member.hp)>0&&Number(member.turn)===Number(turn))}
 function readyForTimer(member){return member.turnReady===true||member.battleReady===true||member.combatResolved===true}
 function readyTimerFraction(_kind,turn=s.turn){const roster=activeTimerRoster(turn);if(!roster.length)return 1;const unfinished=roster.filter(member=>!readyForTimer(member)).length;return Math.max(0,Math.min(1,unfinished/roster.length))}
+function readyRatioTurnState(turn=s.turn){if(!(onlineSession.readyRatioTurnStates instanceof Map))onlineSession.readyRatioTurnStates=new Map();const key=String(Math.max(0,Math.floor(Number(turn)||0)));let state=onlineSession.readyRatioTurnStates.get(key);if(!state){state={fraction:1,readyCount:0,total:0};onlineSession.readyRatioTurnStates.set(key,state)}return state}
 function scaledRemaining(remainingMs,oldFraction,newFraction){const previous=Math.max(.000001,Math.min(1,Number(oldFraction)||1)),next=Math.max(0,Math.min(previous,Number(newFraction)||0));return Math.max(0,Math.floor(Math.max(0,remainingMs)*(next/previous)))}
 function resetPersonalExpiry(timer,remainingMs){const key=onlinePersonalTimerKey(timer.memberId,timer.kind,timer.turn),old=onlineSession.personalTimerHandles.get(key);if(old)clearTimeout(old);const handle=setTimeout(()=>onlineHostExpirePersonalTimer(timer.memberId,key,timer.token),Math.max(0,remainingMs)+30);onlineSession.personalTimerHandles.set(key,handle)}
 function resetServerExpiry(timer,remainingMs){onlineClearServerTimerHandle();onlineSession.serverTimerHandle=setTimeout(()=>onlineHostExpireServerTimer(timer.token),Math.max(0,remainingMs)+30)}
 function onlineHostApplyReadyRatioTimers(){
-  if(!onlineSession.isHost||!onlineSession.started)return false;const now=Date.now();let changed=false;
+  if(!onlineSession.isHost||!onlineSession.started)return false;const now=Date.now(),turn=s.turn,roster=activeTimerRoster(turn),next=readyTimerFraction('all',turn),state=readyRatioTurnState(turn),previous=Math.max(.000001,Math.min(1,Number(state.fraction)||1));
+  /* 同じ準備人数の同期はここで完全に止める。取消では時間を延長せず、再確定時の二重短縮も行わない。 */
+  if(next>=previous){state.readyCount=roster.filter(readyForTimer).length;state.total=roster.length;return false}
+  /* タイマーを更新する前にターン全体の適用済み比率を確定し、再入での重複適用を防ぐ。 */
+  state.fraction=next;state.readyCount=roster.filter(readyForTimer).length;state.total=roster.length;let changed=false;
   for(const timer of onlineSession.personalTimers.values()){
-    if(Number(timer.turn)!==Number(s.turn)||!['explore','action'].includes(timer.kind))continue;const next=readyTimerFraction(timer.kind,timer.turn),previous=Math.max(.000001,Number(timer.readyFractionApplied)||1);if(next>=previous)continue;
-    const remaining=scaledRemaining(Number(timer.deadline)-now,previous,next);timer.deadline=now+remaining;timer.readyFractionApplied=next;resetPersonalExpiry(timer,remaining);onlineSendToMember(timer.memberId,{protocol:ONLINE_PROTOCOL,type:'personalTimer',timer,serverNow:now});changed=true;
+    if(Number(timer.turn)!==Number(turn)||!['explore','action'].includes(timer.kind))continue;const timerPrevious=Math.max(.000001,Math.min(previous,Number(timer.readyFractionApplied)||previous));if(next>=timerPrevious)continue;
+    const remaining=scaledRemaining(Number(timer.deadline)-now,timerPrevious,next);timer.deadline=now+remaining;timer.readyFractionApplied=next;resetPersonalExpiry(timer,remaining);onlineSendToMember(timer.memberId,{protocol:ONLINE_PROTOCOL,type:'personalTimer',timer,serverNow:now});changed=true;
   }
-  const timer=onlineSession.serverTimer;if(timer?.kind==='itemUse'&&Number(timer.turn)===Number(s.turn)){
-    const next=readyTimerFraction('itemUse',timer.turn),previous=Math.max(.000001,Number(timer.readyFractionApplied)||1);if(next<previous){const remaining=scaledRemaining(Number(timer.deadline)-now,previous,next);timer.deadline=now+remaining;timer.readyFractionApplied=next;resetServerExpiry(timer,remaining);onlineApplyServerTimer(timer,now);changed=true}
+  const timer=onlineSession.serverTimer;if(timer?.kind==='itemUse'&&Number(timer.turn)===Number(turn)){
+    const timerPrevious=Math.max(.000001,Math.min(previous,Number(timer.readyFractionApplied)||previous));if(next<timerPrevious){const remaining=scaledRemaining(Number(timer.deadline)-now,timerPrevious,next);timer.deadline=now+remaining;timer.readyFractionApplied=next;resetServerExpiry(timer,remaining);onlineApplyServerTimer(timer,now);changed=true}
   }
   return changed;
 }
 
 const originalStartPersonalTimer=onlineHostStartPersonalTimer;onlineHostStartPersonalTimer=function(memberId,kind,seconds,turn=s.turn){
   if(!onlineSession.isHost||!onlineSession.started||!['explore','action'].includes(kind))return false;memberId=String(memberId||'');turn=Math.max(0,Math.floor(Number(turn)||0));const key=onlinePersonalTimerKey(memberId,kind,turn),existing=onlineSession.personalTimers.get(key),now=Date.now();if(existing?.deadline>now){onlineSendToMember(memberId,{protocol:ONLINE_PROTOCOL,type:'personalTimer',timer:existing,serverNow:now});return true}
-  if(existing)onlineHostClearPersonalTimer(memberId,kind,turn);const carry=onlinePhaseCarryState(memberId),bonus=kind==='action'?Math.max(0,Math.floor(Number(carry.actionBonus)||0)):0,baseDuration=Math.max(5,Math.floor(Number(seconds)||5)+bonus),fraction=readyTimerFraction(kind,turn),duration=Math.max(1,Math.floor(baseDuration*fraction));const timer={kind,deadline:now+duration*1000,token:`${turn}_${kind}_${memberId}_${now.toString(36)}`,turn,memberId,readyFractionApplied:fraction};onlineSession.personalTimers.set(key,timer);resetPersonalExpiry(timer,duration*1000);onlineSendToMember(memberId,{protocol:ONLINE_PROTOCOL,type:'personalTimer',timer,serverNow:now});return true
+  if(existing)onlineHostClearPersonalTimer(memberId,kind,turn);const carry=onlinePhaseCarryState(memberId),bonus=kind==='action'?Math.max(0,Math.floor(Number(carry.actionBonus)||0)):0,baseDuration=Math.max(5,Math.floor(Number(seconds)||5)+bonus),fraction=readyTimerFraction(kind,turn),ratioState=readyRatioTurnState(turn);ratioState.fraction=Math.min(ratioState.fraction,fraction);const duration=Math.max(1,Math.floor(baseDuration*fraction));const timer={kind,deadline:now+duration*1000,token:`${turn}_${kind}_${memberId}_${now.toString(36)}`,turn,memberId,readyFractionApplied:fraction};onlineSession.personalTimers.set(key,timer);resetPersonalExpiry(timer,duration*1000);onlineSendToMember(memberId,{protocol:ONLINE_PROTOCOL,type:'personalTimer',timer,serverNow:now});return true
 };
 const originalStartServerTimer=onlineHostStartServerTimer;onlineHostStartServerTimer=function(kind,seconds,turn=s.turn,options={}){
   if(kind!=='itemUse')return originalStartServerTimer(kind,seconds,turn,options);if(!onlineSession.isHost||!onlineSession.started)return false;const current=onlineSession.serverTimer,now=Date.now(),stageKey=`${turn}:${kind}`;if(onlineSession.serverTimerClosedKey===stageKey)return true;if(!options.force&&!onlineMembersAllowTimer(kind,turn))return false;if(current?.kind===kind&&current.turn===turn){if(current.deadline>now){onlineHostApplyReadyRatioTimers();onlineApplyServerTimer(current,now);return true}onlineHostExpireServerTimer(current.token);return true}
-  onlineClearServerTimerHandle();const baseDuration=Math.max(5,Math.floor(Number(seconds)||5)),fraction=readyTimerFraction(kind,turn),duration=Math.max(1,Math.floor(baseDuration*fraction)),timer={kind,deadline:now+duration*1000,token:`${turn}_${kind}_${now.toString(36)}`,turn,readyFractionApplied:fraction};onlineSession.serverTimer=timer;onlineApplyServerTimer(timer,now);onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'serverTimer',timer,serverNow:now});resetServerExpiry(timer,duration*1000);return true
+  onlineClearServerTimerHandle();const baseDuration=Math.max(5,Math.floor(Number(seconds)||5)),fraction=readyTimerFraction(kind,turn),ratioState=readyRatioTurnState(turn);ratioState.fraction=Math.min(ratioState.fraction,fraction);const duration=Math.max(1,Math.floor(baseDuration*fraction)),timer={kind,deadline:now+duration*1000,token:`${turn}_${kind}_${now.toString(36)}`,turn,readyFractionApplied:fraction};onlineSession.serverTimer=timer;onlineApplyServerTimer(timer,now);onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'serverTimer',timer,serverNow:now});resetServerExpiry(timer,duration*1000);return true
 };
 
 /* 部屋メンバーの準備状態が更新されるたびに、部屋主が一度だけ新しい比率を適用する。 */
@@ -13974,5 +13979,107 @@ const originalBroadcastRoster=onlineBroadcastRoster;onlineBroadcastRoster=functi
 window.dcReadyTimerFraction=readyTimerFraction;
 })();
 </script>
+<style id="dreamCrafterPlayerStatusLayoutPatch20260816">
+/* プレイヤー一覧は8行固定で圧縮せず、各カードにHP・意志力・進行状況の必要高さを保証する。 */
+.compact-roster:not(.npc-view) #playerRoster{
+  grid-template-rows:none!important;
+  grid-auto-rows:minmax(58px,auto)!important;
+  align-content:start!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  padding-right:2px!important;
+}
+.compact-roster:not(.npc-view) #playerRoster .player-mini-card{
+  min-height:58px!important;
+  grid-template-columns:minmax(0,1fr) minmax(78px,34%)!important;
+  align-items:stretch!important;
+  overflow:hidden!important;
+}
+.compact-roster:not(.npc-view) #playerRoster .player-mini-main{
+  grid-template-rows:minmax(12px,auto) minmax(12px,1fr) minmax(12px,1fr)!important;
+  align-content:center!important;
+}
+.compact-roster:not(.npc-view) #playerRoster .player-mini-stat{
+  grid-template-columns:22px minmax(18px,1fr) minmax(36px,auto)!important;
+  gap:4px!important;
+  min-height:12px!important;
+  font-size:8px!important;
+}
+.compact-roster:not(.npc-view) #playerRoster .player-mini-stat b{font-size:8px!important;overflow:visible!important}
+.compact-roster:not(.npc-view) #playerRoster .player-mini-card .bar{min-width:18px!important;height:5px!important}
+.compact-roster:not(.npc-view) #playerRoster .player-mini-side{
+  display:flex!important;
+  justify-content:center!important;
+  gap:2px!important;
+  min-width:0!important;
+  padding-left:4px!important;
+  overflow:hidden!important;
+}
+.compact-roster:not(.npc-view) #playerRoster .player-mini-state{min-height:14px!important;padding:1px 3px!important;font-size:7px!important;line-height:11px!important}
+.compact-roster:not(.npc-view) #playerRoster .player-mini-gems{font-size:7px!important;line-height:1!important}
+.compact-roster:not(.npc-view) #playerRoster .player-progress-line{
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  gap:3px!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+}
+.compact-roster:not(.npc-view) #playerRoster .player-progress-badge{padding:1px 4px!important;font-size:7px!important;line-height:11px!important;white-space:nowrap!important}
+.compact-roster:not(.npc-view) #playerRoster .player-progress-activity{min-width:0!important;font-size:7px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+
+/* スマホ縦：敵情報の下に、省略しないプレイヤーカードを横スクロールで配置。 */
+body.layout-phone-portrait .left-column{
+  flex:0 0 230px!important;
+  height:230px!important;
+  min-height:230px!important;
+  overflow:hidden!important;
+}
+body.layout-phone-portrait .compact-roster>.panel-title{min-height:46px!important;padding:3px 5px!important}
+body.layout-phone-portrait .compact-roster .body{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:42px minmax(0,1fr)!important;
+  gap:4px!important;
+  padding:4px!important;
+  overflow:hidden!important;
+}
+body.layout-phone-portrait .compact-roster .enemy-strip{width:100%!important;height:42px!important;min-height:42px!important}
+body.layout-phone-portrait .compact-roster:not(.npc-view) #playerRoster{
+  display:flex!important;
+  grid-template-columns:none!important;
+  grid-template-rows:none!important;
+  gap:5px!important;
+  width:100%!important;
+  min-height:0!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  touch-action:pan-x!important;
+  padding:1px 2px 5px!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+body.layout-phone-portrait .compact-roster:not(.npc-view) #playerRoster .player-mini-card{
+  flex:0 0 min(178px,72vw)!important;
+  width:min(178px,72vw)!important;
+  min-width:148px!important;
+  height:100%!important;
+  min-height:94px!important;
+  grid-template-columns:minmax(0,1fr) 67px!important;
+  padding:5px!important;
+  gap:5px!important;
+}
+body.layout-phone-portrait .compact-roster:not(.npc-view) #playerRoster .player-mini-name b{font-size:10px!important}
+body.layout-phone-portrait .compact-roster:not(.npc-view) #playerRoster .player-mini-stat{font-size:8px!important}
+body.layout-phone-portrait .compact-roster:not(.npc-view) #playerRoster .player-mini-stat b{font-size:8px!important}
+body.layout-phone-portrait .compact-roster:not(.npc-view) #playerRoster .player-mini-side{display:flex!important}
+
+/* スマホ横で左欄を使う旧レイアウトでも、カードは高さ不足にしない。 */
+body.layout-phone-landscape .compact-roster:not(.npc-view) #playerRoster{grid-auto-rows:minmax(52px,auto)!important}
+body.layout-phone-landscape .compact-roster:not(.npc-view) #playerRoster .player-mini-card{min-height:52px!important}
+</style>
 </body>
 </html>
