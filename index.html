@@ -13937,13 +13937,14 @@ if(ITEMS.platinum_axe){ITEMS.platinum_axe.price=3600;ITEMS.platinum_axe.baseValu
 <script id="dreamCrafterReadyRatioTimerPatch20260816">
 (()=>{'use strict';
 /*
- * オンライン制限時間の準備完了比例短縮。
- * 未完了者の割合が 1 → 1/2 になったら、その時点の残り時間も1/2にする。
+ * オンライン制限時間の「カード準備完了」比例短縮。
+ * カード未確定者の割合が 1 → 1/2 になったら、その時点の残り時間も1/2にする。
+ * 確定者が先のフェーズへ進んでいても、他プレイヤーの探索・クラフト・カード時間すべてを短縮する。
  * 前回適用比との比で計算し、複数人が順番に完了しても短縮を二重に掛けない。
  */
 function activeTimerRoster(turn=s.turn){return onlineRosterPayload().filter(member=>member.connected!==false&&!member.spectator&&Number(member.hp)>0&&Number(member.turn)===Number(turn))}
-function readyForTimer(member,kind){if(member.turnReady)return true;if(kind==='explore')return member.exploreReady===true;if(kind==='action')return member.actionReady===true||member.craftReady===true||member.phase==='combat'||member.phase==='waiting';if(kind==='itemUse')return member.battleReady===true||member.combatResolved===true;return false}
-function readyTimerFraction(kind,turn=s.turn){const roster=activeTimerRoster(turn);if(!roster.length)return 1;const unfinished=roster.filter(member=>!readyForTimer(member,kind)).length;return Math.max(0,Math.min(1,unfinished/roster.length))}
+function readyForTimer(member){return member.turnReady===true||member.battleReady===true||member.combatResolved===true}
+function readyTimerFraction(_kind,turn=s.turn){const roster=activeTimerRoster(turn);if(!roster.length)return 1;const unfinished=roster.filter(member=>!readyForTimer(member)).length;return Math.max(0,Math.min(1,unfinished/roster.length))}
 function scaledRemaining(remainingMs,oldFraction,newFraction){const previous=Math.max(.000001,Math.min(1,Number(oldFraction)||1)),next=Math.max(0,Math.min(previous,Number(newFraction)||0));return Math.max(0,Math.floor(Math.max(0,remainingMs)*(next/previous)))}
 function resetPersonalExpiry(timer,remainingMs){const key=onlinePersonalTimerKey(timer.memberId,timer.kind,timer.turn),old=onlineSession.personalTimerHandles.get(key);if(old)clearTimeout(old);const handle=setTimeout(()=>onlineHostExpirePersonalTimer(timer.memberId,key,timer.token),Math.max(0,remainingMs)+30);onlineSession.personalTimerHandles.set(key,handle)}
 function resetServerExpiry(timer,remainingMs){onlineClearServerTimerHandle();onlineSession.serverTimerHandle=setTimeout(()=>onlineHostExpireServerTimer(timer.token),Math.max(0,remainingMs)+30)}
