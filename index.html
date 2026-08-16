@@ -6505,7 +6505,10 @@ function onlineHandleHostMessage(senderId,message){
     }
     if(onlineSession.combatRoundActive){onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'combatSubmitAccepted',turn:s.turn,totalCost:0,ready:onlineAliveCombatMemberIds().length,total:onlineAliveCombatMemberIds().length,roundStarted:true});return}
     const prepared=onlineHostPrepareCombatSubmission(senderId,message);if(!prepared.ok){onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'combatSubmitRejected',reason:prepared.reason});return}
-    onlineSession.combatSubmissions.set(senderId,prepared);const member=onlineSession.members.get(senderId);if(member){member.battleReady=true;member.activityLabel='使用カード確定済み';member.phase='combat'}onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'combatSubmitAccepted',turn:s.turn,totalCost:prepared.totalCost,ready:onlineSession.combatSubmissions.size,total:onlineAliveCombatMemberIds().length});onlineBroadcastRoster();onlineHostMaybeStartCombatRound();return
+    onlineSession.combatSubmissions.set(senderId,prepared);const member=onlineSession.members.get(senderId);if(member){member.battleReady=true;member.activityLabel='使用カード確定済み';member.phase='combat';member.updatedAt=Date.now()}
+    /* カード確定受理のその場で全フェーズの残り時間を更新。定期スナップショットの順番に依存させない。 */
+    window.dcApplyReadyRatioTimers?.();
+    onlineSendToMember(senderId,{protocol:ONLINE_PROTOCOL,type:'combatSubmitAccepted',turn:s.turn,totalCost:prepared.totalCost,ready:onlineSession.combatSubmissions.size,total:onlineAliveCombatMemberIds().length});onlineBroadcastRoster();onlineHostMaybeStartCombatRound();return
   }
   if(message.type==='combatEntryDone'){onlineHostReceiveCombatEntryDone(senderId,message);return}
   if(message.type==='combatActionView'){
@@ -13942,7 +13945,8 @@ if(ITEMS.platinum_axe){ITEMS.platinum_axe.price=3600;ITEMS.platinum_axe.baseValu
  * 確定者が先のフェーズへ進んでいても、他プレイヤーの探索・クラフト・カード時間すべてを短縮する。
  * 前回適用比との比で計算し、複数人が順番に完了しても短縮を二重に掛けない。
  */
-function activeTimerRoster(turn=s.turn){return onlineRosterPayload().filter(member=>member.connected!==false&&!member.spectator&&Number(member.hp)>0&&Number(member.turn)===Number(turn))}
+/* 人数の母数はターン番号の同期速度に依存させない。接続中の全生存プレイヤーを常に数える。 */
+function activeTimerRoster(_turn=s.turn){return onlineRosterPayload().filter(member=>member.connected!==false&&!member.spectator&&Number(member.hp)>0)}
 function readyForTimer(member){return member.turnReady===true||member.battleReady===true||member.combatResolved===true}
 function readyTimerFraction(_kind,turn=s.turn){const roster=activeTimerRoster(turn);if(!roster.length)return 1;const unfinished=roster.filter(member=>!readyForTimer(member)).length;return Math.max(0,Math.min(1,unfinished/roster.length))}
 function readyRatioTurnState(turn=s.turn){if(!(onlineSession.readyRatioTurnStates instanceof Map))onlineSession.readyRatioTurnStates=new Map();const key=String(Math.max(0,Math.floor(Number(turn)||0)));let state=onlineSession.readyRatioTurnStates.get(key);if(!state){state={fraction:1,readyCount:0,total:0};onlineSession.readyRatioTurnStates.set(key,state)}return state}
@@ -13960,7 +13964,7 @@ function onlineHostApplyReadyRatioTimers(){
     const remaining=scaledRemaining(Number(timer.deadline)-now,timerPrevious,next);timer.deadline=now+remaining;timer.readyFractionApplied=next;resetPersonalExpiry(timer,remaining);onlineSendToMember(timer.memberId,{protocol:ONLINE_PROTOCOL,type:'personalTimer',timer,serverNow:now});changed=true;
   }
   const timer=onlineSession.serverTimer;if(timer?.kind==='itemUse'&&Number(timer.turn)===Number(turn)){
-    const timerPrevious=Math.max(.000001,Math.min(previous,Number(timer.readyFractionApplied)||previous));if(next<timerPrevious){const remaining=scaledRemaining(Number(timer.deadline)-now,timerPrevious,next);timer.deadline=now+remaining;timer.readyFractionApplied=next;resetServerExpiry(timer,remaining);onlineApplyServerTimer(timer,now);changed=true}
+    const timerPrevious=Math.max(.000001,Math.min(previous,Number(timer.readyFractionApplied)||previous));if(next<timerPrevious){const remaining=scaledRemaining(Number(timer.deadline)-now,timerPrevious,next);timer.deadline=now+remaining;timer.readyFractionApplied=next;resetServerExpiry(timer,remaining);onlineApplyServerTimer(timer,now);onlineBroadcast({protocol:ONLINE_PROTOCOL,type:'serverTimer',timer:onlineTimerPayload(),serverNow:now});changed=true}
   }
   return changed;
 }
@@ -13976,7 +13980,7 @@ const originalStartServerTimer=onlineHostStartServerTimer;onlineHostStartServerT
 
 /* 部屋メンバーの準備状態が更新されるたびに、部屋主が一度だけ新しい比率を適用する。 */
 const originalBroadcastRoster=onlineBroadcastRoster;onlineBroadcastRoster=function(){onlineHostApplyReadyRatioTimers();return originalBroadcastRoster()};
-window.dcReadyTimerFraction=readyTimerFraction;
+window.dcReadyTimerFraction=readyTimerFraction;window.dcApplyReadyRatioTimers=onlineHostApplyReadyRatioTimers;
 })();
 </script>
 <style id="dreamCrafterPlayerStatusLayoutPatch20260816">
